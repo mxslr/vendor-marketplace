@@ -1,17 +1,5 @@
-feat/merchants
 import { IsString, IsOptional, IsUrl, IsNotEmpty } from 'class-validator';
 
-// DTO untuk pendaftaran toko baru
-=======
-import {
-  IsString,
-  IsOptional,
-  IsUrl,
-  IsBoolean,
-  IsNotEmpty,
-} from 'class-validator';
-
-main
 export class CreateMerchantDto {
   @IsString()
   @IsNotEmpty({ message: 'Nama toko tidak boleh kosong' })
@@ -54,26 +42,11 @@ export class SubmitKybDto {
   portfolioUrl: string;
 }
 
-// kebutuhan untuk update profil toko
+// kebutuhan untuk update profil toko (Hanya Merchant yang bisa akses, tidak wajib semua field diisi)
 export class UpdateProfileDto {
   @IsString() @IsOptional() shopName?: string;
   @IsString() @IsOptional() description?: string;
   @IsUrl() @IsOptional() logoUrl?: string;
   @IsUrl() @IsOptional() bannerUrl?: string;
 }
-feat/merchants
-=======
 
-// Kebutuhan untuk admin menolak toko dengan alasan tertentu
-export class RejectMerchantDto {
-  @IsString()
-  @IsNotEmpty({ message: 'Alasan penolakan wajib diisi' })
-  reason: string;
-}
-
-export class ApproveMerchantDto {
-  @IsBoolean()
-  @IsNotEmpty()
-  status: boolean;
-}
- main

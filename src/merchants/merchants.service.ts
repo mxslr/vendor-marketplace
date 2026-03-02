@@ -14,11 +14,7 @@ import {
 @Injectable()
 export class MerchantsService {
   constructor(private prisma: PrismaService) {}
-
-feat/merchants
   // Endpoint: POST /merchants - Membuat toko baru (Hanya 1 toko per user)
-=======
- main
   async createMerchant(userId: number, dto: CreateMerchantDto) {
     const existingMerchant = await this.prisma.merchant.findUnique({
       where: { userId: userId },
@@ -50,10 +46,7 @@ feat/merchants
     });
   }
 
- feat/merchants
   // Endpoint: POST /merchants/kyb - Submit dokumen KYB untuk verifikasi toko
-=======
- main
   async submitKyb(userId: number, dto: SubmitKybDto) {
     const merchant = await this.prisma.merchant.findUnique({
       where: { userId: userId },
@@ -93,29 +86,17 @@ feat/merchants
     });
   }
   // Penolakan toko oleh admin dengan alasan
- feat/merchants
   async rejectMerchant(merchantId: number) {
-=======
-  async rejectMerchant(merchantId: number, reason: string) {
- main
     return this.prisma.merchant.update({
       where: { id: merchantId },
       data: {
         status: MerchantStatus.REJECTED,
- feat/merchants
         rejectionReason: null,
       },
     });
   }
 
   // Endpoint: PATCH /merchants/profile - Update profil toko (Hanya untuk merchant itu sendiri)
-=======
-        rejectionReason: reason,
-      },
-    });
-  }
-
- main
   async updateProfileMerchant(userId: number, dto: UpdateProfileDto) {
     const merchant = await this.prisma.merchant.findUnique({
       where: { userId },

@@ -16,6 +16,7 @@ export class MerchantsService {
   constructor(private prisma: PrismaService) {}
 
   // Endpoint: POST /merchants - Membuat toko baru (Hanya 1 toko per user)
+
   async createMerchant(userId: number, dto: CreateMerchantDto) {
     const existingMerchant = await this.prisma.merchant.findUnique({
       where: { userId: userId },

@@ -43,7 +43,7 @@ export class SubmitKybDto {
   portfolioUrl: string;
 }
 
-// kebutuhan untuk update profil toko
+// kebutuhan untuk update profil toko (Hanya Merchant yang bisa akses, tidak wajib semua field diisi)
 export class UpdateProfileDto {
   @IsString() @IsOptional() shopName?: string;
   @IsString() @IsOptional() description?: string;

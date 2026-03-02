@@ -53,6 +53,7 @@ export class MerchantsController {
     return this.merchantsService.findMerchantById(id);
   }
   // Edit Profil Toko (Hanya Merchant)
+
   @UseGuards(AuthGuard)
   @Patch('profile')
   updateProfile(
@@ -90,6 +91,7 @@ export class MerchantsController {
     this.checkAdminRole(req.user.role);
     return this.merchantsService.rejectMerchant(id);
   }
+  // Fungsi untuk memeriksa apakah user memiliki role admin
 
   // Fungsi untuk memeriksa role admin
   private checkAdminRole(role: string) {

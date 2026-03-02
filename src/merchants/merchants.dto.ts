@@ -1,3 +1,8 @@
+feat/merchants
+import { IsString, IsOptional, IsUrl, IsNotEmpty } from 'class-validator';
+
+// DTO untuk pendaftaran toko baru
+=======
 import {
   IsString,
   IsOptional,
@@ -6,6 +11,7 @@ import {
   IsNotEmpty,
 } from 'class-validator';
 
+main
 export class CreateMerchantDto {
   @IsString()
   @IsNotEmpty({ message: 'Nama toko tidak boleh kosong' })
@@ -55,6 +61,8 @@ export class UpdateProfileDto {
   @IsUrl() @IsOptional() logoUrl?: string;
   @IsUrl() @IsOptional() bannerUrl?: string;
 }
+feat/merchants
+=======
 
 // Kebutuhan untuk admin menolak toko dengan alasan tertentu
 export class RejectMerchantDto {
@@ -68,3 +76,4 @@ export class ApproveMerchantDto {
   @IsNotEmpty()
   status: boolean;
 }
+ main

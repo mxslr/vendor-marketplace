@@ -49,4 +49,3 @@ export class UpdateProfileDto {
   @IsUrl() @IsOptional() logoUrl?: string;
   @IsUrl() @IsOptional() bannerUrl?: string;
 }
-

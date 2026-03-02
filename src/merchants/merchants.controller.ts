@@ -42,7 +42,10 @@ export class MerchantsController {
     return this.merchantsService.findAllMerchants();
   }
   // Endpoint: GET /merchants/me untuk melihat profil toko sendiri (Hanya Merchant)
+ feat/merchants
   @UseGuards(AuthGuard)
+=======
+ main
   @Get('me')
   findMyMerchant(@Request() req: RequestWithUser) {
     return this.merchantsService.findMerchantByUserId(req.user.sub);
@@ -53,7 +56,10 @@ export class MerchantsController {
     return this.merchantsService.findMerchantById(id);
   }
   // Edit Profil Toko (Hanya Merchant)
+feat/merchants
   @UseGuards(AuthGuard)
+=======
+ main
   @Patch('profile')
   updateProfile(
     @Request() req: RequestWithUser,
@@ -86,12 +92,21 @@ export class MerchantsController {
   reject(
     @Request() req: RequestWithUser,
     @Param('id', ParseIntPipe) id: number,
+feat/merchants
   ) {
     this.checkAdminRole(req.user.role);
     return this.merchantsService.rejectMerchant(id);
   }
 
   // Fungsi untuk memeriksa role admin
+=======
+    @Body() reason: string,
+  ) {
+    this.checkAdminRole(req.user.role);
+    return this.merchantsService.rejectMerchant(id, reason);
+  }
+
+main
   private checkAdminRole(role: string) {
     if (role !== 'SUPER_ADMIN' && role !== 'ADMIN_VALIDATOR') {
       throw new UnauthorizedException('Akses ditolak. Fitur khusus Admin.');

@@ -42,6 +42,7 @@ export class MerchantsController {
     return this.merchantsService.findAllMerchants();
   }
   // Endpoint: GET /merchants/me untuk melihat profil toko sendiri (Hanya Merchant)
+  @UseGuards(AuthGuard)
   @Get('me')
   findMyMerchant(@Request() req: RequestWithUser) {
     return this.merchantsService.findMerchantByUserId(req.user.sub);
@@ -52,6 +53,7 @@ export class MerchantsController {
     return this.merchantsService.findMerchantById(id);
   }
   // Edit Profil Toko (Hanya Merchant)
+  @UseGuards(AuthGuard)
   @Patch('profile')
   updateProfile(
     @Request() req: RequestWithUser,
@@ -84,10 +86,9 @@ export class MerchantsController {
   reject(
     @Request() req: RequestWithUser,
     @Param('id', ParseIntPipe) id: number,
-    @Body() reason: string,
   ) {
     this.checkAdminRole(req.user.role);
-    return this.merchantsService.rejectMerchant(id, reason);
+    return this.merchantsService.rejectMerchant(id);
   }
 
   private checkAdminRole(role: string) {

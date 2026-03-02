@@ -85,12 +85,12 @@ export class MerchantsService {
     });
   }
   // Penolakan toko oleh admin dengan alasan
-  async rejectMerchant(merchantId: number, reason: string) {
+  async rejectMerchant(merchantId: number) {
     return this.prisma.merchant.update({
       where: { id: merchantId },
       data: {
         status: MerchantStatus.REJECTED,
-        rejectionReason: reason,
+        rejectionReason: null,
       },
     });
   }

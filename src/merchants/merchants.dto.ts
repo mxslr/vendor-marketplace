@@ -1,10 +1,4 @@
-import {
-  IsString,
-  IsOptional,
-  IsUrl,
-  IsBoolean,
-  IsNotEmpty,
-} from 'class-validator';
+import { IsString, IsOptional, IsUrl, IsNotEmpty } from 'class-validator';
 
 export class CreateMerchantDto {
   @IsString()
@@ -54,17 +48,4 @@ export class UpdateProfileDto {
   @IsString() @IsOptional() description?: string;
   @IsUrl() @IsOptional() logoUrl?: string;
   @IsUrl() @IsOptional() bannerUrl?: string;
-}
-
-// Kebutuhan untuk admin menolak toko dengan alasan tertentu
-export class RejectMerchantDto {
-  @IsString()
-  @IsNotEmpty({ message: 'Alasan penolakan wajib diisi' })
-  reason: string;
-}
-
-export class ApproveMerchantDto {
-  @IsBoolean()
-  @IsNotEmpty()
-  status: boolean;
 }

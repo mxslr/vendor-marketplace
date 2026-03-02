@@ -53,7 +53,6 @@ export class MerchantsController {
     return this.merchantsService.findMerchantById(id);
   }
   // Edit Profil Toko (Hanya Merchant)
-
   @UseGuards(AuthGuard)
   @Patch('profile')
   updateProfile(
@@ -92,8 +91,6 @@ export class MerchantsController {
     return this.merchantsService.rejectMerchant(id);
   }
   // Fungsi untuk memeriksa apakah user memiliki role admin
-
-  // Fungsi untuk memeriksa role admin
   private checkAdminRole(role: string) {
     if (role !== 'SUPER_ADMIN' && role !== 'ADMIN_VALIDATOR') {
       throw new UnauthorizedException('Akses ditolak. Fitur khusus Admin.');

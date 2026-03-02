@@ -1,5 +1,6 @@
 import { IsString, IsOptional, IsUrl, IsNotEmpty } from 'class-validator';
 
+// DTO untuk pendaftaran toko baru
 export class CreateMerchantDto {
   @IsString()
   @IsNotEmpty({ message: 'Nama toko tidak boleh kosong' })

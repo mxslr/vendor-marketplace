@@ -91,6 +91,7 @@ export class MerchantsController {
     return this.merchantsService.rejectMerchant(id);
   }
 
+  // Fungsi untuk memeriksa role admin
   private checkAdminRole(role: string) {
     if (role !== 'SUPER_ADMIN' && role !== 'ADMIN_VALIDATOR') {
       throw new UnauthorizedException('Akses ditolak. Fitur khusus Admin.');

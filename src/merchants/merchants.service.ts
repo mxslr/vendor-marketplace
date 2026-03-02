@@ -15,6 +15,7 @@ import {
 export class MerchantsService {
   constructor(private prisma: PrismaService) {}
 
+  // Endpoint: POST /merchants - Membuat toko baru (Hanya 1 toko per user)
   async createMerchant(userId: number, dto: CreateMerchantDto) {
     const existingMerchant = await this.prisma.merchant.findUnique({
       where: { userId: userId },
@@ -46,6 +47,7 @@ export class MerchantsService {
     });
   }
 
+  // Endpoint: POST /merchants/kyb - Submit dokumen KYB untuk verifikasi toko
   async submitKyb(userId: number, dto: SubmitKybDto) {
     const merchant = await this.prisma.merchant.findUnique({
       where: { userId: userId },
@@ -95,6 +97,7 @@ export class MerchantsService {
     });
   }
 
+  // Endpoint: PATCH /merchants/profile - Update profil toko (Hanya untuk merchant itu sendiri)
   async updateProfileMerchant(userId: number, dto: UpdateProfileDto) {
     const merchant = await this.prisma.merchant.findUnique({
       where: { userId },

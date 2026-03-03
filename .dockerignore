@@ -6,3 +6,4 @@ Dockerfile
 .gitignore
 .env
 dist
+TODO.md

@@ -14,7 +14,19 @@ import { AdminValidatorModule } from './admin-validator/admin-validator.module';
 import { DisputesModule } from './disputes/disputes.module';
 
 @Module({
-  imports: [PrismaModule, UsersModule, AuthModule, MerchantsModule, GigsModule, OrdersModule, DeliverablesModule, ReviewsModule, MerchantAssociatesModule, AdminValidatorModule, DisputesModule],
+  imports: [
+    PrismaModule,
+    UsersModule,
+    AuthModule,
+    MerchantsModule,
+    GigsModule,
+    OrdersModule,
+    DeliverablesModule,
+    ReviewsModule,
+    MerchantAssociatesModule,
+    AdminValidatorModule,
+    DisputesModule,
+  ],
   controllers: [AppController],
   providers: [AppService],
 })

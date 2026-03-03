@@ -4,6 +4,6 @@ import { DeliverablesController } from './deliverables.controller';
 
 @Module({
   providers: [DeliverablesService],
-  controllers: [DeliverablesController]
+  controllers: [DeliverablesController],
 })
 export class DeliverablesModule {}

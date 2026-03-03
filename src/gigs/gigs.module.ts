@@ -4,6 +4,6 @@ import { GigsController } from './gigs.controller';
 
 @Module({
   providers: [GigsService],
-  controllers: [GigsController]
+  controllers: [GigsController],
 })
 export class GigsModule {}

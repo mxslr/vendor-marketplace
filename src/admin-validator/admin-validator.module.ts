@@ -4,6 +4,6 @@ import { AdminValidatorController } from './admin-validator.controller';
 
 @Module({
   providers: [AdminValidatorService],
-  controllers: [AdminValidatorController]
+  controllers: [AdminValidatorController],
 })
 export class AdminValidatorModule {}

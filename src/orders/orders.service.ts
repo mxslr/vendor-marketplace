@@ -4,7 +4,12 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { OrderStatus, AssociatePermission } from '@prisma/client';
+import { 
+  OrderStatus, 
+  AssociatePermission, 
+  TransactionType, 
+  TransactionStatus 
+} from '@prisma/client';
 
 @Injectable()
 export class OrdersService {
@@ -31,15 +36,44 @@ export class OrdersService {
     });
   }
 
-  async payOrder(orderId: number, clientId: number) {
+  // 👇 INI YANG KITA ROMBAK TOTAL BIAR NYETAK TRANSAKSI
+  async payOrder(orderId: number, clientId: number, proofUrl?: string) {
     const order = await this.prisma.order.findFirst({
       where: { id: orderId, clientId: clientId },
     });
-    if (!order) throw new NotFoundException('Pesanan tidak ditemukan.');
+    
+    if (!order) {
+      throw new NotFoundException('Pesanan tidak ditemukan.');
+    }
+    if (order.status !== OrderStatus.UNPAID) {
+      throw new BadRequestException('Pesanan ini sudah dibayar atau diproses.');
+    }
 
-    return this.prisma.order.update({
-      where: { id: orderId },
-      data: { status: OrderStatus.PAID_PENDING_CONFIRMATION },
+    // Pakai Prisma Transaction biar Order dan Transaction ke-update barengan
+    return this.prisma.$transaction(async (prisma) => {
+      // 1. Ubah status Order
+      const updatedOrder = await prisma.order.update({
+        where: { id: orderId },
+        data: { status: OrderStatus.PAID_PENDING_CONFIRMATION },
+      });
+
+      // 2. Buat riwayat di tabel Transaction untuk Finance [cite: 122-132, 168-184]
+      const newTransaction = await prisma.transaction.create({
+        data: {
+          orderId: order.id,
+          userId: clientId,
+          type: TransactionType.PAYMENT,
+          amount: order.totalAmount,
+          status: TransactionStatus.PENDING,
+          proofUrl: proofUrl || "https://dummy-bukti-transfer.jpg",
+        },
+      });
+
+      return {
+        message: 'Pembayaran berhasil, menunggu konfirmasi Finance.',
+        order: updatedOrder,
+        transaction: newTransaction,
+      };
     });
   }
 

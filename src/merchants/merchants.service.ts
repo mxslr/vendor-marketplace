@@ -14,7 +14,7 @@ import {
 @Injectable()
 export class MerchantsService {
   constructor(private prisma: PrismaService) {}
-  // Endpoint: POST /merchants - Membuat toko baru (Hanya 1 toko per user)
+  // Endpoint: POST /merchants 
   async createMerchant(userId: number, dto: CreateMerchantDto) {
     const existingMerchant = await this.prisma.merchant.findUnique({
       where: { userId: userId },
@@ -34,14 +34,6 @@ export class MerchantsService {
         logoUrl: dto.logoUrl,
         bannerUrl: dto.bannerUrl,
         status: MerchantStatus.INCOMPLETE, // Status awal saat membuat toko, menunggu pengisian KYB
-        bankAccounts: {
-          create: {
-            bankName: dto.bankName,
-            accountNumber: dto.accountNumber,
-            accountHolderName: dto.accountHolderName,
-            isPrimary: true,
-          },
-        },
       },
     });
   }
@@ -59,7 +51,6 @@ export class MerchantsService {
         'Toko sudah diverifikasi atau sedang dalam antrean.',
       );
     }
-    // Simpan data KYB sebagai JSON string di database
     const kybDataString = JSON.stringify({
       kybDocumentUrl: dto.kybDocumentUrl,
       portfolioUrl: dto.portfolioUrl,

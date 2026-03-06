@@ -12,6 +12,7 @@ import { ReviewsModule } from './reviews/reviews.module';
 import { MerchantAssociatesModule } from './merchant-associates/merchant-associates.module';
 import { AdminValidatorModule } from './admin-validator/admin-validator.module';
 import { DisputesModule } from './disputes/disputes.module';
+import { TransactionsModule } from './transactions/transactions.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { DisputesModule } from './disputes/disputes.module';
     MerchantAssociatesModule,
     AdminValidatorModule,
     DisputesModule,
+    TransactionsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

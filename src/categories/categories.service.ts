@@ -5,7 +5,7 @@ import { Role } from '@prisma/client';
 @Injectable()
 export class CategoriesService {
   constructor(private prisma: PrismaService) {}
-// Fungsi helper untuk cek apakah user punya role admin yang diperlukan
+
   private async checkAdminRole(userId: number, allowedRoles: Role[]) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user || !allowedRoles.includes(user.role)) {
@@ -14,7 +14,7 @@ export class CategoriesService {
       );
     }
   }
-// Endpoint: POST /categories - Hanya admin yang bisa buat kategori baru
+
   async create(userId: number, data: { name: string; commissionRate: number }) {
     await this.checkAdminRole(userId, [Role.SUPER_ADMIN, Role.ADMIN_VALIDATOR]);
     return this.prisma.category.create({
@@ -30,7 +30,7 @@ export class CategoriesService {
       orderBy: { name: 'asc' }, 
     });
   }
-// Endpoint: GET /categories/:id - Lihat detail kategori beserta gigs aktif di dalamnya
+
   async findOne(id: number) {
     const category = await this.prisma.category.findUnique({
       where: { id },
@@ -48,7 +48,6 @@ export class CategoriesService {
     return category;
   }
 
-// Hanya SUPER_ADMIN yang bisa update kategori, karena ini akan berpengaruh ke banyak data lain (gig, transaksi, dsb)
   async update(userId: number, id: number, data: { name?: string; commissionRate?: number }) {
     await this.checkAdminRole(userId, [Role.SUPER_ADMIN]);
     await this.findOne(id); 
@@ -58,7 +57,6 @@ export class CategoriesService {
     });
   }
 
-// Hanya SUPER_ADMIN yang bisa hapus kategori, karena ini akan berpengaruh ke banyak data lain (gig, transaksi, dsb)
   async remove(userId: number, id: number) {
     await this.checkAdminRole(userId, [Role.SUPER_ADMIN]);
     await this.findOne(id);

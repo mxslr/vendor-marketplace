@@ -36,7 +36,6 @@ export class OrdersService {
     });
   }
 
-  // 👇 INI YANG KITA ROMBAK TOTAL BIAR NYETAK TRANSAKSI
   async payOrder(orderId: number, clientId: number, proofUrl?: string) {
     const order = await this.prisma.order.findFirst({
       where: { id: orderId, clientId: clientId },
@@ -49,15 +48,12 @@ export class OrdersService {
       throw new BadRequestException('Pesanan ini sudah dibayar atau diproses.');
     }
 
-    // Pakai Prisma Transaction biar Order dan Transaction ke-update barengan
     return this.prisma.$transaction(async (prisma) => {
-      // 1. Ubah status Order
       const updatedOrder = await prisma.order.update({
         where: { id: orderId },
         data: { status: OrderStatus.PAID_PENDING_CONFIRMATION },
       });
 
-      // 2. Buat riwayat di tabel Transaction untuk Finance [cite: 122-132, 168-184]
       const newTransaction = await prisma.transaction.create({
         data: {
           orderId: order.id,

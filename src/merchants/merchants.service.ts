@@ -33,12 +33,11 @@ export class MerchantsService {
         description: dto.description,
         logoUrl: dto.logoUrl,
         bannerUrl: dto.bannerUrl,
-        status: MerchantStatus.INCOMPLETE, // Status awal saat membuat toko, menunggu pengisian KYB
+        status: MerchantStatus.INCOMPLETE, 
       },
     });
   }
 
-  // Endpoint: POST /merchants/kyb - Submit dokumen KYB untuk verifikasi toko
   async submitKyb(userId: number, dto: SubmitKybDto) {
     const merchant = await this.prisma.merchant.findUnique({
       where: { userId: userId },
@@ -55,7 +54,6 @@ export class MerchantsService {
       kybDocumentUrl: dto.kybDocumentUrl,
       portfolioUrl: dto.portfolioUrl,
     });
-    // Update KYB documents and set status to PENDING_VERIFICATION for admin review
     return this.prisma.merchant.update({
       where: { id: merchant.id },
       data: {
@@ -65,18 +63,15 @@ export class MerchantsService {
       },
     });
   }
-  //  Endpoint: GET /merchants - List semua toko (publik)
   async findAllMerchants() {
     return this.prisma.merchant.findMany();
   }
-  // Approval toko oleh admin
   async approveMerchant(merchantId: number) {
     return this.prisma.merchant.update({
       where: { id: merchantId },
       data: { status: MerchantStatus.ACTIVE },
     });
   }
-  // Penolakan toko oleh admin dengan alasan
   async rejectMerchant(merchantId: number) {
     return this.prisma.merchant.update({
       where: { id: merchantId },
@@ -87,7 +82,6 @@ export class MerchantsService {
     });
   }
 
-  // Endpoint: PATCH /merchants/profile - Update profil toko (Hanya untuk merchant itu sendiri)
   async updateProfileMerchant(userId: number, dto: UpdateProfileDto) {
     const merchant = await this.prisma.merchant.findUnique({
       where: { userId },
@@ -109,12 +103,11 @@ export class MerchantsService {
     });
   }
 
-  // Untuk profil sendiri (lewat token)
   async findMerchantByUserId(userId: number) {
     const merchant = await this.prisma.merchant.findUnique({
       where: { userId: userId },
       include: {
-        bankAccounts: true, // Merchant boleh lihat rekeningnya sendiri
+        bankAccounts: true, 
         gigs: true,
       },
     });
@@ -122,10 +115,9 @@ export class MerchantsService {
     if (!merchant) throw new NotFoundException('Kamu belum memiliki toko.');
     return merchant;
   }
-  // Untuk profil publik (lewat URL param)
   async findMerchantById(merchantId: number) {
     const merchant = await this.prisma.merchant.findUnique({
-      where: { id: merchantId, status: MerchantStatus.ACTIVE }, // Hanya tampilkan toko yang sudah aktif
+      where: { id: merchantId, status: MerchantStatus.ACTIVE }, 
       select: {
         id: true,
         userId: true,
@@ -138,7 +130,7 @@ export class MerchantsService {
         createdAt: true,
 
         gigs: {
-          where: { status: 'ACTIVE' }, // Publik hanya boleh lihat jasa yang sudah ACTIVE
+          where: { status: 'ACTIVE' }, 
         },
       },
     });

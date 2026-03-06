@@ -34,7 +34,7 @@ export class AdminValidatorService {
   async verifyMerchant(
     userId: number,
     merchantId: number,
-    isApproved: boolean,
+    status: MerchantStatus, 
     rejectionReason?: string,
   ) {
     await this.checkAdminRole(userId);
@@ -49,7 +49,7 @@ export class AdminValidatorService {
       );
     }
 
-    if (!isApproved && !rejectionReason) {
+    if (status === MerchantStatus.REJECTED && !rejectionReason) {
       throw new BadRequestException(
         'Alasan penolakan wajib diisi jika menolak verifikasi toko.',
       );
@@ -58,8 +58,8 @@ export class AdminValidatorService {
     return this.prisma.merchant.update({
       where: { id: merchantId },
       data: {
-        status: isApproved ? MerchantStatus.ACTIVE : MerchantStatus.REJECTED,
-        rejectionReason: isApproved ? null : rejectionReason,
+        status: status, 
+        rejectionReason: status === MerchantStatus.REJECTED ? rejectionReason : null,
       },
     });
   }

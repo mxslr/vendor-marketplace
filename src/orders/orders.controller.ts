@@ -36,8 +36,12 @@ export class OrdersController {
 
   @UseGuards(AuthGuard)
   @Patch(':id/pay')
-  payOrder(@Request() req: RequestWithUser, @Param('id') id: string) {
-    return this.ordersService.payOrder(Number(id), req.user.sub);
+  payOrder(
+    @Request() req: RequestWithUser,
+    @Param('id') id: string,
+    @Body() body: { proofUrl?: string }, 
+  ) {
+    return this.ordersService.payOrder(Number(id), req.user.sub, body?.proofUrl); 
   }
 
   @UseGuards(AuthGuard)

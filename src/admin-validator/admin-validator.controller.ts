@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import { AdminValidatorService } from './admin-validator.service';
 import { AuthGuard } from '../auth/auth.guard';
+import { MerchantStatus } from '@prisma/client'; 
 
 interface RequestWithUser extends Request {
   user: {
@@ -31,12 +32,12 @@ export class AdminValidatorController {
   verifyMerchant(
     @Request() req: RequestWithUser,
     @Param('id') id: string,
-    @Body() body: { isApproved: boolean; rejectionReason?: string },
+    @Body() body: { status: MerchantStatus; rejectionReason?: string }, 
   ) {
     return this.adminValidatorService.verifyMerchant(
       req.user.sub,
       parseInt(id, 10),
-      body.isApproved,
+      body.status, 
       body.rejectionReason,
     );
   }

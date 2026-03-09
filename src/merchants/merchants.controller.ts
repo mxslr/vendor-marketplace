@@ -41,22 +41,23 @@ export class MerchantsController {
   findAll() {
     return this.merchantsService.findAllMerchants();
   }
-  // Endpoint: GET /merchants/me untuk melihat profil toko sendiri (Hanya Merchant)
+  // Endpoint: GET /merchants/profile untuk melihat profil toko sendiri (Hanya Merchant)
   @UseGuards(AuthGuard)
-  @Get('me')
+  @Get('profile')
   findMyMerchant(@Request() req: RequestWithUser) {
-    return this.merchantsService.findMerchantByUserId(req.user.sub);
+    return this.merchantsService.findMyMerchantByUserId(req.user.sub);
   }
   // Endpoint: GET /merchants/:id untuk melihat profil toko lain (Publik)
-  @Get(':id')
+  @Get('details/:id')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.merchantsService.findMerchantById(id);
   }
   // Edit Profil Toko (Hanya Merchant)
   @UseGuards(AuthGuard)
-  @Patch('profile')
+  @Patch(':id/edit/profile')
   updateProfile(
     @Request() req: RequestWithUser,
+    @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateProfileDto,
   ) {
     return this.merchantsService.updateProfileMerchant(req.user.sub, dto);
@@ -69,31 +70,12 @@ export class MerchantsController {
     return this.merchantsService.submitKyb(req.user.sub, dto);
   }
 
-  // Endpoint: PATCH /merchants/:id/approve Approval dari Admin
   @UseGuards(AuthGuard)
-  @Patch(':id/approve')
-  approve(
+  @Patch('vacation-mode')
+  toggleVacationMode(
     @Request() req: RequestWithUser,
-    @Param('id', ParseIntPipe) id: number,
+    @Body('isOnVacation') isOnVacation: boolean,
   ) {
-    this.checkAdminRole(req.user.role);
-    return this.merchantsService.approveMerchant(id);
-  }
-
-  // Endpoint: PATCH /merchants/:id/reject Rejection dari Admin dengan alasan
-  @UseGuards(AuthGuard)
-  @Patch(':id/reject')
-  reject(
-    @Request() req: RequestWithUser,
-    @Param('id', ParseIntPipe) id: number,
-  ) {
-    this.checkAdminRole(req.user.role);
-    return this.merchantsService.rejectMerchant(id);
-  }
-  // Fungsi untuk memeriksa apakah user memiliki role admin
-  private checkAdminRole(role: string) {
-    if (role !== 'SUPER_ADMIN' && role !== 'ADMIN_VALIDATOR') {
-      throw new UnauthorizedException('Akses ditolak. Fitur khusus Admin.');
-    }
+    return this.merchantsService.toggleVacationMode(req.user.sub, isOnVacation);
   }
 }

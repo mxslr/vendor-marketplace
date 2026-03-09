@@ -15,20 +15,7 @@ export class CreateMerchantDto {
 
   @IsUrl({}, { message: 'Format URL banner tidak valid' })
   @IsOptional()
-  bannerUrl?: string;
-
-  // Detail Bank wajib diisi saat Onboarding
-  @IsString()
-  @IsNotEmpty()
-  bankName: string;
-
-  @IsString()
-  @IsNotEmpty()
-  accountNumber: string;
-
-  @IsString()
-  @IsNotEmpty()
-  accountHolderName: string;
+  bannerUrl?: string; 
 }
 
 // Wajib upload dokumen identitas dan portofolio untuk verifikasi KYB

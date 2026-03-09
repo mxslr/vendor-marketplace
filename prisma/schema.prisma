@@ -148,7 +148,7 @@ model Merchant {
   status          MerchantStatus @default(INCOMPLETE)
   walletBalance   Decimal        @default(0.0) @db.Decimal(15, 2)
   pendingBalance  Decimal        @default(0.0) @db.Decimal(15, 2)
-  kybDocuments    String?        // JSON array URL dokumen KTM/SK
+  kybDocuments    String?  
   rejectionReason String?
   badge           MerchantBadge  @default(NEWCOMER)
   createdAt       DateTime       @default(now())
@@ -288,7 +288,7 @@ model Dispute {
   id           Int           @id @default(autoincrement())
   orderId      Int           @unique
   reason       String
-  evidenceUrls String?       // JSON array of URLs (screenshot/bukti)
+  evidenceUrls String?       
   status       DisputeStatus @default(OPEN)
   validatorId  Int?
   verdictNote  String?
@@ -305,7 +305,7 @@ model Transaction {
   type       TransactionType
   amount     Decimal           @db.Decimal(15, 2)
   status     TransactionStatus @default(PENDING)
-  proofUrl   String?           // Bukti transfer (upload manual)
+  proofUrl   String?           
   verifiedBy Int?
   createdAt  DateTime          @default(now())
 
@@ -352,11 +352,11 @@ model MonthlyReport {
   id              Int                 @id @default(autoincrement())
   period          String              
   totalGmv        Decimal             @db.Decimal(15, 2)
-  grossRevenue    Decimal             @db.Decimal(15, 2) // Commission Fee + Ad Revenue
-  operationalCost Decimal             @db.Decimal(15, 2) // Input manual oleh Finance
-  netProfit       Decimal             @db.Decimal(15, 2) // grossRevenue - operationalCost
-  cscShare        Decimal             @db.Decimal(15, 2) // Nominal jatah CSC (misal 60%)
-  cciShare        Decimal             @db.Decimal(15, 2) // Nominal jatah CCI (misal 40%)
+  grossRevenue    Decimal             @db.Decimal(15, 2) 
+  operationalCost Decimal             @db.Decimal(15, 2) 
+  netProfit       Decimal             @db.Decimal(15, 2) 
+  cscShare        Decimal             @db.Decimal(15, 2) 
+  cciShare        Decimal             @db.Decimal(15, 2) 
   status          MonthlyReportStatus @default(DRAFT)
   proofOfTransfer String?             
   createdAt       DateTime            @default(now())

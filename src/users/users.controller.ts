@@ -4,17 +4,17 @@ import { Prisma } from '@prisma/client';
 
 @Controller('users')
 export class UsersController {
-    constructor(private readonly usersService: UsersService) {}
+  constructor(private readonly usersService: UsersService) {}
 
-  // Endpoint: POST /users 
-    @Post()
-    async createUser(@Body() userData: Prisma.UserCreateInput) {
+  // Endpoint: POST /users
+  @Post()
+  async createUser(@Body() userData: Prisma.UserCreateInput) {
     return this.usersService.createUser(userData);
-    }
+  }
 
-  // Endpoint: GET /users 
-    @Get()
-    async findAll() {
+  // Endpoint: GET /users
+  @Get()
+  async findAll() {
     return this.usersService.findAllUsers();
-    }
+  }
 }

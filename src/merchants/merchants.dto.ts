@@ -1,0 +1,38 @@
+import { IsString, IsOptional, IsUrl, IsNotEmpty } from 'class-validator';
+
+export class CreateMerchantDto {
+  @IsString()
+  @IsNotEmpty({ message: 'Nama toko tidak boleh kosong' })
+  shopName: string;
+
+  @IsString()
+  @IsOptional()
+  description?: string;
+
+  @IsUrl({}, { message: 'Format URL logo tidak valid' })
+  @IsOptional()
+  logoUrl?: string;
+
+  @IsUrl({}, { message: 'Format URL banner tidak valid' })
+  @IsOptional()
+  bannerUrl?: string; 
+}
+
+// Wajib upload dokumen identitas dan portofolio untuk verifikasi KYB
+export class SubmitKybDto {
+  @IsUrl()
+  @IsNotEmpty()
+  kybDocumentUrl: string;
+
+  @IsUrl()
+  @IsNotEmpty()
+  portfolioUrl: string;
+}
+
+// kebutuhan untuk update profil toko (Hanya Merchant yang bisa akses, tidak wajib semua field diisi)
+export class UpdateProfileDto {
+  @IsString() @IsOptional() shopName?: string;
+  @IsString() @IsOptional() description?: string;
+  @IsUrl() @IsOptional() logoUrl?: string;
+  @IsUrl() @IsOptional() bannerUrl?: string;
+}

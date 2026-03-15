@@ -17,13 +17,13 @@ export class AuthController {
 
   @HttpCode(HttpStatus.OK)
   @Post('login')
-  signIn(@Body() signIn: { email: string; password: string }) {
+  signIn(@Body() signIn: Record<string, any>) {
     return this.authService.signIn(signIn.email, signIn.password);
   }
 
   @UseGuards(AuthGuard)
   @Get('profile')
-  getProfile(@Request() req: { user: any }): any {
+  getProfile(@Request() req: any) {
     return req.user;
   }
 }

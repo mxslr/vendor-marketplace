@@ -17,6 +17,7 @@ import {
   SubmitKybDto,
   UpdateProfileDto,
 } from './merchants.dto';
+import { MerchantStatus } from '@prisma/client';
 
 interface RequestWithUser extends Request {
   user: {
@@ -57,7 +58,7 @@ export class MerchantsController {
   @Patch(':id/edit/profile')
   updateProfile(
     @Request() req: RequestWithUser,
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id', ParseIntPipe) 
     @Body() dto: UpdateProfileDto,
   ) {
     return this.merchantsService.updateProfileMerchant(req.user.sub, dto);
@@ -74,8 +75,13 @@ export class MerchantsController {
   @Patch('vacation-mode')
   toggleVacationMode(
     @Request() req: RequestWithUser,
-    @Body('isOnVacation') isOnVacation: boolean,
-  ) {
+    @Body('isOnVacation') isOnVacation: boolean,) {
     return this.merchantsService.toggleVacationMode(req.user.sub, isOnVacation);
+    }
+  
+  @UseGuards(AuthGuard)
+  @Patch('closed')
+  closeMerchant(@Request() req: RequestWithUser) {
+    return this.merchantsService.closeMerchant(req.user.sub);
   }
 }

@@ -58,12 +58,10 @@ export class MerchantsService {
         'Toko sudah diverifikasi atau sedang dalam antrean.',
       );
     }
-    // Simpan data KYB sebagai JSON string di database
     const kybDataString = JSON.stringify({
       kybDocumentUrl: dto.kybDocumentUrl,
       portfolioUrl: dto.portfolioUrl,
     });
-    // Update KYB documents and set status to PENDING_VERIFICATION for admin review
     return this.prisma.merchant.update({
       where: { id: merchant.id },
       data: {
@@ -73,7 +71,6 @@ export class MerchantsService {
       },
     });
   }
-  //  Endpoint: GET /merchants - List semua toko (publik)
   async findAllMerchants() {
     return this.prisma.merchant.findMany({
       where: { status: MerchantStatus.ACTIVE }, // Hanya tampilkan toko yang sudah aktif
@@ -106,7 +103,7 @@ export class MerchantsService {
     const merchant = await this.prisma.merchant.findUnique({
       where: { userId: userId },
       include: {
-        bankAccounts: true, // Merchant boleh lihat rekeningnya sendiri
+        bankAccounts: true, 
         gigs: true,
       },
     });
@@ -122,7 +119,7 @@ export class MerchantsService {
   // Untuk profil publik (lewat URL param)
   async findMerchantById(merchantId: number) {
     const merchant = await this.prisma.merchant.findUnique({
-      where: { id: merchantId, status: MerchantStatus.ACTIVE }, // Hanya tampilkan toko yang sudah aktif
+      where: { id: merchantId, status: MerchantStatus.ACTIVE }, 
       select: {
         id: true,
         userId: true,
@@ -133,7 +130,7 @@ export class MerchantsService {
         status: true,
         badge: true,
         gigs: {
-          where: { status: 'ACTIVE' }, // Publik hanya boleh lihat jasa yang sudah ACTIVE
+          where: { status: 'ACTIVE' }, 
         },
       },
     });
@@ -148,10 +145,36 @@ export class MerchantsService {
       where: { userId },
     });
     if (!merchant) throw new NotFoundException('Toko tidak ditemukan.');
+    if (merchant.status !== MerchantStatus.ACTIVE) {
+      throw new BadRequestException(
+        'Hanya toko terverifikasi yang dapat mengubah mode liburan.',
+      );
+    }
     return this.prisma.merchant.update({
       where: { id: merchant.id },
       data: { status: isOnVacation ? MerchantStatus.VACATION : MerchantStatus.ACTIVE }
       });
+    }
+
+  async closeMerchant(userId: number) {
+    const merchant = await this.prisma.merchant.findUnique({
+      where: { userId }
+    });
+
+    if (!merchant) {
+      throw new NotFoundException('Toko tidak ditemukan.')
+    }
+
+    if (merchant.status !== MerchantStatus.ACTIVE) {
+      throw new BadRequestException(
+        'Hanya toko aktif yang bisa menutup toko'
+      )
+    }
+
+      return this.prisma.merchant.update({
+        where: { id: merchant.id },
+        data: { status: MerchantStatus.CLOSED }
+      })
     }
   }
 

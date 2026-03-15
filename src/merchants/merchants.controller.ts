@@ -17,6 +17,7 @@ import {
   SubmitKybDto,
   UpdateProfileDto,
 } from './merchants.dto';
+import { MerchantStatus } from '@prisma/client';
 
 interface RequestWithUser extends Request {
   user: {
@@ -77,5 +78,4 @@ export class MerchantsController {
     @Body('isOnVacation') isOnVacation: boolean,) {
     return this.merchantsService.toggleVacationMode(req.user.sub, isOnVacation);
     }
-}
-
+  }

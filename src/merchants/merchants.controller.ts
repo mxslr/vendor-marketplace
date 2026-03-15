@@ -42,7 +42,7 @@ export class MerchantsController {
   findAll() {
     return this.merchantsService.findAllMerchants();
   }
-  // Endpoint: GET /merchants/me untuk melihat profil toko sendiri (Hanya Merchant)
+  // Endpoint: GET /merchants/profile untuk melihat profil toko sendiri (Hanya Merchant)
   @UseGuards(AuthGuard)
   @Get('profile')
   findMyMerchant(@Request() req: RequestWithUser) {

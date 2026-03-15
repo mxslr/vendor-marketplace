@@ -7,7 +7,7 @@ interface RequestWithUsers extends Request {
   user: {
     sub: number;
     role: string;
-  };
+  }
 }
 
 @Controller('gigs')

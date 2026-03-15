@@ -13,6 +13,7 @@ interface RequestWithUsers extends Request {
 @Controller('gigs')
 export class GigsController {
   constructor(private gigsService: GigsService) {}
+  constructor(private gigsService: GigsService) {}
 
 @UseGuards(AuthGuard)
 @Post()
@@ -35,3 +36,4 @@ export class GigsController {
       return this.gigsService.detailGigs(id)
     }
 }
+

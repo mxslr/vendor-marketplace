@@ -3,12 +3,18 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateGigDto, PromoteGigDto } from './gigs.dto';
 import { GigStatus, MerchantStatus } from '@prisma/client';
 
 @Injectable()
 export class GigsService {
+  constructor(private prisma: PrismaService) {}
   constructor(private prisma: PrismaService) {}
 
   // Endpoint untuk merchant(vendor) membuat jasa baru. Saat dibuat, status jasa langsung jadi PENDING_APPROVAL, nanti admin yang akan approve supaya statusnya jadi ACTIVE dan bisa dilihat pembeli.
@@ -42,6 +48,16 @@ export class GigsService {
   // Untuk endpoint listing jasa, kita hanya menampilkan jasa dengan status ACTIVE dan dari merchant yang statusnya ACTIVE juga. Jadi kita pastikan hanya jasa yang sudah disetujui dan dari toko yang sudah aktif yang bisa dilihat pembeli.
   async findAllActiveGigs() {
     return this.prisma.gig.findMany({
+      where: { status: GigStatus.ACTIVE },
+      include: {
+        merchant: {
+          select: {
+            shopName: true,
+            user: { select: { fullName: true } },
+          },
+        },
+        category: true,
+      },
       where: { status: GigStatus.ACTIVE },
       include: {
         merchant: {

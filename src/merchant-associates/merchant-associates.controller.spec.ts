@@ -9,7 +9,9 @@ describe('MerchantAssociatesController', () => {
       controllers: [MerchantAssociatesController],
     }).compile();
 
-    controller = module.get<MerchantAssociatesController>(MerchantAssociatesController);
+    controller = module.get<MerchantAssociatesController>(
+      MerchantAssociatesController,
+    );
   });
 
   it('should be defined', () => {

@@ -41,3 +41,4 @@ removeGig(@Param('id') id: string) {
   return this.gigsService.removeGigs(Number(id));
 }
 }
+

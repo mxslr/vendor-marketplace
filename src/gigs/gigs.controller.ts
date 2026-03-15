@@ -4,8 +4,8 @@ import { AuthGuard } from '../auth/auth.guard';
 import { CreateGigDto } from './gigs.dto';
 
 interface RequestWithUsers extends Request {
-  user:{
-    sub : number;
+  user: {
+    sub: number;
     role: string;
   }
 }
@@ -35,3 +35,4 @@ export class GigsController {
       return this.gigsService.detailGigs(id)
     }
 }
+

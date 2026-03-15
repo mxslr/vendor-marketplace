@@ -155,5 +155,26 @@ export class MerchantsService {
       data: { status: isOnVacation ? MerchantStatus.VACATION : MerchantStatus.ACTIVE }
       });
     }
+
+  async closeMerchant(userId: number) {
+    const merchant = await this.prisma.merchant.findUnique({
+      where: { userId }
+    });
+
+    if (!merchant) {
+      throw new NotFoundException('Toko tidak ditemukan.')
+    }
+
+    if (merchant.status !== MerchantStatus.ACTIVE) {
+      throw new BadRequestException(
+        'Hanya toko aktif yang bisa menutup toko'
+      )
+    }
+
+      return this.prisma.merchant.update({
+        where: { id: merchant.id },
+        data: { status: MerchantStatus.CLOSED }
+      })
+    }
   }
 

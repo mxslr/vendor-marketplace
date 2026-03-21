@@ -159,4 +159,18 @@ export class GigsService {
       });
     }
   }
+  async removeGigs(gigId: number) {
+    const gig = await this.prisma.gig.findUnique({
+      where : { id : gigId}
+    });
+
+    if (!gig) {
+      throw new NotFoundException('Gig tidak ditemukan');
+    }
+
+    return this.prisma.gig.update({
+      where : { id : gigId},
+      data: { status : GigStatus.REMOVED}
+    })
+  }
 }

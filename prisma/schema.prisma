@@ -99,6 +99,12 @@ enum WithdrawalStatus {
   REJECTED
 }
 
+enum FeaturedStatus {
+  NONE
+  FEATURED
+}
+
+
 enum FeaturedPaymentStatus {
   PENDING_PAYMENT
   PENDING_VERIFICATION
@@ -211,7 +217,8 @@ model Gig {
   status         GigStatus @default(DRAFT)
   rejectionReason String?  
   createdAt      DateTime  @default(now())
-
+  featuredStatus FeaturedStatus @default(NONE)
+  featuredUntil DateTime?
   // Relations
   merchant           Merchant            @relation(fields: [merchantId], references: [id])
   category           Category            @relation(fields: [categoryId], references: [id])

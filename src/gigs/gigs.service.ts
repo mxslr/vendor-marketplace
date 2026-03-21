@@ -84,80 +84,19 @@ export class GigsService {
     return gig;
   }
 
-  async promoteGig(userId: number, dto: PromoteGigDto) {
+  async removeGigs(gigId: number) {
     const gig = await this.prisma.gig.findUnique({
-      where: { id: dto.gigId },
-      include: { merchant: true },
+      where : { id : gigId}
     });
+
     if (!gig) {
-      throw new NotFoundException('Jasa tidak ditemukan.');
-    }
-    if (gig.merchant.userId !== userId) {
-      throw new ForbiddenException('ini bukan jasa milikmu.');
-    }
-    if (gig.status !== GigStatus.ACTIVE) {
-      throw new ForbiddenException('Hanya bisa dilakukan pada gig/postingan yang statusnya ACTIVE.');
+      throw new NotFoundException('Gig tidak ditemukan');
     }
 
-    const basePrice = 50000; // Harga dasar untuk promosi, bisa disesuaikan
-    const baseDuration = 3; // Durasi dasar dalam hari untuk harga dasar
-
-    // Hitung harga promosi berdasarkan durasi yang dipilih
-    const promotionPrice = (dto.durationDays / baseDuration);
-    const amountToPay = basePrice * promotionPrice;
-
-    if(dto.paymentMethod === 'WALLET') {
-      // opsi A: bayar pakai wallet di aplikasi
-
-      if(Number(gig.merchant.walletBalance) < amountToPay) {
-        throw new ForbiddenException('Saldo wallet tidak cukup untuk promosi ini.');
-      }
-      // Gunakan saldo wallet untuk bayar promosi
-      return this.prisma.$transaction(async (tx) => {
-        // Kurangi saldo wallet merchant
-        await tx.merchant.update({
-          where: { id: gig.merchantId },
-          data: {
-            walletBalance: {
-              decrement: amountToPay,
-            }
-          },
-        });
-        const placement = await tx.featuredPlacement.create({
-          data: {
-            merchantId: gig.merchant.id,
-            gigId: gig.id,
-            durationDays: dto.durationDays,
-            amount: amountToPay,
-            status: 'ACTIVE',
-            startDate: new Date(),
-            endDate: new Date(Date.now() + dto.durationDays * 24 * 60 * 60 * 1000), // Hitung tanggal berakhir berdasarkan durasi
-          },
-        });
-
-        await tx.gig.update({
-          where: { id: gig.id },
-          data: { status: GigStatus.FEATURED },
-        });
-
-        return placement;          
-      });
-
-    }else {
-      // opsi B: bayar pakai transfer bank (manual)
-      // Di sini kita hanya buat record featured placement dengan status PENDING_PAYMENT, nanti admin yang akan cek pembayaran manualnya dan approve promosi ini
-      return this.prisma.featuredPlacement.create({
-        data: {
-          merchantId: gig.merchant.id,
-          gigId: gig.id,
-          durationDays: dto.durationDays,
-          amount: amountToPay,
-          status: 'PENDING_PAYMENT', 
-          startDate: null, // Nanti diisi saat admin approve setelah cek pembayaran
-          endDate: null, // Nanti diisi saat admin approve setelah cek pembayaran
-        },
-      });
-    }
+    return this.prisma.gig.update({
+      where : { id : gigId},
+      data: { status : GigStatus.REMOVED}
+    })
   }
   async removeGigs(gigId: number) {
     const gig = await this.prisma.gig.findUnique({

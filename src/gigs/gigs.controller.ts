@@ -34,5 +34,10 @@ export class GigsController {
   findGigDetails(@Param('id', ParseIntPipe) id: number ){
       return this.gigsService.detailGigs(id)
     }
+    
+@UseGuards(AuthGuard)
+@Delete(':id')
+removeGig(@Param('id') id: string) {
+  return this.gigsService.removeGigs(Number(id));
 }
-
+}

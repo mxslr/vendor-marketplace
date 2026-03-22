@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, UseGuards, Request, ParseIntPipe, Param} from '@nestjs/common';
+import { Controller, Post, Get, Body, UseGuards, Request, ParseIntPipe, Param, Delete} from '@nestjs/common';
 import { GigsService } from './gigs.service';
 import { AuthGuard } from '../auth/auth.guard';
 import { CreateGigDto } from './gigs.dto';

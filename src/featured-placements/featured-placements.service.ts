@@ -23,14 +23,20 @@ export class FeaturedPlacementService {
     const basePrice = 50000;
     const durationDays = 3;
 
+    const merchant = await this.prisma.merchant.findUnique({
+      where: { userId },
+    });
+
+    if (!merchant) throw new NotFoundException('Toko tidak ditemukan');
+
     const gig = await this.prisma.gig.findUnique({
       where: { id: gigId },
     });
 
-    if (!gig) throw new NotFoundException('Gig not found');
+    if (!gig) throw new NotFoundException('Jasa tidak ditemukan');
 
-    if (gig.merchantId !== userId) {
-      throw new ForbiddenException('Not your gig');
+    if (gig.merchantId !== merchant.id) {
+      throw new ForbiddenException('Jasa ini bukan milikmu');
     }
 
     const existing = await this.prisma.featuredPlacement.findFirst({
@@ -46,12 +52,12 @@ export class FeaturedPlacementService {
     });
 
     if (existing) {
-      throw new BadRequestException('Already promoted');
+      throw new BadRequestException('Feature sudah aktif atau sedang berada di tahap verifikasi');
     }
 
     return this.prisma.featuredPlacement.create({
       data: {
-        merchantId: userId,
+        merchantId: merchant.id,
         gigId,
         durationDays,
         amount: basePrice,
@@ -60,15 +66,23 @@ export class FeaturedPlacementService {
     });
   }
 
-  async uploadProof(userId: number, featureId: number, proofUrl: string) {
+  async uploadProof(userId: number,featureId: number, proofUrl: string) {
+
+    const merchant = await this.prisma.merchant.findUnique({
+      where: { userId },
+    });
+
+    if (!merchant) throw new NotFoundException('Toko tidak ditemukan');
+
+
     const feature = await this.prisma.featuredPlacement.findUnique({
       where: { id: featureId },
     });
 
-    if (!feature) throw new NotFoundException();
+    if (!feature) throw new NotFoundException('Feature tidak ditemukan');
 
-    if (feature.merchantId !== userId) {
-      throw new ForbiddenException();
+    if (feature.merchantId !== merchant.id) {
+      throw new ForbiddenException('Unauthorized');
     }
 
     if (feature.status !== FeaturedPaymentStatus.PENDING_VERIFICATION) {
@@ -82,8 +96,15 @@ export class FeaturedPlacementService {
   }
 
   async getMyPromotes(userId: number) {
+
+    const merchant = await this.prisma.merchant.findUnique({
+      where: { userId },
+    });
+
+    if (!merchant) throw new NotFoundException('Toko tidak ditemukan');
+
     return this.prisma.featuredPlacement.findMany({
-      where: { merchantId: userId },
+      where: { merchantId: merchant.id},
       include: { gig: true },
       orderBy: { createdAt: 'desc' },
     });
@@ -98,28 +119,28 @@ export class FeaturedPlacementService {
       where: { id: featureId },
     });
 
-    if (!feature) throw new NotFoundException();
+    if (!feature) throw new NotFoundException('Feature tidak ditemukan');
 
-    if (feature.status === FeaturedPaymentStatus.ACTIVE) {
-      throw new BadRequestException('Already approved');
+    if (feature.status !== FeaturedPaymentStatus.PENDING_VERIFICATION) {
+      throw new BadRequestException('Feature tidak sedang berada di tahap verifikasi');
     }
 
     if (!feature.proofUrl) {
-      throw new BadRequestException('Proof required');
+      throw new BadRequestException('Upload bukti pembayaran dibutuhkan');
     }
 
     const gig = await this.prisma.gig.findUnique({
       where: { id: feature.gigId },
     });
 
-    if (!gig) throw new NotFoundException();
+    if (!gig) throw new NotFoundException('Jasa tidak ditemukan');
 
     const now = new Date();
 
     let endDate = new Date();
     endDate.setDate(now.getDate() + feature.durationDays);
 
-    // 🔥 extend kalau masih aktif
+    //  extend kalau masih aktif
     if (gig.featuredUntil && gig.featuredUntil > now) {
       endDate = new Date(gig.featuredUntil);
       endDate.setDate(endDate.getDate() + feature.durationDays);
@@ -143,10 +164,23 @@ export class FeaturedPlacementService {
       }),
     ]);
 
-    return { message: 'Feature activated' };
+    return { message: 'Featured sudah aktif' };
   }
 
   async rejectFeature(featureId: number) {
+
+  const feature = await this.prisma.featuredPlacement.findUnique({
+    where: { id: featureId },
+  });
+
+  if (!feature) {
+    throw new NotFoundException('Feature tidak ditemukan');
+  }
+
+  if (feature.status !== FeaturedPaymentStatus.PENDING_VERIFICATION) {
+    throw new BadRequestException('Tidak bisa menolak feature ini karena tidak sedang berada di tahap verifikasi');
+  }
+
     return this.prisma.featuredPlacement.update({
       where: { id: featureId },
       data: {

@@ -5,8 +5,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateGigDto, PromoteGigDto } from './gigs.dto';
-import { GigStatus, MerchantStatus } from '@prisma/client';
+import { CreateGigDto} from './gigs.dto';
+import { FeaturedStatus, GigStatus, MerchantStatus } from '@prisma/client';
 
 @Injectable()
 export class GigsService {
@@ -43,7 +43,10 @@ export class GigsService {
   // Untuk endpoint listing jasa, kita hanya menampilkan jasa dengan status ACTIVE dan dari merchant yang statusnya ACTIVE juga. Jadi kita pastikan hanya jasa yang sudah disetujui dan dari toko yang sudah aktif yang bisa dilihat pembeli.
   async findAllActiveGigs() {
     return this.prisma.gig.findMany({
-      where: { status: GigStatus.ACTIVE },
+      where: { status: GigStatus.ACTIVE, OR: [
+        { featuredStatus: FeaturedStatus.FEATURED, featuredUntil: { gte: new Date()}},
+        { featuredStatus: FeaturedStatus.NONE}
+      ]},
       include: {
         merchant: {
           select: {
@@ -53,6 +56,11 @@ export class GigsService {
         },
         category: true,
       },
+      orderBy: [
+        { featuredStatus: 'desc'},
+        { featuredUntil: 'desc'},
+        { createdAt: 'desc'}
+      ]
     });
   }
   // Endpoint untuk merchant(vendor) melihat jasa-jasa yang dia buat, termasuk yang belum aktif

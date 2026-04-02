@@ -25,7 +25,7 @@ export class GigsController {
     return this.gigsService.findAllActiveGigs();
   }
 
-@Get('merchant/:id')
+@Get('my-gigs/:id')
   findMerchantsGigs(@Param('id', ParseIntPipe) id: number) {
     return this.gigsService.findMyGigs(id)
   }

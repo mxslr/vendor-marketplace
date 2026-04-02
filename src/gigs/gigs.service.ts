@@ -43,7 +43,10 @@ export class GigsService {
   // Untuk endpoint listing jasa, kita hanya menampilkan jasa dengan status ACTIVE dan dari merchant yang statusnya ACTIVE juga. Jadi kita pastikan hanya jasa yang sudah disetujui dan dari toko yang sudah aktif yang bisa dilihat pembeli.
   async findAllActiveGigs() {
     return this.prisma.gig.findMany({
-      where: { status: GigStatus.ACTIVE },
+      where: { status: GigStatus.ACTIVE, OR: [
+        { featuredStatus: FeaturedStatus.FEATURED, featuredUntil: { gte: new Date()}},
+        { featuredStatus: FeaturedStatus.NONE}
+      ]},
       include: {
         merchant: {
           select: {

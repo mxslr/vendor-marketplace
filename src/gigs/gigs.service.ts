@@ -5,8 +5,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateGigDto, PromoteGigDto } from './gigs.dto';
-import { GigStatus, MerchantStatus } from '@prisma/client';
+import { CreateGigDto} from './gigs.dto';
+import { FeaturedStatus, GigStatus, MerchantStatus } from '@prisma/client';
 
 @Injectable()
 export class GigsService {
@@ -53,6 +53,11 @@ export class GigsService {
         },
         category: true,
       },
+      orderBy: [
+        { featuredStatus: 'desc'},
+        { featuredUntil: 'desc'},
+        { createdAt: 'desc'}
+      ]
     });
   }
   // Endpoint untuk merchant(vendor) melihat jasa-jasa yang dia buat, termasuk yang belum aktif
@@ -84,20 +89,6 @@ export class GigsService {
     return gig;
   }
 
-  async removeGigs(gigId: number) {
-    const gig = await this.prisma.gig.findUnique({
-      where : { id : gigId}
-    });
-
-    if (!gig) {
-      throw new NotFoundException('Gig tidak ditemukan');
-    }
-
-    return this.prisma.gig.update({
-      where : { id : gigId},
-      data: { status : GigStatus.REMOVED}
-    })
-  }
   async removeGigs(gigId: number) {
     const gig = await this.prisma.gig.findUnique({
       where : { id : gigId}

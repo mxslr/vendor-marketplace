@@ -270,6 +270,8 @@ Persiapan sebelum Vendor bisa berjualan.
 {
   "shopName": "Budi Tech Studio",
   "description": "Bikin web cepat, murah, aman."
+  "logoUrl": "bannerUrl"
+  "bannerUrl": "bannerUrl"
 }
 ```
 
@@ -301,7 +303,9 @@ Persiapan sebelum Vendor bisa berjualan.
 ```json
 {
   "shopName": "Budi Tech Studio Updated",
-  "description": "Bikin web cepat, murah, aman dengan update terbaru."
+  "description": "Bikin web cepat, murah, aman dengan update terbaru.",
+  "logoUrl": (optional),
+  "bannerUrl": (optional)
 }
 ```
 
@@ -515,7 +519,7 @@ Tahap validasi bahwa sistem berjalan lancar dan pembagian hak akses terjamin.
 
 ---
 
-### FASE 8: FITUR TAMBAHAN (Opsional)
+### FASE 8: FITUR PROMOTE GIGS
 
 #### 1. Featured Placements / Promosi Gig
 **Endpoint:** `POST http://localhost:4000/api/v1/featured-placements/promote`  
@@ -570,6 +574,7 @@ Tahap validasi bahwa sistem berjalan lancar dan pembagian hak akses terjamin.
 - Gunakan Postman atau tools sejenis untuk testing API.
 - ID user, merchant, gig, dll dapat berbeda, sesuaikan dengan response dari endpoint sebelumnya.
 - Semua endpoint memerlukan autentikasi kecuali yang ditandai "No" di kolom Auth.
+{
   "fullName": "Siti Klien",
   "role": "CLIENT"
 }

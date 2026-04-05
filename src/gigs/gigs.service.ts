@@ -29,7 +29,7 @@ export class GigsService {
 
     return this.prisma.gig.create({
       data: {
-        merchantId: dto.merchantId,
+        merchantId: myMerchant.id,
         categoryId: dto.categoryId,
         title: dto.title,
         description: dto.description,

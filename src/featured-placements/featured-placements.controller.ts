@@ -11,7 +11,7 @@ import {
 } from '@nestjs/common';
 import { FeaturedPlacementService } from './featured-placements.service';
 import { CreatePromoteDto, UploadProofDto } from './featured-placements.dto';
-import { AuthGuard } from 'src/auth/auth.guard';
+import { AuthGuard } from '../auth/auth.guard';
 import { Role } from '@prisma/client';
 
 interface RequestWithUsers extends Request {

@@ -3,7 +3,7 @@ import { IsString, IsOptional, IsUrl, IsNotEmpty } from 'class-validator';
 export class CreateMerchantDto {
   @IsString()
   @IsNotEmpty({ message: 'Nama toko tidak boleh kosong' })
-  shopName: string;
+  shopName!: string;
 
   @IsString()
   @IsOptional()
@@ -16,6 +16,17 @@ export class CreateMerchantDto {
   @IsUrl({}, { message: 'Format URL banner tidak valid' })
   @IsOptional()
   bannerUrl?: string; 
+}
+
+// Wajib upload dokumen identitas dan portofolio untuk verifikasi KYB
+export class SubmitKybDto {
+  @IsUrl()
+  @IsNotEmpty()
+  kybDocumentUrl!: string;
+
+  @IsUrl()
+  @IsNotEmpty()
+  portfolioUrl!: string;
 }
 
 // Wajib upload dokumen identitas dan portofolio untuk verifikasi KYB

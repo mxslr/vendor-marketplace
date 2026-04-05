@@ -269,8 +269,8 @@ Persiapan sebelum Vendor bisa berjualan.
 ```json
 {
   "shopName": "Budi Tech Studio",
-  "description": "Bikin web cepat, murah, aman."
-  "logoUrl": "bannerUrl"
+  "description": "Bikin web cepat, murah, aman.",
+  "logoUrl": "logoUrl",
   "bannerUrl": "bannerUrl"
 }
 ```

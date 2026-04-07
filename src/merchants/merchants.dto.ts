@@ -29,17 +29,6 @@ export class SubmitKybDto {
   portfolioUrl!: string;
 }
 
-// Wajib upload dokumen identitas dan portofolio untuk verifikasi KYB
-export class SubmitKybDto {
-  @IsUrl()
-  @IsNotEmpty()
-  kybDocumentUrl: string;
-
-  @IsUrl()
-  @IsNotEmpty()
-  portfolioUrl: string;
-}
-
 // kebutuhan untuk update profil toko (Hanya Merchant yang bisa akses, tidak wajib semua field diisi)
 export class UpdateProfileDto {
   @IsString() @IsOptional() shopName?: string;

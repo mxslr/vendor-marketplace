@@ -162,6 +162,17 @@ Semua endpoint menggunakan prefix `/api/v1`. Berikut adalah daftar lengkap endpo
 | POST | `/featured-placements/admin/reject/:id` | Yes (Admin Finance) | Reject feature placement |
 | GET | `/featured-placements/admin/pending` | Yes (Admin Finance) | Get pending feature placements |
 
+### Monthly Reports
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | `/monthly-reports/generate` | Yes (Admin Finance) | Generate monthly financial report for specified period |
+| PATCH | `/monthly-reports/:id/operational-cost` | Yes (Admin Finance) | Update operational cost for DRAFT report |
+| POST | `/monthly-reports/:id/process-dividend` | Yes (Admin Finance) | Process dividend allocation and mark report PROCESSED |
+| POST | `/monthly-reports/:id/lock` | Yes (Admin Finance) | Lock a processed report |
+| POST | `/monthly-reports/:id/upload-proof` | Yes (Admin Finance) | Upload proof of transfer for report |
+| GET | `/monthly-reports` | Yes (Admin Finance) | List all monthly reports |
+| GET | `/monthly-reports/:id` | Yes (Admin Finance) | Get report detail by ID |
+
 ### Disputes
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
@@ -567,38 +578,65 @@ Tahap validasi bahwa sistem berjalan lancar dan pembagian hak akses terjamin.
 
 ---
 
-## Catatan Penting
-
-- Setiap fase bergantung pada fase sebelumnya. Ikuti urutan secara berurutan.
-- Pastikan menyimpan token dari setiap user untuk langkah berikutnya.
-- Gunakan Postman atau tools sejenis untuk testing API.
-- ID user, merchant, gig, dll dapat berbeda, sesuaikan dengan response dari endpoint sebelumnya.
-- Semua endpoint memerlukan autentikasi kecuali yang ditandai "No" di kolom Auth.
-{
-  "fullName": "Siti Klien",
-  "role": "CLIENT"
-}
-
-// Staf Toko / Associate (ID 6)
-{
-  "email": "udin.staf@kampus.com",
-  "passwordHash": "pass123",
-  "fullName": "Udin Rajin",
-  "role": "MERCHANT_ASSOCIATE"
-}
-```
-
-#### 2. Login & Dapatkan Token
-**Endpoint:** `POST http://localhost:4000/api/v1/auth/login`
+### FASE 9: LAPORAN BULANAN
+#### 1. Generate Monthly Report
+**Endpoint:** `POST http://localhost:4000/api/v1/monthly-reports/generate`  
+**Token:** Admin Finance
 
 ```json
 {
-  "email": "vendor@kampus.com",
-  "password": "pass123"
+  "period": "2026-04"
 }
 ```
 
-**Catatan:** Login ke semua akun untuk mendapatkan token masing-masing user.
+#### 2. Update Operational Cost
+**Endpoint:** `PATCH http://localhost:4000/api/v1/monthly-reports/1/operational-cost`  
+**Token:** Admin Finance
+
+```json
+{
+  "operationalCost": 1500000
+}
+```
+
+#### 3. Process Dividend Allocation
+**Endpoint:** `POST http://localhost:4000/api/v1/monthly-reports/1/process-dividend`  
+**Token:** Admin Finance
+
+```json
+{
+  "cscPercentage": 60,
+  "cciPercentage": 40
+}
+```
+
+#### 4. Lock Report
+**Endpoint:** `POST http://localhost:4000/api/v1/monthly-reports/1/lock`  
+**Token:** Admin Finance
+
+#### 5. Upload Proof of Transfer
+**Endpoint:** `POST http://localhost:4000/api/v1/monthly-reports/1/upload-proof`  
+**Token:** Admin Finance
+
+```json
+{
+  "proofUrl": "https://drive.google.com/bukti-transfer.png"
+}
+```
+
+#### 6. View Reports
+**Endpoint:** `GET http://localhost:4000/api/v1/monthly-reports`  
+**Token:** Admin Finance
+
+#### 7. Get Report Detail
+**Endpoint:** `GET http://localhost:4000/api/v1/monthly-reports/1`  
+**Token:** Admin Finance
+
+**Catatan:**
+- `operationalCost` hanya bisa diubah saat status laporan masih `DRAFT`.
+- `process-dividend` mengubah status laporan menjadi `PROCESSED`.
+- `lock` hanya bisa dilakukan setelah laporan berstatus `PROCESSED`.
+- Semua endpoint `monthly-reports` hanya mengizinkan `Admin Finance`.
 
 ---
 

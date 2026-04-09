@@ -16,6 +16,7 @@ import { CustomOffersModule } from './custom-offers/custom-offers.module';
 import { CategoriesModule } from './categories/categories.module';
 import { BankAccountsModule } from './bank-accounts/bank-accounts.module';
 import { FeaturedPlacementModule } from './featured-placements/featured-placements.module';
+import { MonthlyReportModule } from './monthly-report/monthly-report.module';
 import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
@@ -37,6 +38,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     BankAccountsModule,
     CustomOffersModule,
     FeaturedPlacementModule,
+    MonthlyReportModule,
     ScheduleModule.forRoot(),
   ],
   controllers: [AppController],

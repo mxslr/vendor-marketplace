@@ -156,6 +156,7 @@ model Merchant {
   pendingBalance  Decimal        @default(0.0) @db.Decimal(15, 2)
   kybDocuments    String?        
   rejectionReason String?
+  withdrawalPin   String?
   badge           MerchantBadge  @default(NEWCOMER)
   suspendedUntil   DateTime?
   createdAt       DateTime       @default(now())

@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsUrl, IsNotEmpty } from 'class-validator';
+import { IsString, IsOptional, IsUrl, IsNotEmpty, MinLength } from 'class-validator';
 
 export class CreateMerchantDto {
   @IsString()
@@ -35,4 +35,8 @@ export class UpdateProfileDto {
   @IsString() @IsOptional() description?: string;
   @IsUrl() @IsOptional() logoUrl?: string;
   @IsUrl() @IsOptional() bannerUrl?: string;
+  @IsString()
+  @IsOptional()
+  @MinLength(4, { message: 'PIN penarikan minimal 4 digit.' })
+  withdrawalPin?: string;
 }

@@ -87,14 +87,20 @@ export class MerchantsService {
         'Hanya toko terverifikasi yang dapat diupdate profilnya.',
       );
     }
+    const updateData: any = {
+      shopName: dto.shopName,
+      description: dto.description,
+      logoUrl: dto.logoUrl,
+      bannerUrl: dto.bannerUrl,
+    };
+
+    if (dto.withdrawalPin !== undefined) {
+      updateData.withdrawalPin = dto.withdrawalPin;
+    }
+
     return this.prisma.merchant.update({
       where: { id: merchant.id },
-      data: {
-        shopName: dto.shopName,
-        description: dto.description,
-        logoUrl: dto.logoUrl,
-        bannerUrl: dto.bannerUrl, // Pastikan status tetap ACTIVE setelah update profil
-      },
+      data: updateData,
     });
   }
 

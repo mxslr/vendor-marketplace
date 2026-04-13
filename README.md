@@ -93,6 +93,16 @@ Semua endpoint menggunakan prefix `/api/v1`. Berikut adalah daftar lengkap endpo
 | PATCH | `/bank-accounts/:id` | Yes | Update bank account |
 | DELETE | `/bank-accounts/:id` | Yes | Delete bank account |
 
+### Withdrawals
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | `/withdrawals` | Yes (Merchant Owner) | Request manual withdrawal |
+| GET | `/withdrawals` | Yes (Merchant Owner) | List merchant withdrawal requests |
+| GET | `/withdrawals/:id` | Yes (Merchant Owner) | Get withdrawal request detail |
+| GET | `/withdrawals/pending` | Yes (Admin Finance) | List pending withdrawal requests |
+| PATCH | `/withdrawals/:id/complete` | Yes (Admin Finance) | Mark withdrawal as completed |
+| PATCH | `/withdrawals/:id/reject` | Yes (Admin Finance) | Reject withdrawal request |
+
 ### Merchant Associates
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
@@ -578,7 +588,58 @@ Tahap validasi bahwa sistem berjalan lancar dan pembagian hak akses terjamin.
 
 ---
 
-### FASE 9: LAPORAN BULANAN
+### FASE 9: PENARIKAN DANA MANUAL (WITHDRAWAL)
+#### 1. Setup PIN Penarikan
+Sebelum dapat menarik dana, merchant harus mengatur `withdrawalPin` di profil toko melalui endpoint edit profil.
+
+#### 2. Request Withdrawal
+**Endpoint:** `POST http://localhost:4000/api/v1/withdrawals`  
+**Token:** Merchant Owner
+
+```json
+{
+  "bankAccountId": 1,
+  "amount": 150000,
+  "pin": "1234"
+}
+```
+
+#### 3. List Withdrawal Requests
+**Endpoint:** `GET http://localhost:4000/api/v1/withdrawals`  
+**Token:** Merchant Owner
+
+#### 4. Get Withdrawal Detail
+**Endpoint:** `GET http://localhost:4000/api/v1/withdrawals/1`  
+**Token:** Merchant Owner
+
+#### 5. Finance Admin Approve Request
+**Endpoint:** `GET http://localhost:4000/api/v1/withdrawals/pending`  
+**Token:** Admin Finance
+
+#### 6. Finance Admin Complete Transfer
+**Endpoint:** `PATCH http://localhost:4000/api/v1/withdrawals/1/complete`  
+**Token:** Admin Finance
+
+```json
+{
+  "proofUrl": "https://drive.google.com/bukti-transfer.png"
+}
+```
+
+#### 7. Finance Admin Reject Request
+**Endpoint:** `PATCH http://localhost:4000/api/v1/withdrawals/1/reject`  
+**Token:** Admin Finance
+
+**Catatan:**
+- Jumlah penarikan minimal adalah Rp 50.000.
+- Merchant harus input `pin` yang sama dengan `withdrawalPin` di profil merchant.
+- Saat request dibuat, saldo `walletBalance` berkurang dan `pendingBalance` bertambah.
+- Finance Admin akan melihat request `PENDING` dan menandai `COMPLETED` setelah transfer ke bank.
+- Jika ditolak, uang kembali ke `walletBalance` dan `pendingBalance` berkurang.
+
+---
+
+### FASE 10: LAPORAN BULANAN
 #### 1. Generate Monthly Report
 **Endpoint:** `POST http://localhost:4000/api/v1/monthly-reports/generate`  
 **Token:** Admin Finance

@@ -15,6 +15,7 @@ import { DisputesModule } from './disputes/disputes.module';
 import { CustomOffersModule } from './custom-offers/custom-offers.module';
 import { CategoriesModule } from './categories/categories.module';
 import { BankAccountsModule } from './bank-accounts/bank-accounts.module';
+import { WithdrawalsModule } from './withdrawals/withdrawals.module';
 import { FeaturedPlacementModule } from './featured-placements/featured-placements.module';
 import { MonthlyReportModule } from './monthly-report/monthly-report.module';
 import { ScheduleModule } from '@nestjs/schedule';
@@ -36,6 +37,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     CustomOffersModule,
     CategoriesModule,
     BankAccountsModule,
+    WithdrawalsModule,
     CustomOffersModule,
     FeaturedPlacementModule,
     MonthlyReportModule,

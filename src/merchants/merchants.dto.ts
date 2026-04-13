@@ -1,9 +1,9 @@
-import { IsString, IsOptional, IsUrl, IsNotEmpty } from 'class-validator';
+import { IsString, IsOptional, IsUrl, IsNotEmpty, MinLength } from 'class-validator';
 
 export class CreateMerchantDto {
   @IsString()
   @IsNotEmpty({ message: 'Nama toko tidak boleh kosong' })
-  shopName: string;
+  shopName!: string;
 
   @IsString()
   @IsOptional()
@@ -22,11 +22,11 @@ export class CreateMerchantDto {
 export class SubmitKybDto {
   @IsUrl()
   @IsNotEmpty()
-  kybDocumentUrl: string;
+  kybDocumentUrl!: string;
 
   @IsUrl()
   @IsNotEmpty()
-  portfolioUrl: string;
+  portfolioUrl!: string;
 }
 
 // kebutuhan untuk update profil toko (Hanya Merchant yang bisa akses, tidak wajib semua field diisi)
@@ -35,4 +35,8 @@ export class UpdateProfileDto {
   @IsString() @IsOptional() description?: string;
   @IsUrl() @IsOptional() logoUrl?: string;
   @IsUrl() @IsOptional() bannerUrl?: string;
+  @IsString()
+  @IsOptional()
+  @MinLength(4, { message: 'PIN penarikan minimal 4 digit.' })
+  withdrawalPin?: string;
 }

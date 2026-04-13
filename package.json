@@ -29,6 +29,7 @@
     "@prisma/adapter-pg": "^7.4.2",
     "@prisma/client": "^6.19.2",
     "bcrypt": "^6.0.0",
+    "class-transformer": "^0.5.1",
     "class-validator": "^0.14.4",
     "pg": "^8.20.0",
     "reflect-metadata": "^0.2.2",

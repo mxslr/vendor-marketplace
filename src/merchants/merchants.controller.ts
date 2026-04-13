@@ -58,7 +58,7 @@ export class MerchantsController {
   @Patch(':id/edit/profile')
   updateProfile(
     @Request() req: RequestWithUser,
-    @Param('id', ParseIntPipe) 
+    @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateProfileDto,
   ) {
     return this.merchantsService.updateProfileMerchant(req.user.sub, dto);

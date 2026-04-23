@@ -40,7 +40,7 @@ import { Decimal } from '@prisma/client/runtime/client';
             }as any)
         }
 
-        async sendOfferAttachment(channelId: string, senderId: string, offer: { offerId: number, price: Decimal, title: string }) {
+        async sendOfferAttachment(channelId: string, senderId: string, offer: { offerId: number, gigId:number, price: Decimal, title: string }) {
         const channel = this.serverClient.channel('messaging', channelId);
         
         return await channel.sendMessage({
@@ -50,6 +50,7 @@ import { Decimal } from '@prisma/client/runtime/client';
                 {
                     type: 'custom_offer',
                     offer_id: offer.offerId, 
+                    gig_id: offer.gigId,
                     offer_price: offer.price,
                     status: 'PENDING', 
                 },

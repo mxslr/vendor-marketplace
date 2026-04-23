@@ -225,6 +225,7 @@ model Gig {
   category           Category            @relation(fields: [categoryId], references: [id])
   orders             Order[]
   featuredPlacements FeaturedPlacement[]
+  customOffers      CustomOffer[]
 }
 
 model FeaturedPlacement {
@@ -326,6 +327,7 @@ model Transaction {
 
 model CustomOffer {
   id           Int               @id @default(autoincrement())
+  gigId        Int
   merchantId   Int
   clientId     Int
   title        String
@@ -338,6 +340,7 @@ model CustomOffer {
   // Relations
   merchant Merchant @relation("MerchantCustomOffers", fields: [merchantId], references: [id])
   client   User     @relation("ClientCustomOffers", fields: [clientId], references: [id])
+  gig      Gig      @relation(fields: [gigId], references: [id])
   orders   Order[]
 }
 

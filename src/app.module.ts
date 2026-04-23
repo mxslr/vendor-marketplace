@@ -20,6 +20,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { WithdrawalsModule } from './withdrawals/withdrawals.module';
 import { MonthlyReportModule } from './monthly-report/monthly-report.module';
 import { ConfigModule } from '@nestjs/config';
+import { StreamModule } from './chat/stream.module';
 @Module({
   imports: [
     PrismaModule,
@@ -41,6 +42,7 @@ import { ConfigModule } from '@nestjs/config';
     CustomOffersModule,
     FeaturedPlacementModule,
     MonthlyReportModule,
+    StreamModule,
     ConfigModule.forRoot({
       isGlobal: true, 
     }),

@@ -1,33 +1,68 @@
-import { Controller, Post, Get, Patch, Param, Body, Request, UseGuards, ParseIntPipe } from '@nestjs/common';
+import { 
+    Controller, Post, Get, Patch, Param, Body, Request, 
+    UseGuards, ParseIntPipe, HttpCode, HttpStatus 
+} from '@nestjs/common';
 import { CustomOffersService } from './custom-offers.service';
 import { AuthGuard } from '../auth/auth.guard'; 
+import { Decimal } from '@prisma/client/runtime/client';
+
+interface RequestWithUser extends Request {
+  user: {
+    sub: number;
+    role: string;
+  };
+}
 
 @Controller('custom-offers')
 @UseGuards(AuthGuard)
 export class CustomOffersController {
   constructor(private readonly customOffersService: CustomOffersService) {}
 
-  // Endpoint: POST /custom-offers
-  @Post()
-  async createOffer(@Request() req, @Body() body: any) {
-    return this.customOffersService.createOffer(req.user.sub, body.clientId, body);
+  @Post('sent')
+  @HttpCode(HttpStatus.CREATED)
+  async createOffer(
+    @Request() req: RequestWithUser, 
+    @Body() body: { 
+        clientId: number; 
+        channelId: string; 
+        gigId: number;     
+        price: Decimal;     
+        title: string; 
+        description: string; 
+        deadlineDays: number 
+    }
+  ) {
+
+    return this.customOffersService.createOffer(
+        req.user.sub, 
+        body.clientId, 
+        body.channelId, 
+        body
+    );
   }
 
-  // Endpoint: GET /custom-offers/client
+  
   @Get('client')
-  async getClientOffers(@Request() req) {
+  async getClientOffers(@Request() req: RequestWithUser) {
     return this.customOffersService.getClientOffers(req.user.sub);
   }
 
-  // Endpoint: PATCH /custom-offers/:id/accept
+  
   @Patch(':id/accept')
-  async acceptOffer(@Param('id', ParseIntPipe) id: number, @Request() req) {
-    return this.customOffersService.acceptOffer(id, req.user.sub);
+  async acceptOffer(
+    @Param('id', ParseIntPipe) id: number, 
+    @Request() req: RequestWithUser,
+    @Body('messageId') messageId: string 
+  ) {
+    return this.customOffersService.acceptOffer(id, req.user.sub, messageId);
   }
 
-  // Endpoint: PATCH /custom-offers/:id/reject
   @Patch(':id/reject')
-  async rejectOffer(@Param('id', ParseIntPipe) id: number, @Request() req) {
-    return this.customOffersService.rejectOffer(id, req.user.sub);
+  async rejectOffer(
+    @Param('id', ParseIntPipe) id: number, 
+    @Request() req: RequestWithUser,
+    @Body('messageId') messageId: string 
+  ) {
+    return this.customOffersService.rejectOffer(id, req.user.sub, messageId);
   }
 }

@@ -1,11 +1,12 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service'; 
+import { StreamService } from 'src/chat/stream.service';
 
 @Injectable()
 export class CustomOffersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService, private streamService: StreamService ) {}
 
-  async createOffer(userId: number, clientId: number, data: any) {
+  async createOffer(userId: number, clientId: number, channelId: string, data: any) {
     let merchant = await this.prisma.merchant.findUnique({
       where: { userId },
     });
@@ -24,10 +25,11 @@ export class CustomOffersService {
       throw new BadRequestException('Anda tidak memiliki akses merchant untuk membuat penawaran.');
     }
 
-    return this.prisma.customOffer.create({
+    const offer = await this.prisma.customOffer.create({
       data: {
         merchantId: merchant.id,
         clientId,
+        gigId:data.gigId,
         title: data.title,
         description: data.description,
         price: data.price,
@@ -35,6 +37,14 @@ export class CustomOffersService {
         status: 'PENDING',
       },
     });
+
+    await this.streamService.sendOfferAttachment(channelId, userId.toString(), {
+    offerId: offer.id,
+    gigId: offer.gigId,
+    price: offer.price,
+    title: offer.title
+  });
+  return offer
   }
 
   async getClientOffers(clientId: number) {
@@ -45,8 +55,8 @@ export class CustomOffersService {
     });
   }
 
-  async acceptOffer(offerId: number, clientId: number) {
-    const offer = await this.prisma.customOffer.findUnique({ where: { id: offerId } });
+  async acceptOffer(offerId: number, clientId: number, messageId: string) {
+    const offer = await this.prisma.customOffer.findUnique({ where: { id: offerId }, include: { gig: true} });
 
     if (!offer || offer.clientId !== clientId) {
       throw new NotFoundException('Penawaran tidak ditemukan atau bukan hak aksesmu');
@@ -65,11 +75,14 @@ export class CustomOffersService {
         data: {
           clientId: offer.clientId,
           merchantId: offer.merchantId,
+          gigId: offer.gigId,
           customOfferId: offer.id,
           totalAmount: offer.price,
           status: 'UNPAID', 
         },
       });
+
+      await this.streamService.updateOfferStatus(messageId, 'ACCEPTED');
 
       return { 
         message: 'Penawaran berhasil diterima, tagihan sudah dibuat', 
@@ -79,16 +92,23 @@ export class CustomOffersService {
     });
   }
 
-  async rejectOffer(offerId: number, clientId: number) {
+  async rejectOffer(offerId: number, clientId: number, messageId: string) {
     const offer = await this.prisma.customOffer.findUnique({ where: { id: offerId } });
 
     if (!offer || offer.clientId !== clientId) {
       throw new NotFoundException('Penawaran tidak ditemukan');
     }
-
-    return this.prisma.customOffer.update({
+    
+    const updateOffer= await this.prisma.customOffer.update({
       where: { id: offerId },
       data: { status: 'REJECTED' },
     });
+
+    await this.streamService.updateOfferStatus(messageId, 'REJECTED');
+
+    return {
+      message: 'Penawaran berhasil ditolak',
+      offer: updateOffer
+    }
   }
 }

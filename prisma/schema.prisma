@@ -99,6 +99,12 @@ enum WithdrawalStatus {
   REJECTED
 }
 
+enum FeaturedStatus {
+  NONE
+  FEATURED
+}
+
+
 enum FeaturedPaymentStatus {
   PENDING_PAYMENT
   PENDING_VERIFICATION
@@ -150,6 +156,7 @@ model Merchant {
   pendingBalance  Decimal        @default(0.0) @db.Decimal(15, 2)
   kybDocuments    String?        
   rejectionReason String?
+  withdrawalPin   String?
   badge           MerchantBadge  @default(NEWCOMER)
   suspendedUntil   DateTime?
   createdAt       DateTime       @default(now())
@@ -211,12 +218,14 @@ model Gig {
   status         GigStatus @default(DRAFT)
   rejectionReason String?  
   createdAt      DateTime  @default(now())
-
+  featuredStatus FeaturedStatus @default(NONE)
+  featuredUntil DateTime?
   // Relations
   merchant           Merchant            @relation(fields: [merchantId], references: [id])
   category           Category            @relation(fields: [categoryId], references: [id])
   orders             Order[]
   featuredPlacements FeaturedPlacement[]
+  customOffers      CustomOffer[]
 }
 
 model FeaturedPlacement {
@@ -318,6 +327,7 @@ model Transaction {
 
 model CustomOffer {
   id           Int               @id @default(autoincrement())
+  gigId        Int
   merchantId   Int
   clientId     Int
   title        String
@@ -330,6 +340,7 @@ model CustomOffer {
   // Relations
   merchant Merchant @relation("MerchantCustomOffers", fields: [merchantId], references: [id])
   client   User     @relation("ClientCustomOffers", fields: [clientId], references: [id])
+  gig      Gig      @relation(fields: [gigId], references: [id])
   orders   Order[]
 }
 

@@ -733,7 +733,8 @@ Persiapan sebelum Vendor bisa berjualan.
 
 ```json
 {
-  "kybDocuments": "https://gdrive.com/ktm-budi.pdf"
+  "kybDocuments": "https://gdrive.com/ktm-budi.pdf",
+  "portfolioUrl": "document cv"
 }
 ```
 
@@ -869,68 +870,3 @@ Uang masuk dari Klien dan diverifikasi oleh tim internal kampus/platform.
 **Catatan:** Setelah Finance ACC, status Order otomatis menjadi `IN_PROGRESS`.
 
 ---
-
-### FASE 6: PENGERJAAN & PENYELESAIAN PESANAN
-
-Proses pengerjaan oleh pihak Vendor/Staf hingga pesanan ditutup oleh Klien.
-
-#### 1. Vendor Menerima dan Memulai Pekerjaan
-**Endpoint:** `PATCH http://localhost:4000/api/v1/orders/1/accept`  
-**Token:** Merchant Owner atau Staf Associate
-
-Body: (Kosong)
-
-#### 2. Vendor/Staf Mengirimkan Hasil Pekerjaan
-**Endpoint:** `POST http://localhost:4000/api/v1/deliverables`  
-**Token:** Merchant Owner atau Staf Associate
-
-```json
-{
-  "orderId": 1,
-  "fileUrl": "https://gdrive.com/hasil-web-final.zip",
-  "message": "Halo kak, pesanan sudah selesai ya!"
-}
-```
-
-#### 3. Klien Menerima Hasil dan Menutup Pesanan
-**Endpoint:** `PATCH http://localhost:4000/api/v1/orders/1/complete`  
-**Token:** Client
-
-Body: (Kosong)
-
-**Catatan:** Sistem otomatis mentransfer dana dari escrow ke Dompet Toko/Wallet Balance.
-
-#### 4. Klien Memberikan Ulasan
-**Endpoint:** `POST http://localhost:4000/api/v1/reviews`  
-**Token:** Client
-
-```json
-{
-  "orderId": 1,
-  "rating": 5,
-  "comment": "Pengerjaan sangat cepat dan rapi!"
-}
-```
-
----
-
-### FASE 7: PENGECEKAN METRIK KEUANGAN & OPERASIONAL
-
-Tahap validasi bahwa sistem berjalan lancar dan pembagian hak akses terjamin.
-
-#### 1. Cek Saldo Dompet Masuk
-**Endpoint:** `GET http://localhost:4000/api/v1/merchants/me`  
-**Token:** Merchant Owner (Si Budi)
-
-#### 2. Staf Mengecek Daftar Pesanan
-**Endpoint:** `GET http://localhost:4000/api/v1/orders/incoming`  
-**Token:** Merchant Associate (Staf Udin)
-
----
-
-## Catatan Penting
-
-- Setiap fase bergantung pada fase sebelumnya. Ikuti urutan secara berurutan.
-- Pastikan menyimpan token dari setiap user untuk langkah berikutnya.
-- Gunakan Postman atau tools sejenis untuk testing API.
-- ID user dan merchant dapat berbeda, sesuaikan dengan response dari endpoint sebelumnya.

@@ -1,11 +1,10 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service'; 
 import { StreamService } from 'src/chat/stream.service';
-import { GigsService } from 'src/gigs/gigs.service';
 
 @Injectable()
 export class CustomOffersService {
-  constructor(private prisma: PrismaService, private streamService: StreamService, private readonly gigsService: GigsService, ) {}
+  constructor(private prisma: PrismaService, private streamService: StreamService ) {}
 
   async createOffer(userId: number, clientId: number, channelId: string, data: any) {
     let merchant = await this.prisma.merchant.findUnique({

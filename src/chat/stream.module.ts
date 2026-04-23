@@ -9,5 +9,6 @@ import { GigsModule } from "src/gigs/gigs.module";
 ],
   controllers: [StreamController],
   providers: [StreamService],
+  exports: [StreamService]
 })
 export class StreamModule {}

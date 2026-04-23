@@ -4,7 +4,7 @@ import {
   ForbiddenException,
   BadRequestException,
 } from '@nestjs/common';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 import {
   FeaturedPaymentStatus,
   FeaturedStatus,
@@ -210,15 +210,27 @@ export class FeaturedPlacementService {
   async expireFeatured() {
     const now = new Date();
 
-    await this.prisma.gig.updateMany({
-      where: {
-        featuredStatus: FeaturedStatus.FEATURED,
-        featuredUntil: { lt: now },
-      },
-      data: {
-        featuredStatus: FeaturedStatus.NONE,
-        featuredUntil: null,
-      },
-    });
+    await this.prisma.$transaction([
+       this.prisma.featuredPlacement.updateMany({
+        where: {
+          status: FeaturedPaymentStatus.ACTIVE,
+          endDate: { lt: now },
+        },
+        data: {
+          status: FeaturedPaymentStatus.EXPIRED,
+        },
+      }),
+
+      this.prisma.gig.updateMany({
+        where: {
+          featuredStatus: FeaturedStatus.FEATURED,
+          featuredUntil: { lt: now },
+        },
+        data: {
+          featuredStatus: FeaturedStatus.NONE,
+          featuredUntil: null,
+        },
+      }),
+    ]);
   }
 }

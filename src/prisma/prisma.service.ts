@@ -1,4 +1,3 @@
-import 'dotenv/config'; // Wajib di baris paling atas untuk membaca .env
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import { Pool } from 'pg';
@@ -11,7 +10,7 @@ export class PrismaService
 {
   constructor() {
     const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-    const adapter = new PrismaPg(pool);
+    const adapter = new PrismaPg(pool as any);
 
     super({ adapter });
   }

@@ -9,7 +9,6 @@ import { Decimal } from '@prisma/client/runtime/client';
 interface RequestWithUser extends Request {
   user: {
     sub: number;
-    name: string;
     role: string;
   };
 }

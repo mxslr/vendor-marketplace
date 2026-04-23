@@ -15,7 +15,11 @@ import { DisputesModule } from './disputes/disputes.module';
 import { CustomOffersModule } from './custom-offers/custom-offers.module';
 import { CategoriesModule } from './categories/categories.module';
 import { BankAccountsModule } from './bank-accounts/bank-accounts.module';
-
+import { FeaturedPlacementModule } from './featured-placements/featured-placements.module';
+import { ScheduleModule } from '@nestjs/schedule';
+import { WithdrawalsModule } from './withdrawals/withdrawals.module';
+import { MonthlyReportModule } from './monthly-report/monthly-report.module';
+import { ConfigModule } from '@nestjs/config';
 @Module({
   imports: [
     PrismaModule,
@@ -30,8 +34,17 @@ import { BankAccountsModule } from './bank-accounts/bank-accounts.module';
     AdminValidatorModule,
     DisputesModule,
     CustomOffersModule,
+    CustomOffersModule,
     CategoriesModule,
     BankAccountsModule,
+    WithdrawalsModule,
+    CustomOffersModule,
+    FeaturedPlacementModule,
+    MonthlyReportModule,
+    ConfigModule.forRoot({
+      isGlobal: true, 
+    }),
+    ScheduleModule.forRoot(),
   ],
   controllers: [AppController],
   providers: [AppService],

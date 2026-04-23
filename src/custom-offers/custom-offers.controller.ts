@@ -1,4 +1,7 @@
-import { Controller, Post, Get, Patch, Param, Body, Request, UseGuards, ParseIntPipe } from '@nestjs/common';
+import { 
+    Controller, Post, Get, Patch, Param, Body, Request, 
+    UseGuards, ParseIntPipe, HttpCode, HttpStatus 
+} from '@nestjs/common';
 import { CustomOffersService } from './custom-offers.service';
 import { AuthGuard } from '../auth/auth.guard'; 
 
@@ -14,27 +17,63 @@ interface RequestWithUsers extends Request {
 export class CustomOffersController {
   constructor(private readonly customOffersService: CustomOffersService) {}
 
-  //(Endpoint: POST /custom-offers)
-  @Post()
-  async createOffer(@Request() req: RequestWithUsers, @Body() body: any) {
-    return this.customOffersService.createOffer(req.user.sub, body.clientId, body);
+  @Post('sent')
+  @HttpCode(HttpStatus.CREATED)
+  async createOffer(
+    @Request() req: RequestWithUser, 
+    @Body() body: { 
+        clientId: number; 
+        channelId: string; // ID Channel Chat Stream
+        gigId: number;     // ID Jasa yang mau ditawar
+        price: number;     // Harga nego
+        title: string; 
+        description: string; 
+        deadlineDays: number 
+    }
+  ) {
+    // Kita lempar channelId juga supaya service bisa otomatis kirim balon chat
+    return this.customOffersService.createOffer(
+        req.user.sub, 
+        body.clientId, 
+        body.channelId, 
+        body
+    );
   }
 
-  //(Endpoint: GET /custom-offers/client)
+  /**
+   * 2. LIST OFFERS (Untuk Pembeli)
+   * Melihat daftar penawaran yang masuk ke akun pembeli
+   */
   @Get('client')
-  async getClientOffers(@Request() req: RequestWithUsers) {
+  async getClientOffers(@Request() req: RequestWithUser) {
     return this.customOffersService.getClientOffers(req.user.sub);
   }
 
-  //(Endpoint: PATCH /custom-offers/:id/accept)
+  /**
+   * 3. ACCEPT OFFER (Oleh Pembeli)
+   * Menyetujui harga nego -> Otomatis bikin Order UNPAID
+   */
   @Patch(':id/accept')
-  async acceptOffer(@Param('id', ParseIntPipe) id: number, @Request() req: RequestWithUsers) {
-    return this.customOffersService.acceptOffer(id, req.user.sub);
+  async acceptOffer(
+    @Param('id', ParseIntPipe) id: number, 
+    @Request() req: RequestWithUser,
+    @Body('messageId') messageId: string // Diambil dari ID pesan di chat Stream
+  ) {
+    // Service bakal update status Prisma DAN update balon chat Stream
+    return this.customOffersService.acceptOffer(id, req.user.sub, messageId);
   }
 
-  //(Endpoint: PATCH /custom-offers/:id/reject)
+  /**
+   * 4. REJECT OFFER (Oleh Pembeli)
+   * Menolak penawaran harga nego
+   */
   @Patch(':id/reject')
-  async rejectOffer(@Param('id', ParseIntPipe) id: number, @Request() req: RequestWithUsers) {
-    return this.customOffersService.rejectOffer(id, req.user.sub);
+  async rejectOffer(
+    @Param('id', ParseIntPipe) id: number, 
+    @Request() req: RequestWithUser,
+    @Body('messageId') messageId: string // Diambil dari ID pesan di chat Stream
+  ) {
+    // Service bakal update status Prisma DAN ubah teks balon chat jadi "REJECTED"
+    return this.customOffersService.rejectOffer(id, req.user.sub, messageId);
   }
 }

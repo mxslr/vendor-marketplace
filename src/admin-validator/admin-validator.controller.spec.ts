@@ -7,7 +7,9 @@ describe('AdminValidatorController', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AdminValidatorController],
-    }).compile();
+    })
+      .useMocker(() => ({}))
+      .compile();
 
     controller = module.get<AdminValidatorController>(AdminValidatorController);
   });

@@ -7,7 +7,9 @@ describe('AdminValidatorService', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [AdminValidatorService],
-    }).compile();
+    })
+      .useMocker(() => ({}))
+      .compile();
 
     service = module.get<AdminValidatorService>(AdminValidatorService);
   });

@@ -9,7 +9,9 @@ describe('CustomOffersController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [CustomOffersController],
       providers: [CustomOffersService],
-    }).compile();
+    })
+      .useMocker(() => ({}))
+      .compile();
 
     controller = module.get<CustomOffersController>(CustomOffersController);
   });

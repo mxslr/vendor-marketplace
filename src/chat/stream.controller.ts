@@ -1,7 +1,7 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Post, Req, UseGuards } from "@nestjs/common";
 import { StreamService } from "./stream.service";
-import { AuthGuard } from "src/auth/auth.guard";
-import { GigsService } from "src/gigs/gigs.service";
+import { AuthGuard } from "../auth/auth.guard";
+import { GigsService } from "../gigs/gigs.service";
 
 interface RequestWithUser extends Request {
     user: { sub: number; name: string, role: string };

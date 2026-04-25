@@ -189,6 +189,12 @@ Semua endpoint menggunakan prefix `/api/v1`. Berikut adalah daftar lengkap endpo
 | POST | `/disputes` | Yes | Open dispute |
 | PATCH | `/disputes/:id/resolve` | Yes | Resolve dispute (Admin) |
 
+### Chat (Stream Integration)
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/chat/token` | Yes | Dapatkan Stream chat token untuk user saat ini |
+| POST | `/chat/create-channel` | Yes | Buat channel chat untuk pesanan/gig tertentu |
+
 ---
 
 ## API Testing Guide
@@ -701,116 +707,25 @@ Sebelum dapat menarik dana, merchant harus mengatur `withdrawalPin` di profil to
 
 ---
 
-### FASE 2: SETUP SISTEM & TOKO VENDOR
+### FASE 11: FITUR CHAT (STREAM)
 
-Persiapan sebelum Vendor bisa berjualan.
+Sistem menggunakan integrasi Stream Chat untuk memfasilitasi komunikasi antara Klien dan Merchant/Staf.
 
-#### 1. Pembuatan Kategori Jasa
-**Endpoint:** `POST http://localhost:4000/api/v1/categories`  
-**Token:** Super Admin
+#### 1. Dapatkan Token Chat
+Setiap user harus mengambil token akses Stream sebelum dapat join ke Stream interface.
+**Endpoint:** `GET http://localhost:4000/api/v1/chat/token`  
+**Token:** Valid user JWT (Bisa Client, Merchant, dll)
 
+**Response:**
 ```json
 {
-  "name": "Web & IT Development",
-  "commissionRate": 5.5
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 }
 ```
 
-#### 2. Pembuatan Profil Toko
-**Endpoint:** `POST http://localhost:4000/api/v1/merchants`  
-**Token:** Merchant Owner
-
-```json
-{
-  "shopName": "Budi Tech Studio",
-  "description": "Bikin web cepat, murah, aman."
-}
-```
-
-#### 3. Upload Dokumen Verifikasi / KYB
-**Endpoint:** `PATCH http://localhost:4000/api/v1/merchants/submit-kyb`  
-**Token:** Merchant Owner
-
-```json
-{
-  "kybDocuments": "https://gdrive.com/ktm-budi.pdf",
-  "portfolioUrl": "document cv"
-}
-```
-
-#### 4. Admin Memvalidasi Toko
-**Endpoint:** `PATCH http://localhost:4000/api/v1/admin/validator/merchants/1/verify`  
-**Token:** Admin Validator
-
-**Jika Terima:**
-```json
-{
-  "status": "ACTIVE"
-}
-```
-
-**Jika Tolak:**
-```json
-{
-  "status": "REJECTED",
-  "rejectionReason": "Foto KTM buram."
-}
-```
-
-#### 5. Vendor Mendaftarkan Rekening Pencairan
-**Endpoint:** `POST http://localhost:4000/api/v1/bank-accounts`  
-**Token:** Merchant Owner
-
-```json
-{
-  "bankName": "Bank Mandiri",
-  "accountNumber": "1300012345678",
-  "accountHolderName": "Budi Santoso",
-  "isPrimary": true
-}
-```
-
----
-
-### FASE 3: MANAJEMEN KARYAWAN & ETALASE
-
-Melibatkan staf untuk membantu mengelola toko dan memajang jasa di etalase.
-
-#### 1. Bos Merekrut Staf ke Toko
-**Endpoint:** `POST http://localhost:4000/api/v1/merchant-associates`  
-**Token:** Merchant Owner
-
-```json
-{
-  "merchantId": 1,
-  "email": "udin.staf@kampus.com",
-  "permission": "FULL_ACCESS"
-}
-```
-
-#### 2. Membuat Etalase Jasa / Gigs
-**Endpoint:** `POST http://localhost:4000/api/v1/gigs`  
-**Token:** Merchant Owner atau Staf Associate
-
-```json
-{
-  "merchantId": 1,
-  "categoryId": 1,
-  "title": "Jasa Pembuatan Web Company Profile",
-  "description": "Website elegan dan responsif.",
-  "price": 2500000,
-  "status": "PUBLISHED"
-}
-```
-
----
-
-### FASE 4: PEMESANAN JASA
-
-Pembeli memiliki dua metode untuk memesan jasa.
-
-#### OPSI A: Jalur Pembelian Langsung (Direct Order)
-**Endpoint:** `POST http://localhost:4000/api/v1/orders`  
+#### 2. Buat Channel Chat
+Memulai percakapan baru untuk sebuah Gig.
+**Endpoint:** `POST http://localhost:4000/api/v1/chat/create-channel`  
 **Token:** Client
 
 ```json
@@ -819,54 +734,14 @@ Pembeli memiliki dua metode untuk memesan jasa.
 }
 ```
 
-#### OPSI B: Jalur Negosiasi (Custom Offer)
-
-**Tahap 1: Vendor Mengirim Penawaran**  
-**Endpoint:** `POST http://localhost:4000/api/v1/custom-offers`  
-**Token:** Merchant Owner
-
+**Response:**
 ```json
 {
-  "clientId": 5,
-  "title": "Web Custom",
-  "description": "Spesial diskon",
-  "price": 1200000,
-  "deadlineDays": 10
+  "channelId": "namachannel...",
+  "token": "eyJhbGciOiJIUz..."
 }
 ```
 
-**Tahap 2: Klien Menerima Penawaran**  
-**Endpoint:** `PATCH http://localhost:4000/api/v1/custom-offers/1/accept`  
-**Token:** Client
-
----
-
-### FASE 5: PEMBAYARAN & VERIFIKASI KEUANGAN
-
-Uang masuk dari Klien dan diverifikasi oleh tim internal kampus/platform.
-
-#### 1. Klien Melakukan Pembayaran
-**Endpoint:** `PATCH http://localhost:4000/api/v1/orders/1/pay`  
-**Token:** Client
-
-```json
-{
-  "proofUrl": "https://gdrive.com/bukti-transfer-siti.png"
-}
-```
-
-**Catatan:** Endpoint ini akan mencetak nomor transaksi di database (misal: Transaction ID 1).
-
-#### 2. Finance Memverifikasi Uang Masuk
-**Endpoint:** `PATCH http://localhost:4000/api/v1/transactions/1/verify`  
-**Token:** Admin Finance
-
-```json
-{
-  "status": "VERIFIED"
-}
-```
-
-**Catatan:** Setelah Finance ACC, status Order otomatis menjadi `IN_PROGRESS`.
-
----
+**Catatan:**
+- Request pembuatan channel otomatis menambahkan akun Client dan akun pemilik Merchant ke platform Stream.
+- Channel akan terbuka dan bisa digunakan langsung untuk bertukar pesan terkait penawaran jasa terkait (Gig).

@@ -131,7 +131,7 @@ Semua endpoint menggunakan prefix `/api/v1`. Berikut adalah daftar lengkap endpo
 ### Custom Offers
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
-| POST | `/custom-offers` | Yes | Create custom offer |
+| POST | `/custom-offers/sent` | Yes | Create custom offer in chat |
 | GET | `/custom-offers/client` | Yes | Get custom offers for client |
 | PATCH | `/custom-offers/:id/accept` | Yes | Client accepts offer |
 | PATCH | `/custom-offers/:id/reject` | Yes | Client rejects offer |
@@ -436,13 +436,15 @@ Pembeli memiliki dua metode untuk memesan jasa.
 
 #### OPSI B: Jalur Negosiasi (Custom Offer)
 
-**Tahap 1: Vendor Mengirim Penawaran**  
-**Endpoint:** `POST http://localhost:4000/api/v1/custom-offers`  
+**Tahap 1: Vendor Mengirim Penawaran via Chat**  
+**Endpoint:** `POST http://localhost:4000/api/v1/custom-offers/sent`  
 **Token:** Merchant Owner
 
 ```json
 {
   "clientId": 5,
+  "gigId": 1,
+  "channelId": "gig-1-client-5",
   "title": "Web Custom",
   "description": "Spesial diskon",
   "price": 1200000,
@@ -454,9 +456,21 @@ Pembeli memiliki dua metode untuk memesan jasa.
 **Endpoint:** `PATCH http://localhost:4000/api/v1/custom-offers/1/accept`  
 **Token:** Client
 
+```json
+{
+  "messageId": "1a2b3c4d-5e6f-7890-abcd-ef1234567890"
+}
+```
+
 **Tahap 3: Klien Menolak Penawaran**  
 **Endpoint:** `PATCH http://localhost:4000/api/v1/custom-offers/1/reject`  
 **Token:** Client
+
+```json
+{
+  "messageId": "1a2b3c4d-5e6f-7890-abcd-ef1234567890"
+}
+```
 
 ---
 

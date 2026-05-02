@@ -93,14 +93,6 @@ Semua endpoint menggunakan prefix `/api/v1`. Berikut adalah daftar lengkap endpo
 | PATCH  | `/merchants/vacation-mode`    | Yes  | Toggle vacation mode                           |
 | PATCH  | `/merchants/closed`           | Yes  | Close merchant account                         |
 
-### Bank Accounts (Terintegrasi di Pendaftaran)
-
-| Method | Endpoint             | Auth | Description                  |
-| ------ | -------------------- | ---- | ---------------------------- |
-| GET    | `/bank-accounts`     | Yes  | Get merchant's bank accounts |
-| PATCH  | `/bank-accounts/:id` | Yes  | Update bank account          |
-| DELETE | `/bank-accounts/:id` | Yes  | Delete bank account          |
-
 ### Withdrawals
 
 | Method | Endpoint                    | Auth                 | Description                       |

@@ -1,22 +1,47 @@
-import { IsString, IsOptional, IsUrl, IsNotEmpty, MinLength } from 'class-validator';
+import { IsString, IsOptional, IsUrl, IsNotEmpty, MinLength, IsEmail, IsNumber, IsNumberString, Matches } from 'class-validator';
 
-export class CreateMerchantDto {
+export class RegisterMerchantUserDto {
+  @IsEmail({}, {message: 'Invalid email format'})
+  email!: string
+
+  @MinLength(8, { message: 'Password minimal 8 karakter' })
+  password!: string
+
+  @IsString()
+  @IsNotEmpty()
+  fullName!: string;
+
   @IsString()
   @IsNotEmpty({ message: 'Nama toko tidak boleh kosong' })
   shopName!: string;
 
   @IsString()
-  @IsOptional()
-  description?: string;
+  @IsNotEmpty({ message: 'Deskripsi tidak boleh kosong'})
+  description!: string;
 
   @IsUrl({}, { message: 'Format URL logo tidak valid' })
-  @IsOptional()
-  logoUrl?: string;
+  @IsNotEmpty()
+  logoUrl!: string;
 
   @IsUrl({}, { message: 'Format URL banner tidak valid' })
-  @IsOptional()
-  bannerUrl?: string; 
+  @IsNotEmpty()
+  bannerUrl!: string; 
+
+  @IsString()
+  @Matches(/^[a-zA-Z ]+$/, { message: 'Nama bank tidak boleh berisi angka atau simbol' })
+  @IsNotEmpty({ message: 'Nama bank tidak boleh kosong' })
+  bankName!: string;
+
+  @IsNumberString({}, {message: 'Nomor rekening hanya boleh berisi angka'})
+  @IsNotEmpty({ message: 'Nomor rekening tidak boleh kosong' })
+  accountNumber!: string;
+
+  @IsString()
+  @Matches(/^[a-zA-Z ]+$/, { message: 'Nama pemilik rekening tidak boleh berisi angka atau simbol' })
+  @IsNotEmpty({ message: 'Nama pemilik rekening tidak boleh kosong' })
+  accountHolderName!: string;
 }
+
 
 // Wajib upload dokumen identitas dan portofolio untuk verifikasi KYB
 export class SubmitKybDto {
@@ -29,7 +54,6 @@ export class SubmitKybDto {
   portfolioUrl!: string;
 }
 
-// kebutuhan untuk update profil toko (Hanya Merchant yang bisa akses, tidak wajib semua field diisi)
 export class UpdateProfileDto {
   @IsString() @IsOptional() shopName?: string;
   @IsString() @IsOptional() description?: string;

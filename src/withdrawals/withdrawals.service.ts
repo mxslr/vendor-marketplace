@@ -17,6 +17,10 @@ export class WithdrawalsService {
   private async getMerchant(userId: number) {
     const merchant = await this.prisma.merchant.findUnique({ where: { userId } });
     if (!merchant) {
+      const associate = await this.prisma.merchantAssociate.findFirst({ where: { userId } });
+      if (associate) {
+        throw new ForbiddenException('Staf (Associate) tidak diizinkan untuk melakukan penarikan dana.');
+      }
       throw new ForbiddenException(
         'Akses ditolak. Hanya pemilik merchant yang dapat melakukan penarikan.',
       );

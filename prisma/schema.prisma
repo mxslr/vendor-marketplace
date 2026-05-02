@@ -331,7 +331,7 @@ model CustomOffer {
   merchantId   Int
   clientId     Int
   title        String
-  description  String?
+  description  String
   price        Decimal           @db.Decimal(15, 2)
   deadlineDays Int
   status       CustomOfferStatus @default(PENDING)

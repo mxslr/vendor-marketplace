@@ -1,10 +1,10 @@
-import { 
-    Controller, Post, Get, Patch, Param, Body, Request, 
-    UseGuards, ParseIntPipe, HttpCode, HttpStatus 
+import {
+    Controller, Post, Get, Patch, Param, Body, Request,
+    UseGuards, ParseIntPipe, HttpCode, HttpStatus
 } from '@nestjs/common';
 import { CustomOffersService } from './custom-offers.service';
-import { AuthGuard } from '../auth/auth.guard'; 
-import { Decimal } from '@prisma/client/runtime/client';
+import { AuthGuard } from '../auth/auth.guard';
+import { CreateCustomOfferDto } from './dto/create-custom-offer.dto';
 
 interface RequestWithUser extends Request {
   user: {
@@ -21,23 +21,14 @@ export class CustomOffersController {
   @Post('sent')
   @HttpCode(HttpStatus.CREATED)
   async createOffer(
-    @Request() req: RequestWithUser, 
-    @Body() body: { 
-        clientId: number; 
-        channelId: string; 
-        gigId: number;     
-        price: Decimal;     
-        title: string; 
-        description: string; 
-        deadlineDays: number 
-    }
+    @Request() req: RequestWithUser,
+    @Body() body: CreateCustomOfferDto,
   ) {
-
     return this.customOffersService.createOffer(
-        req.user.sub, 
-        body.clientId, 
-        body.channelId, 
-        body
+      req.user.sub,
+      body.clientId,
+      body.channelId,
+      body,
     );
   }
 

@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsNumber, IsOptional, IsEnum } from 'class-validator';
+import { IsString, IsNotEmpty, IsNumber, IsOptional, IsEnum, IsUrl } from 'class-validator';
 
 export class CreateGigDto {
   @IsNumber()
@@ -16,9 +16,8 @@ export class CreateGigDto {
   @IsNumber()
   price!: number;
 
-  @IsString()
-  @IsOptional()
-  mediaUrls?: string; // Menyimpan link foto/video portofolio (bisa bentuk JSON string kalau lebih dari satu)
+  @IsUrl(undefined, { message: 'Link MediaTidak Valid!' })
+  mediaUrls!: string; // Menyimpan link foto/video portofolio (bisa bentuk JSON string kalau lebih dari satu)
 }
 
 

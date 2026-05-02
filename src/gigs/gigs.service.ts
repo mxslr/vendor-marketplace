@@ -19,6 +19,12 @@ export class GigsService {
     });
 
     if (!myMerchant) {
+      const associate = await this.prisma.merchantAssociate.findFirst({
+        where: { userId },
+      });
+      if (associate) {
+        throw new ForbiddenException('Staf (Associate) tidak diizinkan untuk membuat jasa (gigs).');
+      }
       throw new NotFoundException('Kamu belum punya toko. Bikin toko dulu ya.');
     }
     if ( myMerchant.status === MerchantStatus.SUSPENDED || myMerchant.status !== MerchantStatus.ACTIVE) {
@@ -62,13 +68,27 @@ export class GigsService {
   }
   // Endpoint untuk merchant(vendor) melihat jasa-jasa yang dia buat, termasuk yang belum aktif
   async findMyGigs(userId: number) {
-    const merchant = await this.prisma.merchant.findUnique({
+    let merchantId: number | null = null;
+
+    const ownerMerchant = await this.prisma.merchant.findUnique({
       where: { userId },
     });
-    if (!merchant) throw new NotFoundException('Toko tidak ditemukan.');
+
+    if (ownerMerchant) {
+      merchantId = ownerMerchant.id;
+    } else {
+      const associate = await this.prisma.merchantAssociate.findFirst({
+        where: { userId },
+      });
+      if (associate) {
+        merchantId = associate.merchantId;
+      }
+    }
+
+    if (!merchantId) throw new NotFoundException('Toko tidak ditemukan.');
 
     return this.prisma.gig.findMany({
-      where: { merchantId: merchant.id},
+      where: { merchantId: merchantId },
     });
   }
 
@@ -77,7 +97,18 @@ export class GigsService {
     const gig = await this.prisma.gig.findUnique({
       where: { id: gigId},
       include: {
-        merchant: true,
+        merchant: {
+          select: {
+            id: true,
+            userId: true,
+            shopName: true,
+            description: true,
+            logoUrl: true,
+            bannerUrl: true,
+            badge: true,
+            createdAt: true,
+          }
+        },
       }
     });
     if (!gig) {

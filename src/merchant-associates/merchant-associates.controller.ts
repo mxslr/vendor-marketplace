@@ -10,6 +10,8 @@ import { MerchantAssociatesService } from './merchant-associates.service';
 import { AuthGuard } from '../auth/auth.guard';
 import { AssociatePermission } from '@prisma/client';
 
+import { AddAssociateDto } from './merchant-associates.dto';
+
 interface RequestWithUser extends Request {
   user: {
     sub: number;
@@ -25,12 +27,12 @@ export class MerchantAssociatesController {
   @Post()
   addAssociate(
     @Request() req: RequestWithUser,
-    @Body() body: { userId: number; email: string; permission: AssociatePermission },
+    @Body() dto: AddAssociateDto,
   ) {
     return this.associatesService.addAssociate(
       req.user.sub,
-      body.email,
-      body.permission,
+      dto.email,
+      dto.permission,
     );
   }
 

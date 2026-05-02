@@ -13,9 +13,9 @@ import {
 import { MerchantsService } from './merchants.service';
 import { AuthGuard } from '../auth/auth.guard';
 import {
-  CreateMerchantDto,
   SubmitKybDto,
   UpdateProfileDto,
+  RegisterMerchantUserDto,
 } from './merchants.dto';
 import { MerchantStatus } from '@prisma/client';
 
@@ -30,11 +30,10 @@ interface RequestWithUser extends Request {
 export class MerchantsController {
   constructor(private merchantsService: MerchantsService) {}
 
-  // Endpoint: POST /merchants
-  @UseGuards(AuthGuard)
-  @Post()
-  create(@Request() req: RequestWithUser, @Body() dto: CreateMerchantDto) {
-    return this.merchantsService.createMerchant(req.user.sub, dto);
+  // Endpoint: POST /merchants/register - Register user and merchant tanpa login (Publik)
+  @Post('register')
+  registerMerchant(@Body() dto: RegisterMerchantUserDto) {
+    return this.merchantsService.registerNewMerchant(dto);
   }
 
   // Endpoint: GET /merchants

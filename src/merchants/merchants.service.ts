@@ -4,45 +4,87 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { MerchantStatus, Role } from '@prisma/client';
+import { JwtService } from '@nestjs/jwt';
+import * as bcrypt from 'bcrypt';
+import { Prisma, MerchantStatus, Role } from '@prisma/client';
 import {
-  CreateMerchantDto,
   SubmitKybDto,
   UpdateProfileDto,
+  RegisterMerchantUserDto,
 } from './merchants.dto';
+import { InternalServerErrorException } from '@nestjs/common';
 
 @Injectable()
 export class MerchantsService {
-  constructor(private prisma: PrismaService) {}
-  // Endpoint: POST /merchants - Membuat toko baru (Hanya 1 toko per user)
-  async createMerchant(userId: number,  dto: CreateMerchantDto) {
-    const existingMerchant = await this.prisma.merchant.findUnique({
-      where: { userId: userId  },
-    });
+  constructor(
+    private prisma: PrismaService,
+    private jwtService: JwtService
+  ) {}
 
-    if (existingMerchant) {
-      throw new BadRequestException(
-        'Akun ini sudah memiliki toko. Satu akun hanya bisa membuat satu toko.',
-      );
+  async registerNewMerchant(dto: RegisterMerchantUserDto) {
+    const { email, password, fullName, shopName, description, logoUrl, bannerUrl, bankName, accountNumber, accountHolderName } = dto;
+    const normalizedEmail = email.toLowerCase().trim();
+    const existingUser = await this.prisma.user.findUnique({ where: { email : normalizedEmail}});
+    
+    if (existingUser) {
+      throw new BadRequestException('Email sudah terdaftar');
     }
-    return this.prisma.$transaction(async (tx) => {
-    // Update role di tabel User
-    await tx.user.update({
-      where: { id: userId },
-      data: { role: Role.MERCHANT_OWNER },
-    });
 
-    return tx.merchant.create({
-      data: {
-        userId: userId,
-        shopName: dto.shopName,
-        description: dto.description,
-        logoUrl: dto.logoUrl,
-        bannerUrl: dto.bannerUrl,
-        status: MerchantStatus.INCOMPLETE, // Status awal saat membuat toko, menunggu pengisian KYB
-      },
+    try {
+      const saltRounds = 10;
+      const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+      return await this.prisma.$transaction(async (tx) => {
+        const newUser = await tx.user.create({
+          data: {
+            email: normalizedEmail,
+            passwordHash: hashedPassword,
+            fullName: fullName,
+            role: Role.MERCHANT_OWNER,
+          },
+        });
+
+        // 2. Buat Toko (Merchant) untuk user tersebut
+        const newMerchant = await tx.merchant.create({
+          data: {
+            userId: newUser.id,
+            shopName: shopName,
+            description: description,
+            logoUrl: logoUrl,
+            bannerUrl: bannerUrl,
+          },
+        });
+
+        const newBankAccount = await tx.bankAccount.create({
+          data: {
+            merchantId: newMerchant.id,
+            bankName: bankName,
+            accountNumber: accountNumber,
+            accountHolderName: accountHolderName,
+          },
+        });
+
+        const { passwordHash, isSuspended, ...userWithoutPassword } = newUser;
+        
+        const payload = { sub: newUser.id, email: newUser.email, role: newUser.role };
+        const token = await this.jwtService.signAsync(payload);
+
+        return {
+          access_token: token,
+          token_type: "Bearer",
+          user: userWithoutPassword,
+          merchant: newMerchant,
+          bankAccount: newBankAccount,
+          status: MerchantStatus.INCOMPLETE
+        };
       });
-    });
+    } catch (error) {
+      console.error('Detail Error Server:', error); 
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        throw new BadRequestException('Terjadi kesalahan pada input database');
+      }
+      throw new InternalServerErrorException('Maaf, terjadi masalah internal pada server kami');
+    }
   }
   
   // Endpoint: POST /merchants/kyb - Submit dokumen KYB untuk verifikasi toko
@@ -73,7 +115,17 @@ export class MerchantsService {
   }
   async findAllMerchants() {
     return this.prisma.merchant.findMany({
-      where: { status: MerchantStatus.ACTIVE }, // Hanya tampilkan toko yang sudah aktif
+      where: { status: MerchantStatus.ACTIVE },
+      select: {
+        id: true,
+        userId: true,
+        shopName: true,
+        description: true,
+        logoUrl: true,
+        bannerUrl: true,
+        badge: true,
+        createdAt: true,
+      }
     });
   }
   // Endpoint: PATCH /merchants/profile - Update profil toko (Hanya untuk merchant itu sendiri)
@@ -106,19 +158,45 @@ export class MerchantsService {
 
   // Untuk profil sendiri (lewat token)
   async findMyMerchantByUserId(userId: number) {
-    const merchant = await this.prisma.merchant.findUnique({
+    let isAssociate = false;
+    let merchant = await this.prisma.merchant.findUnique({
       where: { userId: userId },
       include: {
         bankAccounts: true, 
         gigs: true,
       },
     });
-    if (!merchant) throw new NotFoundException('Kamu belum memiliki toko.')
+
+    if (!merchant) {
+      const associate = await this.prisma.merchantAssociate.findFirst({
+        where: { userId },
+        include: {
+          merchant: {
+            include: { bankAccounts: true, gigs: true }
+          }
+        }
+      });
+
+      if (associate) {
+        merchant = associate.merchant;
+        isAssociate = true;
+      }
+    }
+
+    if (!merchant) throw new NotFoundException('Kamu belum memiliki toko atau tidak berafiliasi dengan toko manapun.');
+
     if (merchant.status !== MerchantStatus.ACTIVE) {
       throw new BadRequestException(
         'kamu tidak dapat berjualan selama masa suspend atau verifikasi!',
       );
     }
+
+    if (isAssociate) {
+      // Hide wallet balances for associates
+      const { walletBalance, pendingBalance, withdrawalPin, ...safeMerchant } = merchant;
+      return safeMerchant;
+    }
+
     return merchant;
   }
 
@@ -150,8 +228,14 @@ export class MerchantsService {
     const merchant = await this.prisma.merchant.findUnique({
       where: { userId },
     });
+    
     if (!merchant) throw new NotFoundException('Toko tidak ditemukan.');
-    if (merchant.status !== MerchantStatus.ACTIVE) {
+    const allowedStatus: MerchantStatus[] = [
+      MerchantStatus.ACTIVE,
+      MerchantStatus.VACATION
+    ];
+
+    if (!allowedStatus.includes(merchant.status)) {
       throw new BadRequestException(
         'Hanya toko terverifikasi yang dapat mengubah mode liburan.',
       );
@@ -160,7 +244,7 @@ export class MerchantsService {
 
     const newStatus = isOnVacation
       ? MerchantStatus.VACATION
-      : MerchantStatus.ACTIVE;
+      : MerchantStatus.ACTIVE;  
 
     await tx.merchant.update({
       where: { id: merchant.id },
@@ -173,7 +257,12 @@ export class MerchantsService {
         status: isOnVacation ? 'PAUSED' : 'ACTIVE'
       }
     });
-
+    return {
+      message: isOnVacation 
+        ? "Toko berhasil ditutup sementara (Mode Liburan Aktif)" 
+        : "Toko berhasil dibuka kembali (Mode Liburan Non-Aktif)",
+        status: newStatus
+    }
   });
 }
 

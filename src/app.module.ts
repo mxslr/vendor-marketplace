@@ -14,7 +14,6 @@ import { AdminValidatorModule } from './admin-validator/admin-validator.module';
 import { DisputesModule } from './disputes/disputes.module';
 import { CustomOffersModule } from './custom-offers/custom-offers.module';
 import { CategoriesModule } from './categories/categories.module';
-import { BankAccountsModule } from './bank-accounts/bank-accounts.module';
 import { FeaturedPlacementModule } from './featured-placements/featured-placements.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { WithdrawalsModule } from './withdrawals/withdrawals.module';
@@ -37,7 +36,6 @@ import { StreamModule } from './chat/stream.module';
     CustomOffersModule,
     CustomOffersModule,
     CategoriesModule,
-    BankAccountsModule,
     WithdrawalsModule,
     CustomOffersModule,
     FeaturedPlacementModule,

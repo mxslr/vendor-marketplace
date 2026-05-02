@@ -27,7 +27,13 @@ export class FeaturedPlacementService {
       where: { userId },
     });
 
-    if (!merchant) throw new NotFoundException('Toko tidak ditemukan');
+    if (!merchant) {
+      const associate = await this.prisma.merchantAssociate.findFirst({ where: { userId } });
+      if (associate) {
+        throw new ForbiddenException('Staf (Associate) tidak diizinkan untuk membeli Featured Placement.');
+      }
+      throw new NotFoundException('Toko tidak ditemukan');
+    }
 
     const gig = await this.prisma.gig.findUnique({
       where: { id: gigId },

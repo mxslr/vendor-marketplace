@@ -25,11 +25,12 @@ export class GigsController {
     return this.gigsService.findAllActiveGigs();
   }
 
-@Get('my-gigs/:id')
-  findMerchantsGigs(@Param('id', ParseIntPipe) id: number) {
-    return this.gigsService.findMyGigs(id)
+@UseGuards(AuthGuard)
+@Get('my-gigs')
+  findMerchantsGigs(@Request() req: RequestWithUsers) {
+    return this.gigsService.findMyGigs(req.user.sub)
   }
-  
+
 @Get('details/:id')
   findGigDetails(@Param('id', ParseIntPipe) id: number ){
       return this.gigsService.detailGigs(id)

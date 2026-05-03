@@ -1,6 +1,7 @@
 import { Controller, Post, Body, UseGuards, Request } from '@nestjs/common';
 import { DeliverablesService } from './deliverables.service';
 import { AuthGuard } from '../auth/auth.guard';
+import { SubmitDeliverableDto } from './dto/submit-deliverable.dto';
 
 interface RequestWithUser extends Request {
   user: {
@@ -17,7 +18,7 @@ export class DeliverablesController {
   @Post()
   submit(
     @Request() req: RequestWithUser,
-    @Body() body: { orderId: number; fileUrl: string; message?: string },
+    @Body() body: SubmitDeliverableDto,
   ) {
     return this.deliverablesService.submitDeliverable(
       req.user.sub,

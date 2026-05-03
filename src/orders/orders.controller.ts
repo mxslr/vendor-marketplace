@@ -10,6 +10,7 @@ import {
 } from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { AuthGuard } from '../auth/auth.guard';
+import { PayOrderDto } from './dto/pay-order.dto';
 
 interface RequestWithUser extends Request {
   user: {
@@ -39,9 +40,9 @@ export class OrdersController {
   payOrder(
     @Request() req: RequestWithUser,
     @Param('id') id: string,
-    @Body() body: { proofUrl?: string }, 
+    @Body() body: PayOrderDto,
   ) {
-    return this.ordersService.payOrder(Number(id), req.user.sub, body?.proofUrl); 
+    return this.ordersService.payOrder(Number(id), req.user.sub, body.proofUrl);
   }
 
   @UseGuards(AuthGuard)

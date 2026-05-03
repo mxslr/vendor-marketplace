@@ -16,10 +16,30 @@ export class TransactionsService {
   }
 
   async findMyTransactions(userId: number) {
+    const merchant = await this.prisma.merchant.findFirst({
+      where: {
+        OR: [
+          { userId },
+          { associates: { some: { userId } } },
+        ],
+      },
+    });
+
+    if (merchant) {
+      return this.prisma.transaction.findMany({
+        where: { order: { merchantId: merchant.id } },
+        include: {
+          order: { select: { id: true, totalAmount: true, status: true } },
+          user: { select: { fullName: true, email: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+    }
+
     return this.prisma.transaction.findMany({
       where: { userId },
-      include: { 
-        order: { select: { id: true, totalAmount: true, status: true } } 
+      include: {
+        order: { select: { id: true, totalAmount: true, status: true } },
       },
       orderBy: { createdAt: 'desc' },
     });

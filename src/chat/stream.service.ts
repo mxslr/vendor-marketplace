@@ -40,6 +40,12 @@ import { Decimal } from '@prisma/client/runtime/client';
             }as any)
         }
 
+        async upsertStreamUsers(users: Array<{ id: string; name: string; role?: string }>) {
+            await this.serverClient.upsertUsers(
+                users.map(u => ({ id: u.id, name: u.name, ...(u.role && { role_type: u.role }) })) as any
+            );
+        }
+
         async sendOfferAttachment(channelId: string, senderId: string, offer: { offerId: number, gigId:number, price: Decimal, title: string }) {
         const channel = this.serverClient.channel('messaging', channelId);
         
@@ -76,11 +82,11 @@ import { Decimal } from '@prisma/client/runtime/client';
     }
 
 
-        async createProductChannel(clientId: string, associateId: string, merchantId: string, gig: any){
+        async createProductChannel(clientId: string, associateId: string, gig: any){
             const channelId = `chat-gig-${gig.id}-user-${clientId}`;
 
             const channel = this.serverClient.channel('messaging', channelId, {
-                members: [clientId, associateId, merchantId],
+                members: [clientId, associateId],
                 created_by_id: clientId,
 
                 product_info: {

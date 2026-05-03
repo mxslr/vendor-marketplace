@@ -40,17 +40,17 @@ export class StreamController {
         const gigIdNumber = Number(body.gigId);
         const gig = await this.gigsService.detailGigs(gigIdNumber);
 
-        const merchantId = gig.merchantId.toString();
-        const associateId = gig.merchant.userId.toString(); 
+        const associateId = gig.merchant.userId.toString();
         const shopName = gig.merchant.shopName;
 
-        await this.streamService.upsertStreamUser(clientId, clientName, clientRole);
-        
-        await this.streamService.upsertStreamUser(associateId, shopName, 'MERCHANT_OWNER');
+        await this.streamService.upsertStreamUsers([
+            { id: clientId, name: clientName, role: clientRole },
+            { id: associateId, name: shopName, role: 'MERCHANT_OWNER' },
+        ]);
+
         const channel = await this.streamService.createProductChannel(
             clientId,
-            associateId, 
-            merchantId,
+            associateId,
             gig,
         );
 

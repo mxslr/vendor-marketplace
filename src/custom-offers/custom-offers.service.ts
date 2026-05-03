@@ -55,7 +55,7 @@ export class CustomOffersService {
     });
   }
 
-  async acceptOffer(offerId: number, clientId: number, messageId: string) {
+  async acceptOffer(offerId: number, clientId: number, messageId?: string) {
     const offer = await this.prisma.customOffer.findUnique({ where: { id: offerId }, include: { gig: true} });
 
     if (!offer || offer.clientId !== clientId) {
@@ -65,7 +65,7 @@ export class CustomOffersService {
       throw new BadRequestException(`Gagal, penawaran ini sudah berstatus ${offer.status}`);
     }
 
-    return this.prisma.$transaction(async (prisma) => {
+    const { updatedOffer, newOrder } = await this.prisma.$transaction(async (prisma) => {
       const updatedOffer = await prisma.customOffer.update({
         where: { id: offerId },
         data: { status: 'ACCEPTED' },
@@ -78,33 +78,47 @@ export class CustomOffersService {
           gigId: offer.gigId,
           customOfferId: offer.id,
           totalAmount: offer.price,
-          status: 'UNPAID', 
+          status: 'UNPAID',
         },
       });
 
-      await this.streamService.updateOfferStatus(messageId, 'ACCEPTED');
-
-      return { 
-        message: 'Penawaran berhasil diterima, tagihan sudah dibuat', 
-        offer: updatedOffer,
-        order: newOrder 
-      };
+      return { updatedOffer, newOrder };
     });
+
+    if (messageId) {
+      try {
+        await this.streamService.updateOfferStatus(messageId, 'ACCEPTED');
+      } catch (_) {}
+    }
+
+    return {
+      message: 'Penawaran berhasil diterima, tagihan sudah dibuat',
+      offer: updatedOffer,
+      order: newOrder
+    };
   }
 
-  async rejectOffer(offerId: number, clientId: number, messageId: string) {
+  async rejectOffer(offerId: number, clientId: number, messageId?: string) {
     const offer = await this.prisma.customOffer.findUnique({ where: { id: offerId } });
 
     if (!offer || offer.clientId !== clientId) {
       throw new NotFoundException('Penawaran tidak ditemukan');
     }
-    
-    const updateOffer= await this.prisma.customOffer.update({
+
+    if (offer.status !== 'PENDING') {
+      throw new BadRequestException(`Gagal, penawaran ini sudah berstatus ${offer.status}`);
+    }
+
+    const updateOffer = await this.prisma.customOffer.update({
       where: { id: offerId },
       data: { status: 'REJECTED' },
     });
 
-    await this.streamService.updateOfferStatus(messageId, 'REJECTED');
+    if (messageId) {
+      try {
+        await this.streamService.updateOfferStatus(messageId, 'REJECTED');
+      } catch (_) {}
+    }
 
     return {
       message: 'Penawaran berhasil ditolak',

@@ -24,6 +24,7 @@ export class UsersService {
           email: normalizedEmail,
           passwordHash: hashedPassword,
           fullName: fullName,
+          ...(data.role && { role: data.role }),
         },
       });
 

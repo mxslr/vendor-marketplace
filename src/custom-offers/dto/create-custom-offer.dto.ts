@@ -17,7 +17,7 @@ export class CreateCustomOfferDto {
   gigId: number;
 
   @IsNumber()
-  @IsPositive()
+  @Min(0, { message: 'Price tidak dapat minus' })
   @Type(() => Number)
   price: number;
 

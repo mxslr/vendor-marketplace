@@ -20,6 +20,7 @@ import { WithdrawalsModule } from './withdrawals/withdrawals.module';
 import { MonthlyReportModule } from './monthly-report/monthly-report.module';
 import { ConfigModule } from '@nestjs/config';
 import { StreamModule } from './chat/stream.module';
+import { TransactionsModule } from './transactions/transactions.module';
 @Module({
   imports: [
     PrismaModule,
@@ -34,12 +35,11 @@ import { StreamModule } from './chat/stream.module';
     AdminValidatorModule,
     DisputesModule,
     CustomOffersModule,
-    CustomOffersModule,
     CategoriesModule,
     WithdrawalsModule,
-    CustomOffersModule,
     FeaturedPlacementModule,
     MonthlyReportModule,
+    TransactionsModule,
     StreamModule,
     ConfigModule.forRoot({
       isGlobal: true, 

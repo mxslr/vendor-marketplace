@@ -1,4 +1,4 @@
-import { IsString, IsNumber, IsOptional, Min, Max, Matches } from 'class-validator';
+import { IsString, IsNumber, IsOptional, IsNotEmpty, IsUrl, Min, Max, Matches } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class GenerateReportDto {
@@ -29,7 +29,8 @@ export class ProcessDividendDto {
 }
 
 export class UploadProofDto {
-  @IsString()
+  @IsNotEmpty({ message: 'proofUrl tidak boleh kosong' })
+  @IsUrl({}, { message: 'proofUrl harus berupa URL yang valid' })
   proofUrl!: string;
 }
 

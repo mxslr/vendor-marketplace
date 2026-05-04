@@ -4,7 +4,7 @@ import { AuthGuard } from "../auth/auth.guard";
 import { GigsService } from "../gigs/gigs.service";
 
 interface RequestWithUser extends Request {
-    user: { sub: number; name: string, role: string };
+    user: { sub: number; fullName: string; role: string };
 }
 
 // stream.controller.ts
@@ -16,10 +16,10 @@ export class StreamController {
     @HttpCode(HttpStatus.ACCEPTED)
     @UseGuards(AuthGuard)
     async getToken(@Req() req: RequestWithUser) {
-        const { sub, name, role } = req.user;
+        const { sub, fullName, role } = req.user;
         const userIdString = sub.toString();
-        
-        await this.streamService.upsertStreamUser(userIdString,  name, role );
+
+        await this.streamService.upsertStreamUser(userIdString, fullName, role);
         
         const token = this.streamService.generateToken(userIdString);
         

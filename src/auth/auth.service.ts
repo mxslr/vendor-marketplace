@@ -39,7 +39,7 @@ export class AuthService {
       throw new ForbiddenException('Akun anda sedang ditangguhkan. silahkan hubungi admin.')
     }
 
-    const payload = { sub: user.id, email: user.email, role: user.role };
+    const payload = { sub: user.id, email: user.email, fullName: user.fullName, role: user.role };
 
     const token = await this.jwtService.signAsync(payload)
     return {

@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsUrl, IsNotEmpty, MinLength, IsEmail, IsNumber, IsNumberString, Matches } from 'class-validator';
+import { IsString, IsOptional, IsUrl, IsNotEmpty, MinLength, IsEmail, IsNumberString, Matches } from 'class-validator';
 
 export class RegisterMerchantUserDto {
   @IsEmail({}, {message: 'Invalid email format'})
@@ -61,6 +61,6 @@ export class UpdateProfileDto {
   @IsUrl() @IsOptional() bannerUrl?: string;
   @IsString()
   @IsOptional()
-  @MinLength(4, { message: 'PIN penarikan minimal 4 digit.' })
+  @Matches(/^[0-9]{4,6}$/, { message: 'PIN penarikan harus berupa angka dengan panjang 4-6 digit.' })
   withdrawalPin?: string;
 }

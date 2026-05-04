@@ -150,10 +150,12 @@ export class MerchantsService {
       updateData.withdrawalPin = dto.withdrawalPin;
     }
 
-    return this.prisma.merchant.update({
+    const updated = await this.prisma.merchant.update({
       where: { id: merchant.id },
       data: updateData,
     });
+    const { withdrawalPin, ...safeResult } = updated;
+    return safeResult;
   }
 
   // Untuk profil sendiri (lewat token)

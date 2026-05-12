@@ -155,11 +155,13 @@ Semua endpoint menggunakan prefix `/api/v1`. Berikut adalah daftar lengkap endpo
 
 ### Transactions
 
-| Method | Endpoint                   | Auth | Description                        |
-| ------ | -------------------------- | ---- | ---------------------------------- |
-| GET    | `/transactions/my-history` | Yes  | Get user's transaction history     |
-| GET    | `/transactions/all`        | Yes  | Get all transactions (admin)       |
-| PATCH  | `/transactions/:id/verify` | Yes  | Verify transaction (Finance Admin) |
+| Method | Endpoint                        | Auth        | Description                        |
+| ------ | ------------------------------- | ----------- | ---------------------------------- |
+| GET    | `/transactions/my-history`      | Yes         | Get user's transaction history     |
+| GET    | `/transactions/all`             | Yes         | Get all transactions (admin)       |
+| PATCH  | `/transactions/:id/verify`      | Yes         | Verify transaction (Finance Admin) |
+| GET    | `/transactions/pending-refunds` | Yes (Admin) | Get pending refund orders          |
+| PATCH  | `/transactions/:id/refund`      | Yes (Admin) | Approve/reject refund order        |
 
 ### Admin Validator
 

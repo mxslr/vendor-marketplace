@@ -1,6 +1,15 @@
 import {
-    Controller, Post, Get, Patch, Param, Body, Request,
-    UseGuards, ParseIntPipe, HttpCode, HttpStatus
+  Controller,
+  Post,
+  Get,
+  Patch,
+  Param,
+  Body,
+  Request,
+  UseGuards,
+  ParseIntPipe,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import { CustomOffersService } from './custom-offers.service';
 import { AuthGuard } from '../auth/auth.guard';
@@ -32,27 +41,20 @@ export class CustomOffersController {
     );
   }
 
-  
-  @Get('client')
-  async getClientOffers(@Request() req: RequestWithUser) {
-    return this.customOffersService.getClientOffers(req.user.sub);
-  }
-
-  
   @Patch(':id/accept')
   async acceptOffer(
-    @Param('id', ParseIntPipe) id: number, 
+    @Param('id', ParseIntPipe) id: number,
     @Request() req: RequestWithUser,
-    @Body('messageId') messageId: string 
+    @Body('messageId') messageId: string,
   ) {
     return this.customOffersService.acceptOffer(id, req.user.sub, messageId);
   }
 
   @Patch(':id/reject')
   async rejectOffer(
-    @Param('id', ParseIntPipe) id: number, 
+    @Param('id', ParseIntPipe) id: number,
     @Request() req: RequestWithUser,
-    @Body('messageId') messageId: string 
+    @Body('messageId') messageId: string,
   ) {
     return this.customOffersService.rejectOffer(id, req.user.sub, messageId);
   }

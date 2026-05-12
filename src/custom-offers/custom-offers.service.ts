@@ -1,12 +1,24 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service'; 
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
 import { StreamService } from 'src/chat/stream.service';
 
 @Injectable()
 export class CustomOffersService {
-  constructor(private prisma: PrismaService, private streamService: StreamService ) {}
+  constructor(
+    private prisma: PrismaService,
+    private streamService: StreamService,
+  ) {}
 
-  async createOffer(userId: number, clientId: number, channelId: string, data: any) {
+  async createOffer(
+    userId: number,
+    clientId: number,
+    channelId: string,
+    data: any,
+  ) {
     let merchant = await this.prisma.merchant.findUnique({
       where: { userId },
     });
@@ -22,14 +34,16 @@ export class CustomOffersService {
     }
 
     if (!merchant) {
-      throw new BadRequestException('Anda tidak memiliki akses merchant untuk membuat penawaran.');
+      throw new BadRequestException(
+        'Anda tidak memiliki akses merchant untuk membuat penawaran.',
+      );
     }
 
     const offer = await this.prisma.customOffer.create({
       data: {
         merchantId: merchant.id,
         clientId,
-        gigId:data.gigId,
+        gigId: data.gigId,
         title: data.title,
         description: data.description,
         price: data.price,
@@ -37,53 +51,62 @@ export class CustomOffersService {
         status: 'PENDING',
       },
     });
-
-    await this.streamService.sendOfferAttachment(channelId, userId.toString(), {
-    offerId: offer.id,
-    gigId: offer.gigId,
-    price: offer.price,
-    title: offer.title
-  });
-  return offer
-  }
-
-  async getClientOffers(clientId: number) {
-    return this.prisma.customOffer.findMany({
-      where: { clientId },
-      include: { merchant: { select: { shopName: true } } },
-      orderBy: { createdAt: 'desc' },
-    });
+    try {
+      await this.streamService.sendOfferAttachment(
+        channelId,
+        userId.toString(),
+        {
+          offerId: offer.id,
+          gigId: offer.gigId,
+          price: offer.price,
+          title: offer.title,
+        },
+      );
+    } catch (error) {
+      await this.prisma.customOffer.delete({ where: { id: offer.id } });
+      throw new NotFoundException('ID Channel tidak tersedia');
+    }
+    return offer;
   }
 
   async acceptOffer(offerId: number, clientId: number, messageId?: string) {
-    const offer = await this.prisma.customOffer.findUnique({ where: { id: offerId }, include: { gig: true} });
+    const offer = await this.prisma.customOffer.findUnique({
+      where: { id: offerId },
+      include: { gig: true },
+    });
 
     if (!offer || offer.clientId !== clientId) {
-      throw new NotFoundException('Penawaran tidak ditemukan atau bukan hak aksesmu');
+      throw new NotFoundException(
+        'Penawaran tidak ditemukan atau bukan hak aksesmu',
+      );
     }
     if (offer.status !== 'PENDING') {
-      throw new BadRequestException(`Gagal, penawaran ini sudah berstatus ${offer.status}`);
+      throw new BadRequestException(
+        `Gagal, penawaran ini sudah berstatus ${offer.status}`,
+      );
     }
 
-    const { updatedOffer, newOrder } = await this.prisma.$transaction(async (prisma) => {
-      const updatedOffer = await prisma.customOffer.update({
-        where: { id: offerId },
-        data: { status: 'ACCEPTED' },
-      });
+    const { updatedOffer, newOrder } = await this.prisma.$transaction(
+      async (prisma) => {
+        const updatedOffer = await prisma.customOffer.update({
+          where: { id: offerId },
+          data: { status: 'ACCEPTED' },
+        });
 
-      const newOrder = await prisma.order.create({
-        data: {
-          clientId: offer.clientId,
-          merchantId: offer.merchantId,
-          gigId: offer.gigId,
-          customOfferId: offer.id,
-          totalAmount: offer.price,
-          status: 'UNPAID',
-        },
-      });
+        const newOrder = await prisma.order.create({
+          data: {
+            clientId: offer.clientId,
+            merchantId: offer.merchantId,
+            gigId: offer.gigId,
+            customOfferId: offer.id,
+            totalAmount: offer.price,
+            status: 'UNPAID',
+          },
+        });
 
-      return { updatedOffer, newOrder };
-    });
+        return { updatedOffer, newOrder };
+      },
+    );
 
     if (messageId) {
       try {
@@ -94,19 +117,23 @@ export class CustomOffersService {
     return {
       message: 'Penawaran berhasil diterima, tagihan sudah dibuat',
       offer: updatedOffer,
-      order: newOrder
+      order: newOrder,
     };
   }
 
   async rejectOffer(offerId: number, clientId: number, messageId?: string) {
-    const offer = await this.prisma.customOffer.findUnique({ where: { id: offerId } });
+    const offer = await this.prisma.customOffer.findUnique({
+      where: { id: offerId },
+    });
 
     if (!offer || offer.clientId !== clientId) {
       throw new NotFoundException('Penawaran tidak ditemukan');
     }
 
     if (offer.status !== 'PENDING') {
-      throw new BadRequestException(`Gagal, penawaran ini sudah berstatus ${offer.status}`);
+      throw new BadRequestException(
+        `Gagal, penawaran ini sudah berstatus ${offer.status}`,
+      );
     }
 
     const updateOffer = await this.prisma.customOffer.update({
@@ -122,7 +149,7 @@ export class CustomOffersService {
 
     return {
       message: 'Penawaran berhasil ditolak',
-      offer: updateOffer
-    }
+      offer: updateOffer,
+    };
   }
 }

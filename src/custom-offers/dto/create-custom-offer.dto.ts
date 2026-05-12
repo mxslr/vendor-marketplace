@@ -1,4 +1,10 @@
-import { IsString, IsNotEmpty, IsNumber, IsPositive, Min } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsNumber,
+  IsPositive,
+  Min,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CreateCustomOfferDto {
@@ -7,8 +13,8 @@ export class CreateCustomOfferDto {
   @Type(() => Number)
   clientId: number;
 
-  @IsString()
   @IsNotEmpty({ message: 'channelId tidak boleh kosong' })
+  @IsString()
   channelId: string;
 
   @IsNumber()

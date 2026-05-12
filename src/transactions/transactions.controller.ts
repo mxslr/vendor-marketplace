@@ -1,13 +1,22 @@
-import { Controller, Get, Patch, Param, Body, UseGuards, Request, ParseIntPipe } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Patch,
+  Param,
+  Body,
+  UseGuards,
+  Request,
+  ParseIntPipe,
+} from '@nestjs/common';
 import { TransactionsService } from './transactions.service';
 import { AuthGuard } from '../auth/auth.guard';
 import { TransactionStatus } from '@prisma/client';
 
-interface RequestWithUsers extends Request{
+interface RequestWithUsers extends Request {
   user: {
     sub: number;
-    role: string
-  }
+    role: string;
+  };
 }
 
 @Controller('transactions')
@@ -34,6 +43,23 @@ export class TransactionsController {
     @Param('id', ParseIntPipe) id: number,
     @Body() body: { status: TransactionStatus },
   ) {
-    return this.transactionsService.verifyTransaction(req.user.sub, id, body.status);
+    return this.transactionsService.verifyTransaction(
+      req.user.sub,
+      id,
+      body.status,
+    );
+  }
+
+  @Get('pending-refunds')
+  async getPendingRefunds() {
+    return this.transactionsService.getPendingRefundTransactions();
+  }
+
+  @Patch(':id/refund')
+  async refundOrder(
+    @Request() req: RequestWithUsers,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.transactionsService.refundTransaction(req.user.sub, id);
   }
 }

@@ -1,0 +1,4 @@
+export enum DisputeDecision {
+  APPROVE_REFUND = 'APPROVE_REFUND',
+  REJECT_COMPLAINT = 'REJECT_COMPLAINT',
+}

@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateGigDto} from './gigs.dto';
+import { CreateGigDto } from './gigs.dto';
 import { FeaturedStatus, GigStatus, MerchantStatus } from '@prisma/client';
 
 @Injectable()
@@ -13,7 +13,7 @@ export class GigsService {
   constructor(private prisma: PrismaService) {}
 
   // Endpoint untuk merchant(vendor) membuat jasa baru. Saat dibuat, status jasa langsung jadi PENDING_APPROVAL, nanti admin yang akan approve supaya statusnya jadi ACTIVE dan bisa dilihat pembeli.
-  async createGig(userId: number,  dto: CreateGigDto) {
+  async createGig(userId: number, dto: CreateGigDto) {
     const myMerchant = await this.prisma.merchant.findUnique({
       where: { userId },
     });
@@ -23,14 +23,26 @@ export class GigsService {
         where: { userId },
       });
       if (associate) {
-        throw new ForbiddenException('Staf (Associate) tidak diizinkan untuk membuat jasa (gigs).');
+        throw new ForbiddenException(
+          'Staf (Associate) tidak diizinkan untuk membuat jasa (gigs).',
+        );
       }
       throw new NotFoundException('Kamu belum punya toko. Bikin toko dulu ya.');
     }
-    if ( myMerchant.status === MerchantStatus.SUSPENDED || myMerchant.status !== MerchantStatus.ACTIVE) {
+    if (
+      myMerchant.status === MerchantStatus.SUSPENDED ||
+      myMerchant.status !== MerchantStatus.ACTIVE
+    ) {
       throw new ForbiddenException(
         'Toko kamu belum aktif atau kemungkinan sedang disuspend.',
       );
+    }
+
+    const categoryExist = await this.prisma.category.findUnique({
+      where: { id: dto.categoryId },
+    });
+    if (!categoryExist) {
+      throw new NotFoundException('Kategori tidak ditemukan.');
     }
 
     return this.prisma.gig.create({
@@ -45,7 +57,7 @@ export class GigsService {
       },
     });
   }
-  
+
   // Untuk endpoint listing jasa, kita hanya menampilkan jasa dengan status ACTIVE dan dari merchant yang statusnya ACTIVE juga. Jadi kita pastikan hanya jasa yang sudah disetujui dan dari toko yang sudah aktif yang bisa dilihat pembeli.
   async findAllActiveGigs() {
     return this.prisma.gig.findMany({
@@ -60,10 +72,10 @@ export class GigsService {
         category: true,
       },
       orderBy: [
-        { featuredStatus: 'desc'},
-        { featuredUntil: 'desc'},
-        { createdAt: 'desc'}
-      ]
+        { featuredStatus: 'desc' },
+        { featuredUntil: 'desc' },
+        { createdAt: 'desc' },
+      ],
     });
   }
   // Endpoint untuk merchant(vendor) melihat jasa-jasa yang dia buat, termasuk yang belum aktif
@@ -93,9 +105,9 @@ export class GigsService {
   }
 
   // Endpoint untuk Melihat detail gigs di masing masing merchant
-  async detailGigs(gigId: number){
+  async detailGigs(gigId: number) {
     const gig = await this.prisma.gig.findUnique({
-      where: { id: gigId},
+      where: { id: gigId },
       include: {
         merchant: {
           select: {
@@ -107,22 +119,22 @@ export class GigsService {
             bannerUrl: true,
             badge: true,
             createdAt: true,
-          }
+          },
         },
-      }
+      },
     });
     if (!gig) {
       throw new NotFoundException('Jasa tidak ditemukan.');
     }
     if (gig.status !== GigStatus.ACTIVE) {
-      throw new  NotFoundException('Jasa tidak ditemukan atau belum aktif')
+      throw new NotFoundException('Jasa tidak ditemukan atau belum aktif');
     }
     return gig;
   }
 
   async removeGigs(gigId: number) {
     const gig = await this.prisma.gig.findUnique({
-      where : { id : gigId}
+      where: { id: gigId },
     });
 
     if (!gig) {
@@ -130,8 +142,8 @@ export class GigsService {
     }
 
     return this.prisma.gig.update({
-      where : { id : gigId},
-      data: { status : GigStatus.REMOVED}
-    })
+      where: { id: gigId },
+      data: { status: GigStatus.REMOVED },
+    });
   }
 }

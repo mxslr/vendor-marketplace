@@ -4,7 +4,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { AssociatePermission, Role } from '@prisma/client';
+import { AssociatePermission, Role, MerchantStatus } from '@prisma/client';
 
 @Injectable()
 export class MerchantAssociatesService {
@@ -19,6 +19,10 @@ export class MerchantAssociatesService {
       where: { userId: ownerUserId },
     });
     if (!merchant) throw new NotFoundException('Toko tidak ditemukan.');
+
+    if (merchant.status !== MerchantStatus.ACTIVE) {
+      throw new BadRequestException('toko anda belum ter-verifikasi');
+    }
 
     const targetUser = await this.prisma.user.findUnique({
       where: { email: targetEmail },

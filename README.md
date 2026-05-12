@@ -642,10 +642,33 @@ Tahap validasi bahwa sistem berjalan lancar dan pembagian hak akses terjamin.
 
 ```json
 {
-  "decision": "REFUND",
-  "verdictNote": "Pengembalian dana 50%"
+  "decision": "APPROVE_REFUND"
 }
 ```
+
+**Catatan:** Status order menjadi REFUND_APPROVED_WAITING_FINANCE
+
+```json
+{
+  "status": "REJECT_COMPLAINT"
+}
+```
+
+**Catatan:** Status order menjadi RELEASE_APPROVED_WAITING_FINANCE
+
+**Masuk ke admin finance**
+
+#### 3. Mendapatkan List Refund Order yang sudah di Approve oleh Admin Validator
+
+**Endpoint:** `GET http://localhost:4000/api/v1/transactions/pending-refunds`  
+**Token:** Admin Finance
+
+#### 4. Admin Finance Approve Refund
+
+**Endpoint:** `PATCH http://localhost:4000/api/v1/transactions/:id/refund`  
+**Token:** Admin Finance
+
+**Catatan:** Status order menjadi REFUNDED, Dana dari Escrow dikirim ke Client
 
 ---
 

@@ -107,5 +107,8 @@
   "bugs": {
     "url": "https://github.com/mxslr/vendor-marketplace-backend/issues"
   },
-  "homepage": "https://github.com/mxslr/vendor-marketplace-backend#readme"
+  "homepage": "https://github.com/mxslr/vendor-marketplace-backend#readme",
+  "prisma": {
+    "seed": "ts-node prisma/seed.ts"
+  }
 }

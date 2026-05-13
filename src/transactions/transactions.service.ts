@@ -118,4 +118,47 @@ export class TransactionsService {
       },
     });
   }
+
+  async getPendingReleaseTransactions() {
+    return this.prisma.order.findMany({
+      where: { status: OrderStatus.RELEASE_APPROVED_WAITING_FINANCE },
+      include: {
+        client: { select: { fullName: true, email: true } },
+        gig: { select: { title: true } },
+      },
+    });
+  }
+
+  async releaseTransaction(adminId: number, transactionId: number) {
+    await this.checkAdminRole(adminId, [Role.SUPER_ADMIN, Role.ADMIN_FINANCE]);
+    const order = await this.prisma.order.findUnique({
+      where: { id: transactionId },
+    });
+    if (!order) {
+      throw new NotFoundException(
+        `Transaksi dengan ID ${transactionId} tidak ditemukan`,
+      );
+    }
+    if (order.status !== OrderStatus.RELEASE_APPROVED_WAITING_FINANCE) {
+      throw new BadRequestException('Dana transaksi tidak dapat diteruskan ke merchant pada status ini');
+    }
+    
+    return this.prisma.$transaction(async (prisma) => {
+      const updatedOrder = await prisma.order.update({
+        where: { id: transactionId },
+        data: {
+          status: OrderStatus.COMPLETED,
+        },
+      });
+
+      await prisma.merchant.update({
+        where: { id: order.merchantId },
+        data: {
+          walletBalance: { increment: order.totalAmount },
+        },
+      });
+
+      return updatedOrder;
+    });
+  }
 }

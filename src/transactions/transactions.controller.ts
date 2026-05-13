@@ -62,4 +62,17 @@ export class TransactionsController {
   ) {
     return this.transactionsService.refundTransaction(req.user.sub, id);
   }
+
+  @Get('pending-releases')
+  async getPendingReleases() {
+    return this.transactionsService.getPendingReleaseTransactions();
+  }
+
+  @Patch(':id/release')
+  async releaseOrder(
+    @Request() req: RequestWithUsers,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.transactionsService.releaseTransaction(req.user.sub, id);
+  }
 }

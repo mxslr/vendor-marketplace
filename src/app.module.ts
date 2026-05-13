@@ -21,6 +21,7 @@ import { MonthlyReportModule } from './monthly-report/monthly-report.module';
 import { ConfigModule } from '@nestjs/config';
 import { StreamModule } from './chat/stream.module';
 import { TransactionsModule } from './transactions/transactions.module';
+import { SupabaseModule } from './supabase/supabase.module';
 @Module({
   imports: [
     PrismaModule,
@@ -42,9 +43,10 @@ import { TransactionsModule } from './transactions/transactions.module';
     TransactionsModule,
     StreamModule,
     ConfigModule.forRoot({
-      isGlobal: true, 
+      isGlobal: true,
     }),
     ScheduleModule.forRoot(),
+    SupabaseModule,
   ],
   controllers: [AppController],
   providers: [AppService],

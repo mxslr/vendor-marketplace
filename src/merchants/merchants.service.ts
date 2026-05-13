@@ -18,14 +18,27 @@ import { InternalServerErrorException } from '@nestjs/common';
 export class MerchantsService {
   constructor(
     private prisma: PrismaService,
-    private jwtService: JwtService
+    private jwtService: JwtService,
   ) {}
 
   async registerNewMerchant(dto: RegisterMerchantUserDto) {
-    const { email, password, fullName, shopName, description, logoUrl, bannerUrl, bankName, accountNumber, accountHolderName } = dto;
+    const {
+      email,
+      password,
+      fullName,
+      shopName,
+      description,
+      logoUrl,
+      bannerUrl,
+      bankName,
+      accountNumber,
+      accountHolderName,
+    } = dto;
     const normalizedEmail = email.toLowerCase().trim();
-    const existingUser = await this.prisma.user.findUnique({ where: { email : normalizedEmail}});
-    
+    const existingUser = await this.prisma.user.findUnique({
+      where: { email: normalizedEmail },
+    });
+
     if (existingUser) {
       throw new BadRequestException('Email sudah terdaftar');
     }
@@ -65,28 +78,34 @@ export class MerchantsService {
         });
 
         const { passwordHash, isSuspended, ...userWithoutPassword } = newUser;
-        
-        const payload = { sub: newUser.id, email: newUser.email, role: newUser.role };
+
+        const payload = {
+          sub: newUser.id,
+          email: newUser.email,
+          role: newUser.role,
+        };
         const token = await this.jwtService.signAsync(payload);
 
         return {
           access_token: token,
-          token_type: "Bearer",
+          token_type: 'Bearer',
           user: userWithoutPassword,
           merchant: newMerchant,
           bankAccount: newBankAccount,
-          status: MerchantStatus.INCOMPLETE
+          status: MerchantStatus.INCOMPLETE,
         };
       });
     } catch (error) {
-      console.error('Detail Error Server:', error); 
+      console.error('Detail Error Server:', error);
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         throw new BadRequestException('Terjadi kesalahan pada input database');
       }
-      throw new InternalServerErrorException('Maaf, terjadi masalah internal pada server kami');
+      throw new InternalServerErrorException(
+        'Maaf, terjadi masalah internal pada server kami',
+      );
     }
   }
-  
+
   // Endpoint: POST /merchants/kyb - Submit dokumen KYB untuk verifikasi toko
   async submitKyb(userId: number, dto: SubmitKybDto) {
     const merchant = await this.prisma.merchant.findUnique({
@@ -100,6 +119,7 @@ export class MerchantsService {
         'Toko sudah diverifikasi atau sedang dalam antrean.',
       );
     }
+
     const kybDataString = JSON.stringify({
       kybDocumentUrl: dto.kybDocumentUrl,
       portfolioUrl: dto.portfolioUrl,
@@ -125,7 +145,7 @@ export class MerchantsService {
         bannerUrl: true,
         badge: true,
         createdAt: true,
-      }
+      },
     });
   }
   // Endpoint: PATCH /merchants/profile - Update profil toko (Hanya untuk merchant itu sendiri)
@@ -135,7 +155,7 @@ export class MerchantsService {
     });
     if (!merchant) throw new NotFoundException('Toko tidak ditemukan.');
     if (merchant.status !== MerchantStatus.ACTIVE) {
-    throw new BadRequestException(
+      throw new BadRequestException(
         'Hanya toko terverifikasi yang dapat diupdate profilnya.',
       );
     }
@@ -164,7 +184,7 @@ export class MerchantsService {
     let merchant = await this.prisma.merchant.findUnique({
       where: { userId: userId },
       include: {
-        bankAccounts: true, 
+        bankAccounts: true,
         gigs: true,
       },
     });
@@ -174,9 +194,9 @@ export class MerchantsService {
         where: { userId },
         include: {
           merchant: {
-            include: { bankAccounts: true, gigs: true }
-          }
-        }
+            include: { bankAccounts: true, gigs: true },
+          },
+        },
       });
 
       if (associate) {
@@ -185,7 +205,10 @@ export class MerchantsService {
       }
     }
 
-    if (!merchant) throw new NotFoundException('Kamu belum memiliki toko atau tidak berafiliasi dengan toko manapun.');
+    if (!merchant)
+      throw new NotFoundException(
+        'Kamu belum memiliki toko atau tidak berafiliasi dengan toko manapun.',
+      );
 
     if (merchant.status !== MerchantStatus.ACTIVE) {
       throw new BadRequestException(
@@ -195,7 +218,8 @@ export class MerchantsService {
 
     if (isAssociate) {
       // Hide wallet balances for associates
-      const { walletBalance, pendingBalance, withdrawalPin, ...safeMerchant } = merchant;
+      const { walletBalance, pendingBalance, withdrawalPin, ...safeMerchant } =
+        merchant;
       return safeMerchant;
     }
 
@@ -205,7 +229,7 @@ export class MerchantsService {
   // Untuk profil publik (lewat URL param)
   async findMerchantById(merchantId: number) {
     const merchant = await this.prisma.merchant.findUnique({
-      where: { id: merchantId, status: MerchantStatus.ACTIVE }, 
+      where: { id: merchantId, status: MerchantStatus.ACTIVE },
       select: {
         id: true,
         userId: true,
@@ -216,25 +240,25 @@ export class MerchantsService {
         status: true,
         badge: true,
         gigs: {
-          where: { status: 'ACTIVE' }, 
+          where: { status: 'ACTIVE' },
         },
       },
     });
 
     if (!merchant) throw new NotFoundException('Toko tidak ditemukan.');
 
-    return merchant;  
-  } 
-  
+    return merchant;
+  }
+
   async toggleVacationMode(userId: number, isOnVacation: boolean) {
     const merchant = await this.prisma.merchant.findUnique({
       where: { userId },
     });
-    
+
     if (!merchant) throw new NotFoundException('Toko tidak ditemukan.');
     const allowedStatus: MerchantStatus[] = [
       MerchantStatus.ACTIVE,
-      MerchantStatus.VACATION
+      MerchantStatus.VACATION,
     ];
 
     if (!allowedStatus.includes(merchant.status)) {
@@ -243,58 +267,53 @@ export class MerchantsService {
       );
     }
     return this.prisma.$transaction(async (tx) => {
+      const newStatus = isOnVacation
+        ? MerchantStatus.VACATION
+        : MerchantStatus.ACTIVE;
 
-    const newStatus = isOnVacation
-      ? MerchantStatus.VACATION
-      : MerchantStatus.ACTIVE;  
+      await tx.merchant.update({
+        where: { id: merchant.id },
+        data: { status: newStatus },
+      });
 
-    await tx.merchant.update({
-      where: { id: merchant.id },
-      data: { status: newStatus }
+      await tx.gig.updateMany({
+        where: { merchantId: merchant.id },
+        data: {
+          status: isOnVacation ? 'PAUSED' : 'ACTIVE',
+        },
+      });
+      return {
+        message: isOnVacation
+          ? 'Toko berhasil ditutup sementara (Mode Liburan Aktif)'
+          : 'Toko berhasil dibuka kembali (Mode Liburan Non-Aktif)',
+        status: newStatus,
+      };
     });
-
-    await tx.gig.updateMany({
-      where: { merchantId: merchant.id },
-      data: {
-        status: isOnVacation ? 'PAUSED' : 'ACTIVE'
-      }
-    });
-    return {
-      message: isOnVacation 
-        ? "Toko berhasil ditutup sementara (Mode Liburan Aktif)" 
-        : "Toko berhasil dibuka kembali (Mode Liburan Non-Aktif)",
-        status: newStatus
-    }
-  });
-}
+  }
 
   async closeMerchant(userId: number) {
     const merchant = await this.prisma.merchant.findUnique({
-      where: { userId }
+      where: { userId },
     });
 
     if (!merchant) {
-      throw new NotFoundException('Toko tidak ditemukan.')
+      throw new NotFoundException('Toko tidak ditemukan.');
     }
 
     if (merchant.status !== MerchantStatus.ACTIVE) {
-      throw new BadRequestException(
-        'Hanya toko aktif yang bisa menutup toko'
-      )
+      throw new BadRequestException('Hanya toko aktif yang bisa menutup toko');
     }
 
-     return this.prisma.$transaction(async (tx) => {
+    return this.prisma.$transaction(async (tx) => {
+      await tx.merchant.update({
+        where: { id: merchant.id },
+        data: { status: MerchantStatus.CLOSED },
+      });
 
-    await tx.merchant.update({
-      where: { id: merchant.id },
-      data: { status: MerchantStatus.CLOSED }
+      await tx.gig.updateMany({
+        where: { merchantId: merchant.id },
+        data: { status: 'REMOVED' },
+      });
     });
-
-    await tx.gig.updateMany({
-      where: { merchantId: merchant.id },
-      data: { status: 'REMOVED' }
-    });
-
-  });
   }
 }

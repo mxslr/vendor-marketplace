@@ -848,3 +848,57 @@ Memulai percakapan baru untuk sebuah Gig.
 
 - Request pembuatan channel otomatis menambahkan akun Client dan akun pemilik Merchant ke platform Stream.
 - Channel akan terbuka dan bisa digunakan langsung untuk bertukar pesan terkait penawaran jasa terkait (Gig).
+
+---
+
+### FASE 12: UPLOAD GAMBAR (SUPABASE STORAGE)
+
+Sistem menggunakan arsitektur **Two-Step Upload** (Upload Dua Tahap). Endpoint ini bersifat global dan harus digunakan pertama kali untuk mendapatkan URL publik gambar sebelum mengirimkan form (JSON) ke endpoint lainnya.
+
+#### 1. Upload File / Gambar
+
+Endpoint tunggal untuk mengunggah berbagai macam gambar, dokumen, atau file bukti transaksi.
+
+**Endpoint:** `POST http://localhost:4000/api/v1/upload/image`  
+**Tipe Request:** `multipart/form-data`  
+**Token:** Tidak diwajibkan, namun bisa diakses oleh siapa saja.
+
+**Body (Form-Data):**
+
+- `file` : Pilih tipe **File**, lalu masukkan file gambar/dokumenmu (wajib).
+- `folder` : Teks nama folder penyimpanan di Supabase (opsional, default: `images`).
+
+**Rekomendasi Folder:**
+
+- `merchants/logos` (Logo toko)
+- `merchants/banners` (Banner toko)
+- `merchants/kyb` (Dokumen verifikasi Merchant)
+- `gigs/media` (Gambar/Katalog Gig)
+- `withdrawals/proofs` (Bukti transfer penarikan)
+- `transactions/proofs` (Bukti bayar klien)
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "url": "https://<supabase-id>.supabase.co/storage/v1/object/public/namabucket/merchants/logos/1684345-logo.png"
+}
+```
+
+#### 2. Alur Penggunaan (Frontend)
+
+Setelah mendapatkan string `url` dari response di atas, kirimkan URL tersebut di dalam _payload JSON_ saat memanggil API lainnya.
+
+**Contoh Kasus: Update Profil Merchant**
+
+1. Frontend memanggil `POST /api/v1/upload/image` dengan `file` logo toko.
+2. Frontend mendapatkan balasan `url`.
+3. Frontend mengirim JSON ke `PATCH /api/v1/merchants/:id/edit/profile`:
+
+```json
+{
+  "logoUrl": "https://.../1684345-logo.png",
+  "shopName": "Toko Baruku"
+}
+```

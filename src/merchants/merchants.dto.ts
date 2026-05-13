@@ -30,11 +30,11 @@ export class RegisterMerchantUserDto {
 
   @IsUrl({}, { message: 'Format URL logo tidak valid' })
   @IsNotEmpty()
-  logoUrl!: string;
+  logoUrl!: Base64URLString;
 
   @IsUrl({}, { message: 'Format URL banner tidak valid' })
   @IsNotEmpty()
-  bannerUrl!: string;
+  bannerUrl!: Base64URLString;
 
   @IsString()
   @Matches(/^[a-zA-Z ]+$/, {
@@ -59,11 +59,11 @@ export class RegisterMerchantUserDto {
 export class SubmitKybDto {
   @IsUrl()
   @IsNotEmpty()
-  kybDocumentUrl!: string;
+  kybDocumentUrl!: Base64URLString;
 
   @IsUrl()
   @IsNotEmpty()
-  portfolioUrl!: string;
+  portfolioUrl!: Base64URLString;
 }
 
 export class UpdateProfileDto {
@@ -75,10 +75,10 @@ export class UpdateProfileDto {
   description?: string;
   @IsUrl()
   @IsOptional()
-  logoUrl?: string;
+  logoUrl?: Base64URLString;
   @IsUrl()
   @IsOptional()
-  bannerUrl?: string;
+  bannerUrl?: Base64URLString;
   @IsString()
   @IsOptional()
   @Matches(/^[0-9]{4,6}$/, {

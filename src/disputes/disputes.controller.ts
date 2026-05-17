@@ -6,6 +6,7 @@ import {
   Param,
   UseGuards,
   Request,
+  ForbiddenException,
 } from '@nestjs/common';
 import { DisputesService } from './disputes.service';
 import { AuthGuard } from '../auth/auth.guard';
@@ -25,6 +26,12 @@ export class DisputesController {
   @UseGuards(AuthGuard)
   @Post()
   openDispute(@Request() req: RequestWithUser, @Body() body: OpenDisputesDto) {
+    const allowedRoles = ['ADMIN_VALIDATOR', 'SUPER_ADMIN'];
+    if (!allowedRoles.includes(req.user.role)) {
+      throw new ForbiddenException(
+        'Hanya Admin Validator atau Super Admin yang dapat membuka tiket sengketa.',
+      );
+    }
     return this.disputesService.openDispute(
       req.user.sub,
       body.orderId,

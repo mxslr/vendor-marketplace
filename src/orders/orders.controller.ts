@@ -62,4 +62,10 @@ export class OrdersController {
   completeOrder(@Request() req: RequestWithUser, @Param('id') id: string) {
     return this.ordersService.completeOrder(Number(id), req.user.sub);
   }
+
+  @UseGuards(AuthGuard)
+  @Patch(':id/decline')
+  declineOrder(@Request() req: RequestWithUser, @Param('id') id: string) {
+    return this.ordersService.declineOrder(Number(id), req.user.sub);
+  }
 }

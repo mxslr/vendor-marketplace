@@ -286,7 +286,7 @@ model Order {
   deliveredAt            DateTime?
   snapToken              String?
   paymentMethod          String?
-  midtransTransactionId  String?
+  midtransTransactionId  String?     @unique
   frozenDeadline         DateTime?
   createdAt              DateTime    @default(now())
 

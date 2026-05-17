@@ -18,12 +18,20 @@ export class MidtransService {
   private readonly serverKey: string;
 
   constructor(private config: ConfigService) {
-    const isProduction = config.get<string>('MIDTRANS_IS_PRODUCTION') === 'true';
-    this.serverKey = config.get<string>('MIDTRANS_SERVER_KEY') ?? '';
-    const clientKey = config.get<string>('MIDTRANS_CLIENT_KEY') ?? '';
+    const serverKey = config.get<string>('MIDTRANS_SERVER_KEY');
+    const clientKey = config.get<string>('MIDTRANS_CLIENT_KEY');
 
-    this.snap = new Midtrans.Snap({ isProduction, serverKey: this.serverKey, clientKey });
-    this.coreApi = new Midtrans.CoreApi({ isProduction, serverKey: this.serverKey, clientKey });
+    if (!serverKey || !clientKey) {
+      throw new Error(
+        'Midtrans configuration missing: MIDTRANS_SERVER_KEY and MIDTRANS_CLIENT_KEY must be set',
+      );
+    }
+
+    this.serverKey = serverKey;
+    const isProduction = config.get<string>('MIDTRANS_IS_PRODUCTION') === 'true';
+
+    this.snap = new Midtrans.Snap({ isProduction, serverKey, clientKey });
+    this.coreApi = new Midtrans.CoreApi({ isProduction, serverKey, clientKey });
   }
 
   async createSnapToken(params: SnapTransactionParams): Promise<string> {

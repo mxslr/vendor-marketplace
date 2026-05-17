@@ -4,6 +4,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   OrderStatus,
@@ -16,12 +17,15 @@ import {
   Role,
 } from '@prisma/client';
 import { NotificationsService } from '../notifications/notifications.service';
+import { MidtransService } from '../midtrans/midtrans.service';
 
 @Injectable()
 export class OrdersService {
   constructor(
     private prisma: PrismaService,
     private notifications: NotificationsService,
+    private midtrans: MidtransService,
+    private config: ConfigService,
   ) {}
 
   async createOrder(clientId: number, gigId: number) {
@@ -45,6 +49,56 @@ export class OrdersService {
         adminFee: adminFee,
       },
     });
+  }
+
+  async initiateMidtransPayment(
+    orderId: number,
+    clientId: number,
+  ): Promise<{ snapToken: string; clientKey: string }> {
+    const order = await this.prisma.order.findFirst({
+      where: { id: orderId, clientId },
+      include: {
+        client: true,
+        gig: true,
+      },
+    });
+
+    if (!order) throw new NotFoundException('Pesanan tidak ditemukan.');
+    if (order.status !== OrderStatus.UNPAID) {
+      throw new BadRequestException(
+        'Pesanan ini sudah dibayar atau sedang diproses.',
+      );
+    }
+
+    const midtransOrderId = `order-${order.id}-${Date.now()}`;
+    const gigTitle = order.gig?.title ?? 'Layanan Vendor Marketplace';
+
+    const snapToken = await this.midtrans.createSnapToken({
+      orderId: midtransOrderId,
+      amount: Number(order.totalAmount),
+      customerDetails: {
+        firstName: order.client.fullName,
+        email: order.client.email,
+      },
+      itemDetails: [
+        {
+          id: String(order.gigId ?? order.id),
+          price: Number(order.totalAmount),
+          quantity: 1,
+          name: gigTitle,
+        },
+      ],
+    });
+
+    await this.prisma.order.update({
+      where: { id: order.id },
+      data: { snapToken },
+    });
+
+    return {
+      snapToken,
+      clientKey: this.config.get<string>('MIDTRANS_CLIENT_KEY') ?? '',
+    };
   }
 
   async findMyOrders(clientId: number) {

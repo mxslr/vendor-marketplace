@@ -4,6 +4,7 @@ import {
   Get,
   Patch,
   Param,
+  ParseIntPipe,
   Body,
   UseGuards,
   Request,
@@ -43,6 +44,15 @@ export class OrdersController {
     @Body() body: PayOrderDto,
   ) {
     return this.ordersService.payOrder(Number(id), req.user.sub, body.proofUrl);
+  }
+
+  @UseGuards(AuthGuard)
+  @Post(':id/initiate-payment')
+  initiateMidtransPayment(
+    @Request() req: RequestWithUser,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.ordersService.initiateMidtransPayment(id, req.user.sub);
   }
 
   @UseGuards(AuthGuard)

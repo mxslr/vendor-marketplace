@@ -42,7 +42,7 @@ export class FeaturedPlacementController {
   async createPromote(@Request() req: RequestWithUsers, @Body() dto: CreatePromoteDto) {
     const userId = req.user.sub;
     await this.checkMerchant(req.user.role);
-    return this.service.createPromote(userId, dto.gigId);
+    return this.service.createPromote(userId, dto.gigId, dto.payWithWallet ?? false);
   }
 
   @Post('upload-proof/:id')

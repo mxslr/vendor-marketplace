@@ -8,6 +8,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import {
   FeaturedPaymentStatus,
   FeaturedStatus,
+  GigStatus,
 } from '@prisma/client';
 import { Cron } from '@nestjs/schedule';
 
@@ -19,7 +20,7 @@ export class FeaturedPlacementService {
   // 🟢 MERCHANT
   // =========================
 
-  async createPromote(userId: number, gigId: number) {
+  async createPromote(userId: number, gigId: number, payWithWallet = false) {
     const basePrice = 50000;
     const durationDays = 3;
 
@@ -45,6 +46,12 @@ export class FeaturedPlacementService {
       throw new ForbiddenException('Jasa ini bukan milikmu');
     }
 
+    if (gig.status !== GigStatus.ACTIVE) {
+      throw new BadRequestException(
+        'Featured Placement hanya bisa dibeli untuk jasa dengan status ACTIVE.',
+      );
+    }
+
     const existing = await this.prisma.featuredPlacement.findFirst({
       where: {
         gigId,
@@ -59,6 +66,52 @@ export class FeaturedPlacementService {
 
     if (existing) {
       throw new BadRequestException('Feature sudah aktif atau sedang berada di tahap verifikasi');
+    }
+
+    if (payWithWallet) {
+      if (merchant.walletBalance.toNumber() < basePrice) {
+        throw new BadRequestException(
+          `Saldo wallet tidak mencukupi. Dibutuhkan Rp ${basePrice}, saldo Anda Rp ${merchant.walletBalance}.`,
+        );
+      }
+
+      const now = new Date();
+      const endDate = new Date();
+      if (gig.featuredUntil && gig.featuredUntil > now) {
+        endDate.setTime(gig.featuredUntil.getTime());
+      } else {
+        endDate.setTime(now.getTime());
+      }
+      endDate.setDate(endDate.getDate() + durationDays);
+
+      return this.prisma.$transaction(async (prisma) => {
+        await prisma.merchant.update({
+          where: { id: merchant.id },
+          data: { walletBalance: { decrement: basePrice } },
+        });
+
+        const placement = await prisma.featuredPlacement.create({
+          data: {
+            merchantId: merchant.id,
+            gigId,
+            durationDays,
+            amount: basePrice,
+            status: FeaturedPaymentStatus.ACTIVE,
+            startDate: now,
+            endDate,
+          },
+        });
+
+        await prisma.gig.update({
+          where: { id: gigId },
+          data: {
+            featuredStatus: FeaturedStatus.FEATURED,
+            featuredUntil: endDate,
+          },
+        });
+
+        return { message: 'Featured Placement aktif. Saldo wallet telah dipotong.', placement };
+      });
     }
 
     return this.prisma.featuredPlacement.create({

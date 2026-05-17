@@ -6,36 +6,45 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateGigDto } from './gigs.dto';
-import { FeaturedStatus, GigStatus, MerchantStatus } from '@prisma/client';
+import { AssociatePermission, GigStatus, MerchantStatus } from '@prisma/client';
 
 @Injectable()
 export class GigsService {
   constructor(private prisma: PrismaService) {}
 
-  // Endpoint untuk merchant(vendor) membuat jasa baru. Saat dibuat, status jasa langsung jadi PENDING_APPROVAL, nanti admin yang akan approve supaya statusnya jadi ACTIVE dan bisa dilihat pembeli.
   async createGig(userId: number, dto: CreateGigDto) {
-    const myMerchant = await this.prisma.merchant.findUnique({
+    let merchantId: number;
+
+    const ownerMerchant = await this.prisma.merchant.findUnique({
       where: { userId },
     });
 
-    if (!myMerchant) {
-      const associate = await this.prisma.merchantAssociate.findFirst({
-        where: { userId },
-      });
-      if (associate) {
+    if (ownerMerchant) {
+      if (ownerMerchant.status !== MerchantStatus.ACTIVE) {
         throw new ForbiddenException(
-          'Staf (Associate) tidak diizinkan untuk membuat jasa (gigs).',
+          'Toko kamu belum aktif atau kemungkinan sedang disuspend.',
         );
       }
-      throw new NotFoundException('Kamu belum punya toko. Bikin toko dulu ya.');
-    }
-    if (
-      myMerchant.status === MerchantStatus.SUSPENDED ||
-      myMerchant.status !== MerchantStatus.ACTIVE
-    ) {
-      throw new ForbiddenException(
-        'Toko kamu belum aktif atau kemungkinan sedang disuspend.',
-      );
+      merchantId = ownerMerchant.id;
+    } else {
+      const associate = await this.prisma.merchantAssociate.findFirst({
+        where: {
+          userId,
+          permission: { in: [AssociatePermission.MANAGE_GIGS, AssociatePermission.FULL_ACCESS] },
+        },
+        include: { merchant: true },
+      });
+      if (!associate) {
+        throw new ForbiddenException(
+          'Akses ditolak. Kamu tidak memiliki toko atau izin untuk membuat jasa.',
+        );
+      }
+      if (associate.merchant.status !== MerchantStatus.ACTIVE) {
+        throw new ForbiddenException(
+          'Toko tempat kamu bernaung belum aktif atau sedang disuspend.',
+        );
+      }
+      merchantId = associate.merchantId;
     }
 
     const categoryExist = await this.prisma.category.findUnique({
@@ -47,13 +56,13 @@ export class GigsService {
 
     return this.prisma.gig.create({
       data: {
-        merchantId: myMerchant.id,
+        merchantId: merchantId,
         categoryId: dto.categoryId,
         title: dto.title,
         description: dto.description,
         price: dto.price,
         mediaUrls: dto.mediaUrls,
-        status: GigStatus.PENDING_APPROVAL, // Set status awal jadi PENDING_APPROVAL, nanti admin yang akan approve
+        status: GigStatus.PENDING_APPROVAL,
       },
     });
   }

@@ -188,6 +188,9 @@ export class MonthlyReportService {
     if (!report) {
       throw new NotFoundException('Report not found');
     }
+    if (report.status !== MonthlyReportStatus.LOCKED) {
+      throw new BadRequestException('Bukti transfer hanya bisa diupload setelah laporan dikunci (LOCKED).');
+    }
 
     const updated = await this.prisma.monthlyReport.update({
       where: { id },

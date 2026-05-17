@@ -26,6 +26,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { AppealsModule } from './appeals/appeals.module';
 import { SystemConfigModule } from './system-config/system-config.module';
 import { MidtransModule } from './midtrans/midtrans.module';
+import { PaymentsModule } from './payments/payments.module';
 @Module({
   imports: [
     PrismaModule,
@@ -50,6 +51,7 @@ import { MidtransModule } from './midtrans/midtrans.module';
     AppealsModule,
     SystemConfigModule,
     MidtransModule,
+    PaymentsModule,
     ConfigModule.forRoot({
       isGlobal: true,
     }),

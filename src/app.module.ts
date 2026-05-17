@@ -22,6 +22,9 @@ import { ConfigModule } from '@nestjs/config';
 import { StreamModule } from './chat/stream.module';
 import { TransactionsModule } from './transactions/transactions.module';
 import { SupabaseModule } from './supabase/supabase.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { AppealsModule } from './appeals/appeals.module';
+import { SystemConfigModule } from './system-config/system-config.module';
 @Module({
   imports: [
     PrismaModule,
@@ -42,6 +45,9 @@ import { SupabaseModule } from './supabase/supabase.module';
     MonthlyReportModule,
     TransactionsModule,
     StreamModule,
+    NotificationsModule,
+    AppealsModule,
+    SystemConfigModule,
     ConfigModule.forRoot({
       isGlobal: true,
     }),

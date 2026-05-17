@@ -52,7 +52,11 @@ export class DisputesService {
 
       await prisma.order.update({
         where: { id: order.id },
-        data: { status: OrderStatus.DISPUTE_IN_PROGRESS },
+        data: {
+          status: OrderStatus.DISPUTE_IN_PROGRESS,
+          frozenDeadline: order.deadline,
+          deadline: null,
+        },
       });
 
       return dispute;

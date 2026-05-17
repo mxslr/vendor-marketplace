@@ -5,11 +5,15 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { OrderStatus, Role, TransactionStatus } from '@prisma/client';
+import { DisputeStatus, NotificationType, OrderStatus, Role, TransactionStatus } from '@prisma/client';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class TransactionsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notifications: NotificationsService,
+  ) {}
 
   private async checkAdminRole(userId: number, allowedRoles: Role[]) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
@@ -72,19 +76,81 @@ export class TransactionsService {
 
     const transaction = await this.prisma.transaction.findUnique({
       where: { id: transactionId },
+      include: { order: { include: { customOffer: true } } },
     });
     if (!transaction) {
       throw new NotFoundException(
         `Transaksi dengan ID ${transactionId} tidak ditemukan`,
       );
     }
+    if (transaction.status !== TransactionStatus.PENDING) {
+      throw new BadRequestException(
+        'Transaksi ini sudah diverifikasi atau ditolak sebelumnya.',
+      );
+    }
 
-    return this.prisma.transaction.update({
-      where: { id: transactionId },
-      data: {
-        status,
-        verifiedBy: adminId,
-      },
+    return this.prisma.$transaction(async (prisma) => {
+      const updatedTransaction = await prisma.transaction.update({
+        where: { id: transactionId },
+        data: { status, verifiedBy: adminId },
+      });
+
+      if (transaction.orderId) {
+        const newOrderStatus =
+          status === TransactionStatus.VERIFIED
+            ? OrderStatus.IN_PROGRESS
+            : OrderStatus.UNPAID;
+
+        const deadlineDays =
+          status === TransactionStatus.VERIFIED
+            ? (transaction.order?.customOffer?.deadlineDays ?? 7)
+            : null;
+        const deadline =
+          deadlineDays !== null
+            ? new Date(Date.now() + deadlineDays * 24 * 60 * 60 * 1000)
+            : null;
+
+        const order = await prisma.order.update({
+          where: { id: transaction.orderId },
+          data: {
+            status: newOrderStatus,
+            ...(deadline !== null && { deadline }),
+          },
+        });
+
+        if (status === TransactionStatus.VERIFIED) {
+          const nettPayout = order.totalAmount.sub(order.adminFee);
+          await prisma.merchant.update({
+            where: { id: order.merchantId },
+            data: { pendingBalance: { increment: nettPayout } },
+          });
+
+          // NOT-01: notify merchant of new order
+          const merchant = await prisma.merchant.findUnique({
+            where: { id: order.merchantId },
+          });
+          if (merchant) {
+            await this.notifications.create(
+              merchant.userId,
+              NotificationType.NEW_ORDER,
+              'Pesanan Baru Masuk',
+              `Pesanan #${order.id} telah dikonfirmasi. Silakan segera proses pesanan.`,
+              JSON.stringify({ orderId: order.id }),
+            );
+          }
+        } else {
+          // Payment rejected → notify client to re-upload
+          await this.notifications.create(
+            transaction.userId,
+            NotificationType.PAYMENT_REJECTED,
+            'Bukti Pembayaran Ditolak',
+            `Bukti pembayaran untuk pesanan #${order.id} ditolak. Silakan upload ulang.`,
+            JSON.stringify({ orderId: order.id }),
+          );
+        }
+      }
+
+      return updatedTransaction;
     });
   }
 
@@ -111,11 +177,33 @@ export class TransactionsService {
     if (order.status !== OrderStatus.REFUND_APPROVED_WAITING_FINANCE) {
       throw new BadRequestException('Transaksi tidak dapat di-refund');
     }
-    return this.prisma.order.update({
-      where: { id: transactionId },
-      data: {
-        status: OrderStatus.REFUNDED,
-      },
+    return this.prisma.$transaction(async (prisma) => {
+      const updatedOrder = await prisma.order.update({
+        where: { id: transactionId },
+        data: { status: OrderStatus.REFUNDED },
+      });
+
+      const nettPayout = order.totalAmount.sub(order.adminFee);
+      await prisma.merchant.update({
+        where: { id: order.merchantId },
+        data: { pendingBalance: { decrement: nettPayout } },
+      });
+
+      await prisma.dispute.updateMany({
+        where: { orderId: transactionId, status: { not: DisputeStatus.CLOSED } },
+        data: { status: DisputeStatus.CLOSED },
+      });
+
+      // NOT-09: notify client dispute resolved (refund)
+      await this.notifications.create(
+        order.clientId,
+        NotificationType.ORDER_REFUNDED,
+        'Sengketa Diselesaikan — Refund Diproses',
+        `Sengketa untuk pesanan #${order.id} telah diselesaikan. Dana Anda akan dikembalikan.`,
+        JSON.stringify({ orderId: order.id }),
+      );
+
+      return updatedOrder;
     });
   }
 
@@ -151,12 +239,29 @@ export class TransactionsService {
         },
       });
 
+      const nettPayout = order.totalAmount.sub(order.adminFee);
+
       await prisma.merchant.update({
         where: { id: order.merchantId },
         data: {
-          walletBalance: { increment: order.totalAmount },
+          pendingBalance: { decrement: nettPayout },
+          walletBalance: { increment: nettPayout },
         },
       });
+
+      await prisma.dispute.updateMany({
+        where: { orderId: transactionId, status: { not: DisputeStatus.CLOSED } },
+        data: { status: DisputeStatus.CLOSED },
+      });
+
+      // NOT-09: notify client dispute resolved (release / completed)
+      await this.notifications.create(
+        order.clientId,
+        NotificationType.ORDER_COMPLETED,
+        'Sengketa Diselesaikan — Pesanan Selesai',
+        `Sengketa untuk pesanan #${order.id} telah diselesaikan. Pesanan dinyatakan selesai.`,
+        JSON.stringify({ orderId: order.id }),
+      );
 
       return updatedOrder;
     });

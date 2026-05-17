@@ -4,11 +4,15 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { OrderStatus, AssociatePermission } from '@prisma/client';
+import { NotificationType, OrderStatus, AssociatePermission } from '@prisma/client';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class DeliverablesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notifications: NotificationsService,
+  ) {}
 
   async submitDeliverable(
     userId: number,
@@ -68,8 +72,17 @@ export class DeliverablesService {
 
       await prisma.order.update({
         where: { id: order.id },
-        data: { status: OrderStatus.DELIVERED },
+        data: { status: OrderStatus.DELIVERED, deliveredAt: new Date() },
       });
+
+      // NOT-02: notify client that order has been delivered
+      await this.notifications.create(
+        order.clientId,
+        NotificationType.ORDER_DELIVERED,
+        'Hasil Pekerjaan Telah Dikirim',
+        `Vendor telah mengirimkan hasil pekerjaan untuk pesanan #${order.id}. Silakan periksa dan terima atau ajukan revisi.`,
+        JSON.stringify({ orderId: order.id }),
+      );
 
       return deliverable;
     });

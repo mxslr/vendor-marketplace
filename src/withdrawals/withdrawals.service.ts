@@ -5,14 +5,19 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { Role, WithdrawalStatus } from '@prisma/client';
+import * as bcrypt from 'bcrypt';
+import { NotificationType, OrderStatus, Role, WithdrawalStatus } from '@prisma/client';
 import { CreateWithdrawalDto, CompleteWithdrawalDto } from './withdrawals.dto';
+import { NotificationsService } from '../notifications/notifications.service';
 
 const MIN_WITHDRAWAL_AMOUNT = 50000;
 
 @Injectable()
 export class WithdrawalsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notifications: NotificationsService,
+  ) {}
 
   private async getMerchant(userId: number) {
     const merchant = await this.prisma.merchant.findUnique({ where: { userId } });
@@ -49,11 +54,24 @@ export class WithdrawalsService {
       throw new NotFoundException('Rekening bank tidak ditemukan atau bukan milik Anda.');
     }
 
+    const activeDispute = await this.prisma.order.findFirst({
+      where: {
+        merchantId,
+        status: OrderStatus.DISPUTE_IN_PROGRESS,
+      },
+    });
+    if (activeDispute) {
+      throw new BadRequestException(
+        'Tidak dapat menarik dana saat ada pesanan yang sedang dalam proses sengketa.',
+      );
+    }
+
     if (!merchant.withdrawalPin) {
       throw new BadRequestException('PIN penarikan belum diatur. Silakan set PIN terlebih dahulu di profil merchant.');
     }
 
-    if (merchant.withdrawalPin !== dto.pin) {
+    const pinValid = await bcrypt.compare(dto.pin, merchant.withdrawalPin);
+    if (!pinValid) {
       throw new BadRequestException('PIN penarikan tidak valid.');
     }
 
@@ -74,7 +92,7 @@ export class WithdrawalsService {
         },
       });
 
-      return prisma.withdrawal.create({
+      const withdrawal = await prisma.withdrawal.create({
         data: {
           merchantId,
           bankAccountId: bankAccount.id,
@@ -82,6 +100,17 @@ export class WithdrawalsService {
           status: WithdrawalStatus.PENDING,
         },
       });
+
+      // NOT-04: notify Finance Admins of new withdrawal request
+      await this.notifications.createForRole(
+        Role.ADMIN_FINANCE,
+        NotificationType.SYSTEM,
+        'Permintaan Penarikan Dana Baru',
+        `Merchant mengajukan penarikan dana sebesar Rp ${dto.amount}. Silakan proses.`,
+        JSON.stringify({ withdrawalId: withdrawal.id }),
+      );
+
+      return withdrawal;
     });
   }
 
@@ -128,6 +157,20 @@ export class WithdrawalsService {
           pendingBalance: { decrement: withdrawal.amount },
         },
       });
+
+      // NOT-06: notify merchant that withdrawal is completed
+      const merchant = await prisma.merchant.findUnique({
+        where: { id: withdrawal.merchantId },
+      });
+      if (merchant) {
+        await this.notifications.create(
+          merchant.userId,
+          NotificationType.WITHDRAWAL_COMPLETED,
+          'Dana Cair!',
+          `Penarikan dana sebesar Rp ${withdrawal.amount} telah berhasil diproses ke rekening Anda.`,
+          JSON.stringify({ withdrawalId: withdrawal.id }),
+        );
+      }
 
       return updated;
     });

@@ -6,19 +6,21 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-import { Prisma, MerchantStatus, Role } from '@prisma/client';
+import { Prisma, MerchantStatus, NotificationType, Role } from '@prisma/client';
 import {
   SubmitKybDto,
   UpdateProfileDto,
   RegisterMerchantUserDto,
 } from './merchants.dto';
 import { InternalServerErrorException } from '@nestjs/common';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class MerchantsService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
+    private notifications: NotificationsService,
   ) {}
 
   async registerNewMerchant(dto: RegisterMerchantUserDto) {
@@ -124,7 +126,7 @@ export class MerchantsService {
       kybDocumentUrl: dto.kybDocumentUrl,
       portfolioUrl: dto.portfolioUrl,
     });
-    return this.prisma.merchant.update({
+    const updated = await this.prisma.merchant.update({
       where: { id: merchant.id },
       data: {
         kybDocuments: kybDataString,
@@ -132,10 +134,21 @@ export class MerchantsService {
         rejectionReason: null,
       },
     });
+
+    // NOT-07: notify Validators of new KYB submission
+    await this.notifications.createForRole(
+      Role.ADMIN_VALIDATOR,
+      NotificationType.KYB_APPROVED,
+      'Pengajuan KYB Baru',
+      `Toko "${merchant.shopName}" mengajukan verifikasi KYB. Silakan tinjau dokumen.`,
+      JSON.stringify({ merchantId: merchant.id }),
+    );
+
+    return updated;
   }
   async findAllMerchants() {
     return this.prisma.merchant.findMany({
-      where: { status: MerchantStatus.ACTIVE },
+      where: { status: { in: [MerchantStatus.ACTIVE, MerchantStatus.VACATION] } },
       select: {
         id: true,
         userId: true,
@@ -143,6 +156,7 @@ export class MerchantsService {
         description: true,
         logoUrl: true,
         bannerUrl: true,
+        status: true,
         badge: true,
         createdAt: true,
       },
@@ -167,7 +181,7 @@ export class MerchantsService {
     };
 
     if (dto.withdrawalPin !== undefined) {
-      updateData.withdrawalPin = dto.withdrawalPin;
+      updateData.withdrawalPin = await bcrypt.hash(dto.withdrawalPin, 10);
     }
 
     const updated = await this.prisma.merchant.update({
@@ -210,9 +224,13 @@ export class MerchantsService {
         'Kamu belum memiliki toko atau tidak berafiliasi dengan toko manapun.',
       );
 
-    if (merchant.status !== MerchantStatus.ACTIVE) {
+    const viewableStatuses: MerchantStatus[] = [
+      MerchantStatus.ACTIVE,
+      MerchantStatus.VACATION,
+    ];
+    if (!viewableStatuses.includes(merchant.status)) {
       throw new BadRequestException(
-        'kamu tidak dapat berjualan selama masa suspend atau verifikasi!',
+        'Kamu tidak dapat mengakses profil toko selama masa suspend atau verifikasi.',
       );
     }
 
@@ -228,8 +246,8 @@ export class MerchantsService {
 
   // Untuk profil publik (lewat URL param)
   async findMerchantById(merchantId: number) {
-    const merchant = await this.prisma.merchant.findUnique({
-      where: { id: merchantId, status: MerchantStatus.ACTIVE },
+    const merchant = await this.prisma.merchant.findFirst({
+      where: { id: merchantId, status: { in: [MerchantStatus.ACTIVE, MerchantStatus.VACATION] } },
       select: {
         id: true,
         userId: true,

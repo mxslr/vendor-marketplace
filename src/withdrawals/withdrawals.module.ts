@@ -4,9 +4,10 @@ import { WithdrawalsController } from './withdrawals.controller';
 import { PrismaModule } from '../prisma/prisma.module';
 import { AuthModule } from 'src/auth/auth.module';
 import { SupabaseModule } from '../supabase/supabase.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
-  imports: [PrismaModule, AuthModule, SupabaseModule],
+  imports: [PrismaModule, AuthModule, SupabaseModule, NotificationsModule],
   providers: [WithdrawalsService],
   controllers: [WithdrawalsController],
 })

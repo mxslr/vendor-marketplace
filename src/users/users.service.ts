@@ -24,7 +24,7 @@ export class UsersService {
           email: normalizedEmail,
           passwordHash: hashedPassword,
           fullName: fullName,
-          ...(data.role && { role: data.role }),
+          // role always defaults to CLIENT — never accept role from request body
         },
       });
 

@@ -120,6 +120,31 @@ enum MerchantBadge {
   SIGNATURE_PARTNER
 }
 
+enum AppealStatus {
+  PENDING
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+}
+
+enum NotificationType {
+  NEW_ORDER
+  ORDER_DELIVERED
+  ORDER_COMPLETED
+  ORDER_REFUNDED
+  PAYMENT_PENDING
+  PAYMENT_CONFIRMED
+  PAYMENT_REJECTED
+  WITHDRAWAL_COMPLETED
+  WITHDRAWAL_REJECTED
+  DISPUTE_OPENED
+  DISPUTE_RESOLVED
+  KYB_APPROVED
+  KYB_REJECTED
+  APPEAL_RECEIVED
+  SYSTEM
+}
+
 
 // MODELS
 
@@ -142,6 +167,9 @@ model User {
   orderDeliverables        OrderDeliverable[]   @relation("DeliverableSubmitter")
   clientReviews            Review[]
   clientCustomOffers       CustomOffer[]        @relation("ClientCustomOffers")
+  notifications            Notification[]
+  appealsRequested         Appeal[]             @relation("AppealRequester")
+  appealsResolved          Appeal[]             @relation("AppealResolver")
 }
 
 model Merchant {
@@ -246,16 +274,21 @@ model FeaturedPlacement {
 }
 
 model Order {
-  id            Int         @id @default(autoincrement())
-  clientId      Int
-  merchantId    Int
-  gigId         Int?
-  customOfferId Int?
-  totalAmount   Decimal     @db.Decimal(15, 2)
-  adminFee      Decimal     @default(0.0) @db.Decimal(15, 2)
-  status        OrderStatus @default(UNPAID)
-  deadline      DateTime?
-  createdAt     DateTime    @default(now())
+  id                     Int         @id @default(autoincrement())
+  clientId               Int
+  merchantId             Int
+  gigId                  Int?
+  customOfferId          Int?
+  totalAmount            Decimal     @db.Decimal(15, 2)
+  adminFee               Decimal     @default(0.0) @db.Decimal(15, 2)
+  status                 OrderStatus @default(UNPAID)
+  deadline               DateTime?
+  deliveredAt            DateTime?
+  snapToken              String?
+  paymentMethod          String?
+  midtransTransactionId  String?
+  frozenDeadline         DateTime?
+  createdAt              DateTime    @default(now())
 
   // Relations
   client       User               @relation("ClientOrders", fields: [clientId], references: [id])
@@ -266,6 +299,7 @@ model Order {
   deliverables OrderDeliverable[]
   review       Review?
   dispute      Dispute?
+  appeals      Appeal[]
 }
 
 model OrderDeliverable {
@@ -294,6 +328,22 @@ model Review {
   client User  @relation(fields: [clientId], references: [id])
 }
 
+model Appeal {
+  id          Int          @id @default(autoincrement())
+  orderId     Int
+  requesterId Int
+  reason      String
+  status      AppealStatus @default(PENDING)
+  resolvedBy  Int?
+  resolution  String?
+  createdAt   DateTime     @default(now())
+  resolvedAt  DateTime?
+
+  order     Order @relation(fields: [orderId], references: [id])
+  requester User  @relation("AppealRequester", fields: [requesterId], references: [id])
+  resolver  User? @relation("AppealResolver", fields: [resolvedBy], references: [id])
+}
+
 model Dispute {
   id           Int           @id @default(autoincrement())
   orderId      Int           @unique
@@ -315,9 +365,10 @@ model Transaction {
   type       TransactionType
   amount     Decimal           @db.Decimal(15, 2)
   status     TransactionStatus @default(PENDING)
-  proofUrl   String?           
-  verifiedBy Int?
-  createdAt  DateTime          @default(now())
+  proofUrl          String?
+  verificationNote  String?
+  verifiedBy        Int?
+  createdAt         DateTime          @default(now())
 
   // Relations
   order    Order @relation(fields: [orderId], references: [id])
@@ -375,4 +426,26 @@ model MonthlyReport {
   lockedAt        DateTime?           
 
   @@unique([period])
+}
+
+model Notification {
+  id        Int              @id @default(autoincrement())
+  userId    Int
+  type      NotificationType
+  title     String
+  message   String
+  isRead    Boolean          @default(false)
+  metadata  String?
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model SystemConfig {
+  id        Int      @id @default(autoincrement())
+  key       String   @unique
+  value     String
+  updatedBy Int?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

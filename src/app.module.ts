@@ -25,6 +25,7 @@ import { SupabaseModule } from './supabase/supabase.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { AppealsModule } from './appeals/appeals.module';
 import { SystemConfigModule } from './system-config/system-config.module';
+import { MidtransModule } from './midtrans/midtrans.module';
 @Module({
   imports: [
     PrismaModule,
@@ -48,6 +49,7 @@ import { SystemConfigModule } from './system-config/system-config.module';
     NotificationsModule,
     AppealsModule,
     SystemConfigModule,
+    MidtransModule,
     ConfigModule.forRoot({
       isGlobal: true,
     }),

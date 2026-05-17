@@ -7,16 +7,27 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import {
   MerchantStatus,
+  MerchantBadge,
   GigStatus,
   DisputeStatus,
+  NotificationType,
   OrderStatus,
   Role,
 } from '@prisma/client';
 import { DisputeDecision } from './enum/dispute.enum';
+import { NotificationsService } from '../notifications/notifications.service';
+
+export enum ExecutiveDecisionType {
+  FORCE_REFUND = 'FORCE_REFUND',
+  FORCE_RELEASE = 'FORCE_RELEASE',
+}
 
 @Injectable()
 export class AdminValidatorService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notifications: NotificationsService,
+  ) {}
 
   async getPendingDisputes() {
     return this.prisma.dispute.findMany({
@@ -83,6 +94,15 @@ export class AdminValidatorService {
         data: { status: newOrderStatus },
       });
 
+      // NOT-05: notify Finance Admins that a dispute verdict is waiting for execution
+      await this.notifications.createForRole(
+        Role.ADMIN_FINANCE,
+        NotificationType.DISPUTE_RESOLVED,
+        'Sengketa Menunggu Eksekusi Finance',
+        `Sengketa untuk pesanan #${dispute.orderId} telah diputuskan. Status: ${newOrderStatus}. Silakan eksekusi.`,
+        JSON.stringify({ orderId: dispute.orderId }),
+      );
+
       return updatedDispute;
     });
   }
@@ -120,6 +140,8 @@ export class AdminValidatorService {
       data: {
         status: isApproved ? MerchantStatus.ACTIVE : MerchantStatus.REJECTED,
         rejectionReason: isApproved ? null : rejectionReason,
+        // BAD-01: Explicitly confirm NEWCOMER badge on approval
+        ...(isApproved && { badge: MerchantBadge.NEWCOMER }),
       },
     });
   }
@@ -167,6 +189,63 @@ export class AdminValidatorService {
       },
     });
   }
+  async executiveDecision(
+    adminId: number,
+    orderId: number,
+    decision: ExecutiveDecisionType,
+  ) {
+    const admin = await this.prisma.user.findUnique({ where: { id: adminId } });
+    if (!admin || admin.role !== Role.SUPER_ADMIN) {
+      throw new ForbiddenException('Hanya Super Admin yang bisa membuat Executive Decision.');
+    }
+
+    const order = await this.prisma.order.findUnique({ where: { id: orderId } });
+    if (!order) throw new NotFoundException('Pesanan tidak ditemukan.');
+    if (order.status !== OrderStatus.DISPUTE_IN_PROGRESS) {
+      throw new BadRequestException(
+        'Executive Decision hanya bisa dilakukan pada pesanan berstatus DISPUTE_IN_PROGRESS.',
+      );
+    }
+
+    return this.prisma.$transaction(async (prisma) => {
+      if (decision === ExecutiveDecisionType.FORCE_REFUND) {
+        await prisma.order.update({
+          where: { id: orderId },
+          data: { status: OrderStatus.REFUNDED },
+        });
+
+        const nettPayout = order.totalAmount.sub(order.adminFee);
+        await prisma.merchant.update({
+          where: { id: order.merchantId },
+          data: { pendingBalance: { decrement: nettPayout } },
+        });
+      } else if (decision === ExecutiveDecisionType.FORCE_RELEASE) {
+        await prisma.order.update({
+          where: { id: orderId },
+          data: { status: OrderStatus.COMPLETED },
+        });
+
+        const nettPayout = order.totalAmount.sub(order.adminFee);
+        await prisma.merchant.update({
+          where: { id: order.merchantId },
+          data: {
+            pendingBalance: { decrement: nettPayout },
+            walletBalance: { increment: nettPayout },
+          },
+        });
+      } else {
+        throw new BadRequestException('Tipe keputusan tidak valid.');
+      }
+
+      await prisma.dispute.updateMany({
+        where: { orderId, status: { not: DisputeStatus.CLOSED } },
+        data: { status: DisputeStatus.CLOSED },
+      });
+
+      return { message: `Executive Decision ${decision} berhasil dieksekusi.` };
+    });
+  }
+
   async suspendMerchant(
     isSuspended: boolean,
     merchantId: number,
@@ -199,13 +278,22 @@ export class AdminValidatorService {
         ? new Date(Date.now() + suspensionDays * 24 * 60 * 60 * 1000)
         : null;
 
-    return this.prisma.merchant.update({
-      where: { id: merchantId },
-      data: {
-        status: isSuspended ? MerchantStatus.SUSPENDED : MerchantStatus.ACTIVE,
-        rejectionReason: isSuspended ? reason : null,
-        suspendedUntil: suspendedUntil,
-      },
+    return this.prisma.$transaction(async (prisma) => {
+      const updatedMerchant = await prisma.merchant.update({
+        where: { id: merchantId },
+        data: {
+          status: isSuspended ? MerchantStatus.SUSPENDED : MerchantStatus.ACTIVE,
+          rejectionReason: isSuspended ? reason : null,
+          suspendedUntil: suspendedUntil,
+        },
+      });
+
+      await prisma.user.update({
+        where: { id: merchant.userId },
+        data: { isSuspended: isSuspended },
+      });
+
+      return updatedMerchant;
     });
   }
 }

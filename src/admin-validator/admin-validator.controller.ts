@@ -10,7 +10,7 @@ import {
   ForbiddenException,
   ParseIntPipe,
 } from '@nestjs/common';
-import { AdminValidatorService } from './admin-validator.service';
+import { AdminValidatorService, ExecutiveDecisionType } from './admin-validator.service';
 import { AuthGuard } from '../auth/auth.guard';
 import { MerchantStatus } from '@prisma/client';
 import { ResolveDisputeDto } from './dto/resolve-disputes.dto';
@@ -80,6 +80,11 @@ export class AdminValidatorController {
     @Body() body: { isSuspended: boolean; reason?: string; days?: number },
   ) {
     await this.checkValidatorRole(req.user.role);
+    if (body.isSuspended === false && req.user.role !== 'SUPER_ADMIN') {
+      throw new ForbiddenException(
+        'Hanya Super Admin yang dapat mencabut suspend akun.',
+      );
+    }
     return this.adminValidatorService.suspendMerchant(
       body.isSuspended,
       id,
@@ -92,6 +97,19 @@ export class AdminValidatorController {
   async getPendingDisputes(@Request() req: RequestWithUser) {
     await this.checkValidatorRole(req.user.role);
     return this.adminValidatorService.getPendingDisputes();
+  }
+
+  @UseGuards(AuthGuard)
+  @Patch('disputes/:id/executive-decision')
+  async executiveDecision(
+    @Request() req: RequestWithUser,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { decision: ExecutiveDecisionType },
+  ) {
+    if (req.user.role !== 'SUPER_ADMIN') {
+      throw new ForbiddenException('Hanya Super Admin yang bisa membuat Executive Decision.');
+    }
+    return this.adminValidatorService.executiveDecision(req.user.sub, id, body.decision);
   }
 
   @UseGuards(AuthGuard)

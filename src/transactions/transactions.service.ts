@@ -7,12 +7,14 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { DisputeStatus, NotificationType, OrderStatus, Role, TransactionStatus } from '@prisma/client';
 import { NotificationsService } from '../notifications/notifications.service';
+import { MidtransService } from '../midtrans/midtrans.service';
 
 @Injectable()
 export class TransactionsService {
   constructor(
     private prisma: PrismaService,
     private notifications: NotificationsService,
+    private midtrans: MidtransService,
   ) {}
 
   private async checkAdminRole(userId: number, allowedRoles: Role[]) {
@@ -168,6 +170,16 @@ export class TransactionsService {
     await this.checkAdminRole(adminId, [Role.SUPER_ADMIN, Role.ADMIN_FINANCE]);
     const order = await this.prisma.order.findUnique({
       where: { id: transactionId },
+      select: {
+        id: true,
+        status: true,
+        clientId: true,
+        merchantId: true,
+        totalAmount: true,
+        adminFee: true,
+        paymentMethod: true,
+        midtransTransactionId: true,
+      },
     });
     if (!order) {
       throw new NotFoundException(
@@ -177,6 +189,22 @@ export class TransactionsService {
     if (order.status !== OrderStatus.REFUND_APPROVED_WAITING_FINANCE) {
       throw new BadRequestException('Transaksi tidak dapat di-refund');
     }
+
+    // If paid via Midtrans, trigger Midtrans Refund API before updating DB
+    if (order.paymentMethod === 'midtrans' && order.midtransTransactionId) {
+      try {
+        await this.midtrans.createRefund(
+          order.midtransTransactionId,
+          Number(order.totalAmount),
+          'Dispute resolved — refund approved by validator',
+        );
+      } catch (err: any) {
+        throw new BadRequestException(
+          `Midtrans refund gagal: ${err?.message ?? 'Unknown error'}`,
+        );
+      }
+    }
+
     return this.prisma.$transaction(async (prisma) => {
       const updatedOrder = await prisma.order.update({
         where: { id: transactionId },

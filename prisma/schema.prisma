@@ -170,6 +170,7 @@ model User {
   notifications            Notification[]
   appealsRequested         Appeal[]             @relation("AppealRequester")
   appealsResolved          Appeal[]             @relation("AppealResolver")
+  auditLogs                AuditLog[]
 }
 
 model Merchant {
@@ -345,13 +346,14 @@ model Appeal {
 }
 
 model Dispute {
-  id           Int           @id @default(autoincrement())
-  orderId      Int           @unique
-  reason       String
-  evidenceUrls String?       
-  status       DisputeStatus @default(OPEN)
-  validatorId  Int?
-  verdictNote  String?
+  id             Int           @id @default(autoincrement())
+  orderId        Int           @unique
+  reason         String
+  evidenceUrls   String?
+  status         DisputeStatus @default(OPEN)
+  validatorId    Int?
+  verdictNote    String?
+  pendingVerdict String?
 
   // Relations
   order     Order @relation(fields: [orderId], references: [id])
@@ -448,4 +450,24 @@ model SystemConfig {
   updatedBy Int?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  action    String
+  key       String
+  oldValue  String?
+  newValue  String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model LoginAttempt {
+  id           Int       @id @default(autoincrement())
+  ip           String    @unique
+  attempts     Int       @default(0)
+  blockedUntil DateTime?
+  lastAttempt  DateTime  @default(now())
 }

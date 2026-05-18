@@ -4,9 +4,10 @@ import { MerchantsController } from './merchants.controller';
 import { AuthModule } from 'src/auth/auth.module';
 import { SupabaseModule } from '../supabase/supabase.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { MerchantAssociatesModule } from '../merchant-associates/merchant-associates.module';
 
 @Module({
-  imports: [AuthModule, SupabaseModule, NotificationsModule],
+  imports: [AuthModule, SupabaseModule, NotificationsModule, MerchantAssociatesModule],
   providers: [MerchantsService],
   controllers: [MerchantsController],
 })

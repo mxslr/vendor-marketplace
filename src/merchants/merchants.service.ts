@@ -116,9 +116,9 @@ export class MerchantsService {
 
     if (!merchant) throw new NotFoundException('Toko tidak ditemukan.');
 
-    if (merchant.status !== 'INCOMPLETE' && merchant.status !== 'REJECTED') {
+    if (merchant.status !== MerchantStatus.INCOMPLETE) {
       throw new BadRequestException(
-        'Toko sudah diverifikasi atau sedang dalam antrean.',
+        'Pengajuan KYB hanya bisa dilakukan dari status INCOMPLETE. Jika ditolak, gunakan endpoint acknowledge-rejection terlebih dahulu.',
       );
     }
 
@@ -146,6 +146,25 @@ export class MerchantsService {
 
     return updated;
   }
+  async acknowledgeKybRejection(userId: number) {
+    const merchant = await this.prisma.merchant.findUnique({
+      where: { userId },
+    });
+
+    if (!merchant) throw new NotFoundException('Toko tidak ditemukan.');
+
+    if (merchant.status !== MerchantStatus.REJECTED) {
+      throw new BadRequestException(
+        'Hanya toko dengan status REJECTED yang dapat melakukan acknowledge rejection.',
+      );
+    }
+
+    return this.prisma.merchant.update({
+      where: { id: merchant.id },
+      data: { status: MerchantStatus.INCOMPLETE },
+    });
+  }
+
   async findAllMerchants() {
     return this.prisma.merchant.findMany({
       where: { status: { in: [MerchantStatus.ACTIVE, MerchantStatus.VACATION] } },
@@ -235,13 +254,13 @@ export class MerchantsService {
     }
 
     if (isAssociate) {
-      // Hide wallet balances for associates
+      // Hide wallet balances for associates; signal canBoost: false so frontend disables the Boost button
       const { walletBalance, pendingBalance, withdrawalPin, ...safeMerchant } =
         merchant;
-      return safeMerchant;
+      return { ...safeMerchant, canBoost: false };
     }
 
-    return merchant;
+    return { ...merchant, canBoost: true };
   }
 
   // Untuk profil publik (lewat URL param)
@@ -307,6 +326,76 @@ export class MerchantsService {
         status: newStatus,
       };
     });
+  }
+
+  async getLeaderboard() {
+    const [mostBooked, bestRating, fastestResponse] = await Promise.all([
+      // most_booked: top 10 merchants by COMPLETED order count
+      this.prisma.order.groupBy({
+        by: ['merchantId'],
+        where: { status: 'COMPLETED' },
+        _count: { id: true },
+        orderBy: { _count: { id: 'desc' } },
+        take: 10,
+      }).then(async (rows) => {
+        const merchants = await this.prisma.merchant.findMany({
+          where: { id: { in: rows.map((r) => r.merchantId) } },
+          select: { id: true, shopName: true, logoUrl: true, badge: true },
+        });
+        return rows.map((r) => ({
+          merchant: merchants.find((m) => m.id === r.merchantId),
+          completedOrders: r._count.id,
+        }));
+      }),
+
+      // best_rating: top 10 merchants by average review rating (min 1 review)
+      this.prisma.$queryRaw<{ merchantId: number; avgRating: number; reviewCount: number }[]>`
+        SELECT o."merchantId"::int, AVG(r.rating)::float AS "avgRating", COUNT(r.id)::int AS "reviewCount"
+        FROM "Review" r
+        JOIN "Order" o ON r."orderId" = o.id
+        GROUP BY o."merchantId"
+        HAVING COUNT(r.id) >= 1
+        ORDER BY "avgRating" DESC, "reviewCount" DESC
+        LIMIT 10
+      `.then(async (rows) => {
+        const merchants = await this.prisma.merchant.findMany({
+          where: { id: { in: rows.map((r) => r.merchantId) } },
+          select: { id: true, shopName: true, logoUrl: true, badge: true },
+        });
+        return rows.map((r) => ({
+          merchant: merchants.find((m) => m.id === r.merchantId),
+          avgRating: Number(r.avgRating).toFixed(2),
+          reviewCount: r.reviewCount,
+        }));
+      }),
+
+      // fastest_response: top 10 merchants by avg time (order created → first deliverable)
+      this.prisma.$queryRaw<{ merchantId: number; avgResponseSeconds: number }[]>`
+        SELECT o."merchantId"::int,
+               AVG(EXTRACT(EPOCH FROM (d."minCreatedAt" - o."createdAt")))::float AS "avgResponseSeconds"
+        FROM "Order" o
+        JOIN (
+          SELECT "orderId", MIN("createdAt") AS "minCreatedAt"
+          FROM "OrderDeliverable"
+          GROUP BY "orderId"
+        ) d ON d."orderId" = o.id
+        WHERE o.status = 'COMPLETED'
+        GROUP BY o."merchantId"
+        ORDER BY "avgResponseSeconds" ASC
+        LIMIT 10
+      `.then(async (rows) => {
+        const merchants = await this.prisma.merchant.findMany({
+          where: { id: { in: rows.map((r) => r.merchantId) } },
+          select: { id: true, shopName: true, logoUrl: true, badge: true },
+        });
+        return rows.map((r) => ({
+          merchant: merchants.find((m) => m.id === r.merchantId),
+          avgResponseHours: (Number(r.avgResponseSeconds) / 3600).toFixed(1),
+        }));
+      }),
+    ]);
+
+    return { mostBooked, bestRating, fastestResponse };
   }
 
   async closeMerchant(userId: number) {

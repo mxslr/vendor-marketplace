@@ -7,17 +7,17 @@ import {
   Body,
   UseGuards,
   Request,
-  UnauthorizedException,
   ParseIntPipe,
 } from '@nestjs/common';
 import { MerchantsService } from './merchants.service';
+import { MerchantAssociatesService } from '../merchant-associates/merchant-associates.service';
 import { AuthGuard } from '../auth/auth.guard';
 import {
   SubmitKybDto,
   UpdateProfileDto,
   RegisterMerchantUserDto,
 } from './merchants.dto';
-import { MerchantStatus } from '@prisma/client';
+import { AddAssociateDto } from '../merchant-associates/merchant-associates.dto';
 
 interface RequestWithUser extends Request {
   user: {
@@ -28,7 +28,10 @@ interface RequestWithUser extends Request {
 
 @Controller('merchants')
 export class MerchantsController {
-  constructor(private merchantsService: MerchantsService) {}
+  constructor(
+    private merchantsService: MerchantsService,
+    private associatesService: MerchantAssociatesService,
+  ) {}
 
   // Endpoint: POST /merchants/register - Register user and merchant tanpa login (Publik)
   @Post('register')
@@ -40,6 +43,11 @@ export class MerchantsController {
   @Get()
   findAll() {
     return this.merchantsService.findAllMerchants();
+  }
+
+  @Get('leaderboard')
+  getLeaderboard() {
+    return this.merchantsService.getLeaderboard();
   }
   // Endpoint: GET /merchants/profile untuk melihat profil toko sendiri (Hanya Merchant)
   @UseGuards(AuthGuard)
@@ -63,6 +71,13 @@ export class MerchantsController {
     return this.merchantsService.updateProfileMerchant(req.user.sub, dto);
   }
 
+  // Endpoint: PATCH /merchants/kyb/acknowledge-rejection
+  @UseGuards(AuthGuard)
+  @Patch('kyb/acknowledge-rejection')
+  acknowledgeKybRejection(@Request() req: RequestWithUser) {
+    return this.merchantsService.acknowledgeKybRejection(req.user.sub);
+  }
+
   // Endpoint: PATCH /merchants/submit-kyb
   @UseGuards(AuthGuard)
   @Patch('submit-kyb')
@@ -82,5 +97,17 @@ export class MerchantsController {
   @Patch('closed')
   closeMerchant(@Request() req: RequestWithUser) {
     return this.merchantsService.closeMerchant(req.user.sub);
+  }
+
+  // RESTful alias for POST /merchant-associates
+  // AUTH-05: Merchant menambah associate via POST /merchants/:id/associates
+  @UseGuards(AuthGuard)
+  @Post(':id/associates')
+  addAssociate(
+    @Request() req: RequestWithUser,
+    @Param('id', ParseIntPipe) _merchantId: number,
+    @Body() dto: AddAssociateDto,
+  ) {
+    return this.associatesService.addAssociate(req.user.sub, dto.email, dto.permission);
   }
 }

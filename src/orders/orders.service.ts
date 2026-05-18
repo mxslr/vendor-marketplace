@@ -7,6 +7,7 @@ import { Cron } from '@nestjs/schedule';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import {
+  Prisma,
   OrderStatus,
   GigStatus,
   AssociatePermission,
@@ -18,6 +19,8 @@ import {
 } from '@prisma/client';
 import { NotificationsService } from '../notifications/notifications.service';
 import { MidtransService } from '../midtrans/midtrans.service';
+import { SupabaseService } from '../supabase/supabase.service';
+import { SystemConfigService } from '../system-config/system-config.service';
 
 @Injectable()
 export class OrdersService {
@@ -26,6 +29,8 @@ export class OrdersService {
     private notifications: NotificationsService,
     private midtrans: MidtransService,
     private config: ConfigService,
+    private supabase: SupabaseService,
+    private systemConfig: SystemConfigService,
   ) {}
 
   async createOrder(clientId: number, gigId: number) {
@@ -38,15 +43,26 @@ export class OrdersService {
       throw new BadRequestException('Layanan ini tidak tersedia untuk dipesan saat ini.');
     }
 
-    const adminFee = gig.price.mul(gig.category.commissionRate).div(100);
+    // CFG-01: read commission rate from SystemConfig (per-category override), fallback to category default
+    let commissionRate = gig.category.commissionRate;
+    try {
+      const configKey = `commission_rate_${gig.category.id}`;
+      const cfg = await this.systemConfig.get(configKey);
+      const parsed = parseFloat(cfg.value);
+      if (!isNaN(parsed)) commissionRate = new Prisma.Decimal(parsed);
+    } catch {
+      // Key not in SystemConfig — use category default
+    }
+
+    const adminFee = gig.price.mul(commissionRate).div(100);
 
     return this.prisma.order.create({
       data: {
-        clientId: clientId,
+        clientId,
         merchantId: gig.merchantId,
         gigId: gig.id,
         totalAmount: gig.price,
-        adminFee: adminFee,
+        adminFee,
       },
     });
   }
@@ -54,7 +70,7 @@ export class OrdersService {
   async initiateMidtransPayment(
     orderId: number,
     clientId: number,
-  ): Promise<{ snapToken: string; clientKey: string }> {
+  ): Promise<{ snapToken: string; clientKey: string; midtransOrderId: string }> {
     const order = await this.prisma.order.findFirst({
       where: { id: orderId, clientId },
       include: {
@@ -72,6 +88,13 @@ export class OrdersService {
 
     const midtransOrderId = `order-${order.id}-${Date.now()}`;
     const gigTitle = order.gig?.title ?? 'Layanan Vendor Marketplace';
+
+    console.log(
+      `[Midtrans] initiate-payment for orderId=${order.id} → midtransOrderId="${midtransOrderId}"`,
+    );
+    console.log(
+      `[Midtrans] Use this order_id in manual webhook simulation: "${midtransOrderId}"`,
+    );
 
     const snapToken = await this.midtrans.createSnapToken({
       orderId: midtransOrderId,
@@ -98,6 +121,7 @@ export class OrdersService {
     return {
       snapToken,
       clientKey: this.config.get<string>('MIDTRANS_CLIENT_KEY') ?? '',
+      midtransOrderId,
     };
   }
 
@@ -318,6 +342,48 @@ export class OrdersService {
 
       return updatedOrder;
     });
+  }
+
+  async cancelOrder(orderId: number, clientId: number) {
+    const order = await this.prisma.order.findFirst({
+      where: { id: orderId, clientId },
+    });
+    if (!order) throw new NotFoundException('Pesanan tidak ditemukan.');
+
+    if (order.status === OrderStatus.IN_PROGRESS) {
+      throw new BadRequestException(
+        'Pesanan yang sedang dalam proses tidak dapat dibatalkan secara mandiri. Hubungi Customer Service.',
+      );
+    }
+    if (order.status !== OrderStatus.UNPAID) {
+      throw new BadRequestException(
+        'Pesanan hanya bisa dibatalkan jika belum dibayar.',
+      );
+    }
+
+    return this.prisma.order.update({
+      where: { id: orderId },
+      data: { status: OrderStatus.CANCELLED },
+    });
+  }
+
+  async uploadPaymentProof(
+    orderId: number,
+    clientId: number,
+    file: Express.Multer.File,
+  ) {
+    const order = await this.prisma.order.findFirst({
+      where: { id: orderId, clientId },
+    });
+    if (!order) throw new NotFoundException('Pesanan tidak ditemukan.');
+    if (order.status !== OrderStatus.UNPAID) {
+      throw new BadRequestException(
+        'Pesanan ini sudah dibayar atau sedang diproses.',
+      );
+    }
+
+    const url = await this.supabase.uploadFile(file, 'payment-proofs');
+    return this.payOrder(orderId, clientId, url);
   }
 
   private async upgradeBadgeIfEligible(merchantId: number, tx: any) {

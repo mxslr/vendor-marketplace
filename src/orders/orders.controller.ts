@@ -8,8 +8,14 @@ import {
   Body,
   UseGuards,
   Request,
+  UseInterceptors,
+  UploadedFile,
+  Res,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { Response } from 'express';
 import { OrdersService } from './orders.service';
+import { InvoiceService } from './invoice.service';
 import { AuthGuard } from '../auth/auth.guard';
 import { PayOrderDto } from './dto/pay-order.dto';
 
@@ -22,7 +28,10 @@ interface RequestWithUser extends Request {
 
 @Controller('orders')
 export class OrdersController {
-  constructor(private ordersService: OrdersService) {}
+  constructor(
+    private ordersService: OrdersService,
+    private invoiceService: InvoiceService,
+  ) {}
 
   @UseGuards(AuthGuard)
   @Post()
@@ -77,5 +86,38 @@ export class OrdersController {
   @Patch(':id/decline')
   declineOrder(@Request() req: RequestWithUser, @Param('id') id: string) {
     return this.ordersService.declineOrder(Number(id), req.user.sub);
+  }
+
+  @UseGuards(AuthGuard)
+  @Patch(':id/cancel')
+  cancelOrder(@Request() req: RequestWithUser, @Param('id', ParseIntPipe) id: number) {
+    return this.ordersService.cancelOrder(id, req.user.sub);
+  }
+
+  @UseGuards(AuthGuard)
+  @Post(':id/upload-payment-proof')
+  @UseInterceptors(FileInterceptor('file'))
+  uploadPaymentProof(
+    @Request() req: RequestWithUser,
+    @Param('id', ParseIntPipe) id: number,
+    @UploadedFile() file: any,
+  ) {
+    return this.ordersService.uploadPaymentProof(id, req.user.sub, file);
+  }
+
+  @UseGuards(AuthGuard)
+  @Get(':id/invoice')
+  async downloadInvoice(
+    @Request() req: RequestWithUser,
+    @Param('id', ParseIntPipe) id: number,
+    @Res() res: Response,
+  ) {
+    const buffer = await this.invoiceService.generateInvoice(id, req.user.sub);
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="invoice-order-${id}.pdf"`,
+      'Content-Length': buffer.length,
+    });
+    res.end(buffer);
   }
 }

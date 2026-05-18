@@ -59,3 +59,9 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
 # TODO.md
 TODO.md
+
+# Internal dev docs (not for version control)
+CLAUDE.md
+FIX_LOG.md
+TESTING_MIDTRANS.md
+docs/

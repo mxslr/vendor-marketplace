@@ -17,20 +17,15 @@ export class SupabaseController {
   @UseInterceptors(FileInterceptor('file'))
   async uploadImage(
     @UploadedFile() file: Express.Multer.File,
-    @Body('folder') folder: string,
+    @Body('bucket') bucket: string,
   ) {
     if (!file) {
       throw new BadRequestException('File tidak boleh kosong!');
     }
-    
-    // Default folder jika tidak dikirim dari client
-    const targetFolder = folder || 'images';
-    
-    const url = await this.supabaseService.uploadImage(file, targetFolder);
-    
-    return {
-      success: true,
-      url: url,
-    };
+
+    const targetBucket = bucket || 'merchant-assets';
+    const url = await this.supabaseService.uploadFile(file, targetBucket);
+
+    return { success: true, url };
   }
 }

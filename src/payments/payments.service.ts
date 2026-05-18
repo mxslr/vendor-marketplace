@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { MidtransService } from '../midtrans/midtrans.service';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -22,52 +22,63 @@ interface MidtransNotificationPayload {
 
 @Injectable()
 export class PaymentsService {
-  private readonly logger = new Logger(PaymentsService.name);
-
   constructor(
     private prisma: PrismaService,
     private midtrans: MidtransService,
     private notifications: NotificationsService,
   ) {}
 
-  async handleMidtransWebhook(
-    payload: MidtransNotificationPayload,
-  ): Promise<void> {
+  async handleMidtransWebhook(payload: MidtransNotificationPayload): Promise<void> {
+    console.log('[Webhook] ▶ Incoming Midtrans payload:', JSON.stringify(payload, null, 2));
+
     // Step 1: Validate signature
+    // gross_amount must be a string for correct SHA-512 — coerce in case JSON parser returns a number
+    const grossAmountStr = String(payload.gross_amount);
     const isValid = this.midtrans.validateWebhookSignature(
       payload.order_id,
       payload.status_code,
-      payload.gross_amount,
+      grossAmountStr,
       payload.signature_key,
     );
+
     if (!isValid) {
-      this.logger.warn(
-        `Invalid Midtrans signature for order_id: ${payload.order_id}`,
+      console.error(
+        `[Webhook] ✗ Signature INVALID for order_id="${payload.order_id}". ` +
+          `Computed from: order_id+status_code+gross_amount+serverKey. ` +
+          `Received signature_key="${payload.signature_key}"`,
       );
       return;
     }
+    console.log(`[Webhook] ✓ Signature valid for order_id="${payload.order_id}"`);
 
     // Step 2: Parse internal order ID from "order-{id}-{timestamp}" format
     const orderIdMatch = payload.order_id.match(/^order-(\d+)/);
     if (!orderIdMatch) {
-      this.logger.warn(`Cannot parse order ID from: ${payload.order_id}`);
+      console.error(
+        `[Webhook] ✗ Cannot parse internal order ID from order_id="${payload.order_id}". ` +
+          `Expected format: "order-{id}-{timestamp}"`,
+      );
       return;
     }
     const internalOrderId = parseInt(orderIdMatch[1], 10);
+    console.log(`[Webhook] ✓ Parsed internalOrderId=${internalOrderId}`);
 
+    // Step 3: Look up the order
     const order = await this.prisma.order.findUnique({
       where: { id: internalOrderId },
       include: { client: true, gig: true, customOffer: true },
     });
+
     if (!order) {
-      this.logger.warn(`Order not found: ${internalOrderId}`);
+      console.error(`[Webhook] ✗ Order not found in DB: id=${internalOrderId}`);
       return;
     }
+    console.log(`[Webhook] ✓ Found order id=${order.id} status="${order.status}" midtransTransactionId="${order.midtransTransactionId}"`);
 
-    // Step 3: Idempotency — skip if this transaction_id was already processed
+    // Step 4: Idempotency — skip if this transaction_id was already processed
     if (order.midtransTransactionId === payload.transaction_id) {
-      this.logger.log(
-        `Duplicate webhook ignored for transaction: ${payload.transaction_id}`,
+      console.log(
+        `[Webhook] ⚠ Duplicate webhook ignored — transaction_id="${payload.transaction_id}" already recorded on order ${order.id}`,
       );
       return;
     }
@@ -81,13 +92,17 @@ export class PaymentsService {
     const isFailed =
       status === 'expire' || status === 'cancel' || status === 'deny';
 
+    console.log(
+      `[Webhook] transaction_status="${status}" fraud_status="${fraudStatus}" → isSuccess=${isSuccess} isFailed=${isFailed}`,
+    );
+
     if (isSuccess) {
       await this.processSuccessfulPayment(order, payload);
     } else if (isFailed) {
       await this.processCancelledPayment(order, payload);
     } else {
-      this.logger.log(
-        `Pending payment for order ${internalOrderId}, no action taken.`,
+      console.log(
+        `[Webhook] ℹ Pending/unknown status "${status}" for order ${internalOrderId} — no action taken.`,
       );
     }
   }
@@ -96,18 +111,24 @@ export class PaymentsService {
     order: any,
     payload: MidtransNotificationPayload,
   ): Promise<void> {
+    console.log(`[Webhook] processSuccessfulPayment ▶ order ${order.id} status="${order.status}"`);
+
     if (order.status !== OrderStatus.UNPAID) {
-      this.logger.warn(
-        `Order ${order.id} is not UNPAID, skipping settlement.`,
+      console.error(
+        `[Webhook] ✗ Order ${order.id} is "${order.status}", not UNPAID — skipping settlement.`,
       );
       return;
     }
 
     const deadlineDays = order.customOffer?.deadlineDays ?? 7;
-    const deadline = new Date(
-      Date.now() + deadlineDays * 24 * 60 * 60 * 1000,
-    );
+    const deadline = new Date(Date.now() + deadlineDays * 24 * 60 * 60 * 1000);
     const nettPayout = order.totalAmount.sub(order.adminFee);
+
+    console.log(
+      `[Webhook] Updating order ${order.id}: status→IN_PROGRESS, ` +
+        `midtransTransactionId="${payload.transaction_id}", ` +
+        `nettPayout=${nettPayout}, deadline=${deadline.toISOString()}`,
+    );
 
     await this.prisma.$transaction(async (prisma) => {
       await prisma.order.update({
@@ -138,6 +159,11 @@ export class PaymentsService {
       });
     });
 
+    console.log(
+      `[Webhook] ✓ Order ${order.id} → IN_PROGRESS. ` +
+        `Merchant ${order.merchantId} pendingBalance +${nettPayout}`,
+    );
+
     const merchant = await this.prisma.merchant.findUnique({
       where: { id: order.merchantId },
     });
@@ -150,19 +176,20 @@ export class PaymentsService {
         JSON.stringify({ orderId: order.id }),
       );
     }
-
-    this.logger.log(
-      `Order ${order.id} settled via Midtrans (txId: ${payload.transaction_id})`,
-    );
   }
 
   private async processCancelledPayment(
     order: any,
     payload: MidtransNotificationPayload,
   ): Promise<void> {
+    console.log(
+      `[Webhook] processCancelledPayment ▶ order ${order.id} status="${order.status}" ` +
+        `transaction_status="${payload.transaction_status}"`,
+    );
+
     if (order.status !== OrderStatus.UNPAID) {
-      this.logger.warn(
-        `Order ${order.id} is not UNPAID, skipping cancellation.`,
+      console.log(
+        `[Webhook] ⚠ Order ${order.id} is "${order.status}", not UNPAID — skip cancellation.`,
       );
       return;
     }
@@ -175,8 +202,6 @@ export class PaymentsService {
       },
     });
 
-    this.logger.log(
-      `Order ${order.id} cancelled (status: ${payload.transaction_status})`,
-    );
+    console.log(`[Webhook] ✓ Order ${order.id} → CANCELLED (${payload.transaction_status})`);
   }
 }

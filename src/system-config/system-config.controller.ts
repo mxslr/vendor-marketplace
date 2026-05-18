@@ -6,33 +6,35 @@ import {
   Body,
   UseGuards,
   Request,
-  ForbiddenException,
 } from '@nestjs/common';
 import { SystemConfigService } from './system-config.service';
 import { AuthGuard } from '../auth/auth.guard';
+import { RolesGuard } from '../auth/roles.guard';
+import { Roles } from '../auth/roles.decorator';
+import { Role } from '@prisma/client';
 
 interface RequestWithUser extends Request {
   user: { sub: number; role: string };
 }
 
-@UseGuards(AuthGuard)
+@UseGuards(AuthGuard, RolesGuard)
+@Roles(Role.SUPER_ADMIN)
 @Controller('system-config')
 export class SystemConfigController {
   constructor(private systemConfigService: SystemConfigService) {}
 
   @Get()
-  getAll(@Request() req: RequestWithUser) {
-    if (req.user.role !== 'SUPER_ADMIN') {
-      throw new ForbiddenException('Akses ditolak.');
-    }
+  getAll() {
     return this.systemConfigService.getAll();
   }
 
+  @Get('audit-logs')
+  getAuditLogs(@Request() req: RequestWithUser) {
+    return this.systemConfigService.getAuditLogs(req.user.sub);
+  }
+
   @Get(':key')
-  get(@Request() req: RequestWithUser, @Param('key') key: string) {
-    if (req.user.role !== 'SUPER_ADMIN') {
-      throw new ForbiddenException('Akses ditolak.');
-    }
+  get(@Param('key') key: string) {
     return this.systemConfigService.get(key);
   }
 
@@ -40,11 +42,8 @@ export class SystemConfigController {
   set(
     @Request() req: RequestWithUser,
     @Param('key') key: string,
-    @Body() body: { value: string },
+    @Body() body: { value: string; confirmPassword: string },
   ) {
-    if (req.user.role !== 'SUPER_ADMIN') {
-      throw new ForbiddenException('Akses ditolak.');
-    }
-    return this.systemConfigService.set(req.user.sub, key, body.value);
+    return this.systemConfigService.set(req.user.sub, key, body.value, body.confirmPassword);
   }
 }

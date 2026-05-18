@@ -2,7 +2,9 @@ import {
   Injectable,
   NotFoundException,
   ForbiddenException,
+  UnauthorizedException,
 } from '@nestjs/common';
+import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
 import { Role } from '@prisma/client';
 
@@ -28,13 +30,44 @@ export class SystemConfigService {
     return config;
   }
 
-  async set(adminId: number, key: string, value: string) {
-    await this.requireSuperAdmin(adminId);
+  async set(adminId: number, key: string, value: string, confirmPassword: string) {
+    const admin = await this.requireSuperAdmin(adminId);
 
-    return this.prisma.systemConfig.upsert({
+    // CFG-03: verify password confirmation before allowing config change
+    const isPasswordValid = await bcrypt.compare(confirmPassword, admin.passwordHash);
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('Konfirmasi password salah.');
+    }
+
+    // Fetch old value for audit log
+    const existing = await this.prisma.systemConfig.findUnique({ where: { key } });
+    const oldValue = existing?.value ?? null;
+
+    const result = await this.prisma.systemConfig.upsert({
       where: { key },
       update: { value, updatedBy: adminId },
       create: { key, value, updatedBy: adminId },
+    });
+
+    // Create audit log entry
+    await this.prisma.auditLog.create({
+      data: {
+        userId: adminId,
+        action: 'SET_CONFIG',
+        key,
+        oldValue,
+        newValue: value,
+      },
+    });
+
+    return result;
+  }
+
+  async getAuditLogs(adminId: number) {
+    await this.requireSuperAdmin(adminId);
+    return this.prisma.auditLog.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: { user: { select: { fullName: true, email: true } } },
     });
   }
 

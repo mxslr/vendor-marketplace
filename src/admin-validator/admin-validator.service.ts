@@ -43,6 +43,94 @@ export class AdminValidatorService {
     });
   }
 
+  async submitVerdict(adminId: number, disputeId: number, decision: DisputeDecision) {
+    const admin = await this.prisma.user.findUnique({ where: { id: adminId } });
+    if (!admin || (admin.role !== Role.ADMIN_VALIDATOR && admin.role !== Role.SUPER_ADMIN)) {
+      throw new ForbiddenException('Akses ditolak.');
+    }
+
+    const dispute = await this.prisma.dispute.findUnique({ where: { id: disputeId } });
+    if (!dispute) throw new NotFoundException('Tiket sengketa tidak ditemukan.');
+    if (dispute.status !== DisputeStatus.OPEN && dispute.status !== DisputeStatus.UNDER_REVIEW) {
+      throw new BadRequestException('Sengketa ini sudah ditutup atau diputuskan.');
+    }
+    if (decision !== DisputeDecision.APPROVE_REFUND && decision !== DisputeDecision.REJECT_COMPLAINT) {
+      throw new BadRequestException('Keputusan tidak valid.');
+    }
+
+    await this.prisma.dispute.update({
+      where: { id: disputeId },
+      data: {
+        pendingVerdict: decision,
+        status: DisputeStatus.UNDER_REVIEW,
+        validatorId: adminId,
+      },
+    });
+
+    return {
+      message: 'Verdict telah disiapkan. Panggil confirm-verdict untuk mengeksekusi.',
+      disputeId,
+      pendingVerdict: decision,
+    };
+  }
+
+  async confirmVerdict(adminId: number, disputeId: number) {
+    const admin = await this.prisma.user.findUnique({ where: { id: adminId } });
+    if (!admin || (admin.role !== Role.ADMIN_VALIDATOR && admin.role !== Role.SUPER_ADMIN)) {
+      throw new ForbiddenException('Akses ditolak.');
+    }
+
+    const dispute = await this.prisma.dispute.findUnique({
+      where: { id: disputeId },
+      include: { order: true },
+    });
+    if (!dispute) throw new NotFoundException('Tiket sengketa tidak ditemukan.');
+    if (dispute.status !== DisputeStatus.UNDER_REVIEW) {
+      throw new BadRequestException(
+        'Sengketa tidak dalam status UNDER_REVIEW. Panggil submit-verdict terlebih dahulu.',
+      );
+    }
+    const pendingVerdict: string | null = (dispute as any).pendingVerdict ?? null;
+    if (!pendingVerdict) {
+      throw new BadRequestException('Tidak ada verdict yang menunggu konfirmasi.');
+    }
+
+    const decision = pendingVerdict as DisputeDecision;
+    let newOrderStatus;
+    if (decision === DisputeDecision.APPROVE_REFUND) {
+      newOrderStatus = OrderStatus.REFUND_APPROVED_WAITING_FINANCE;
+    } else if (decision === DisputeDecision.REJECT_COMPLAINT) {
+      newOrderStatus = OrderStatus.RELEASE_APPROVED_WAITING_FINANCE;
+    } else {
+      throw new BadRequestException('Keputusan tersimpan tidak valid.');
+    }
+
+    return this.prisma.$transaction(async (prisma) => {
+      const updatedDispute = await prisma.dispute.update({
+        where: { id: disputeId },
+        data: {
+          status: DisputeStatus.RESOLVED,
+          pendingVerdict: null,
+        },
+      });
+
+      await prisma.order.update({
+        where: { id: dispute.orderId },
+        data: { status: newOrderStatus },
+      });
+
+      await this.notifications.createForRole(
+        Role.ADMIN_FINANCE,
+        NotificationType.DISPUTE_RESOLVED,
+        'Sengketa Menunggu Eksekusi Finance',
+        `Sengketa untuk pesanan #${dispute.orderId} telah dikonfirmasi. Status: ${newOrderStatus}. Silakan eksekusi.`,
+        JSON.stringify({ orderId: dispute.orderId }),
+      );
+
+      return updatedDispute;
+    });
+  }
+
   async resolveDispute(
     adminId: number,
     disputeId: number,

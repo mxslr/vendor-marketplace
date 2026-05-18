@@ -113,6 +113,27 @@ export class AdminValidatorController {
   }
 
   @UseGuards(AuthGuard)
+  @Patch('disputes/:id/submit-verdict')
+  async submitVerdict(
+    @Request() req: RequestWithUser,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: ResolveDisputeDto,
+  ) {
+    await this.checkValidatorRole(req.user.role);
+    return this.adminValidatorService.submitVerdict(req.user.sub, id, body.decision);
+  }
+
+  @UseGuards(AuthGuard)
+  @Patch('disputes/:id/confirm-verdict')
+  async confirmVerdict(
+    @Request() req: RequestWithUser,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    await this.checkValidatorRole(req.user.role);
+    return this.adminValidatorService.confirmVerdict(req.user.sub, id);
+  }
+
+  @UseGuards(AuthGuard)
   @Patch(':id/resolve')
   async resolveDispute(
     @Request() req: RequestWithUser,

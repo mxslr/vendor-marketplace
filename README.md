@@ -2,387 +2,302 @@
   <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
 </p>
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+<p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
+---
 
-## Description
+# Vendor Marketplace — Backend API
 
-RESTful API dan Sistem Database untuk platform marketplace penyedia jasa. Dibangun menggunakan framework [NestJS](https://github.com/nestjs/nest) dengan ORM Prisma dan basis data PostgreSQL.
+RESTful API dan Sistem Database untuk platform marketplace penyedia jasa kampus (CSC × CCI). Dibangun menggunakan [NestJS](https://github.com/nestjs/nest), Prisma ORM, dan PostgreSQL (Supabase).
 
-## Project setup
+---
+
+## Daftar Isi
+
+1. [Cara Menjalankan Project](#1-cara-menjalankan-project)
+2. [Akun Testing (Seed Data)](#2-akun-testing-seed-data)
+3. [Base URL dan Format Request](#3-base-url-dan-format-request)
+4. [Referensi Status Order](#4-referensi-status-order)
+5. [Alur Testing Lengkap (Flow A–N)](#5-alur-testing-lengkap-flow-an)
+6. [Testing Webhook Midtrans](#6-testing-webhook-midtrans)
+7. [Referensi Endpoint Lengkap](#7-referensi-endpoint-lengkap)
+8. [Troubleshooting Umum](#8-troubleshooting-umum)
+
+---
+
+## 1. Cara Menjalankan Project
+
+### Prerequisites
+
+- Node.js v18 atau lebih baru
+- npm v9 atau lebih baru
+- Akses ke project Supabase (koordinasi dengan tim teknis untuk mendapat kredensial)
+
+### Clone & Install Dependencies
 
 ```bash
-$ npm install
+git clone <repo-url>
+cd vendor-marketplace
+npm install
 ```
 
-## Konfigurasi Environment Variables
+### Setup Environment Variables
 
-Buat file .env di root directory. Isi file dengan URL koneksi database PostgreSQL
+Salin `.env.example` menjadi `.env`, lalu isi setiap variabel:
 
 ```bash
-DATABASE_URL="postgresql://USER:PASSWORD@localhost:5432/NAMA_DATABASE?schema=public"
+cp .env.example .env
 ```
 
-## Sinkronisasi Prisma & Database
+| Variabel | Keterangan |
+|---|---|
+| `DATABASE_URL` | URL koneksi PostgreSQL via pooler (port **6543**) — untuk runtime/production |
+| `DIRECT_URL` | URL koneksi langsung PostgreSQL (port **5432**) — untuk migrasi dan seed |
+| `SUPABASE_URL` | URL project Supabase |
+| `SUPABASE_SERVICE_KEY` | Service role key Supabase (untuk operasi storage server-side) |
+| `SUPABASE_ANON_KEY` | Anon/public key Supabase |
+| `JWT_SECRET` | Secret key untuk sign JWT token — gunakan string panjang acak |
+| `PORT` | Port server (default: `4000`) |
+| `STREAM_API_KEY` | API key untuk Stream Chat |
+| `STREAM_API_SECRET` | Secret key Stream Chat |
+| `MIDTRANS_SERVER_KEY` | Server key Midtrans (**RAHASIA** — tidak boleh dikirim ke frontend) |
+| `MIDTRANS_CLIENT_KEY` | Client key Midtrans (aman untuk frontend) |
+| `MIDTRANS_IS_PRODUCTION` | `false` untuk sandbox, `true` untuk production |
+| `MIDTRANS_SNAP_URL` | URL Snap.js Midtrans |
+| `SMTP_HOST` | SMTP server host untuk email laporan dividen |
+| `SMTP_PORT` | SMTP port (biasanya `587`) |
+| `SMTP_USER` | Email pengirim laporan |
+| `SMTP_PASS` | Password email pengirim |
+| `CSC_EMAIL` | Email penerima laporan dividen (Ketua CSC) |
+| `CCI_EMAIL` | Email penerima laporan dividen (Ketua CCI) |
+
+### Jalankan Migrasi Database
 
 ```bash
-$ npx prisma generate
-$ npx prisma migrate dev
+npx prisma migrate deploy
 ```
 
-## Menjalankan Server
+### Isi Data Awal (Seed)
 
 ```bash
-$ npm run start:dev
+npm run seed
+```
+
+Seed akan membuat semua akun testing, kategori, merchant, dan gig awal secara otomatis. Lihat tabel akun di bagian berikutnya.
+
+### Jalankan Server
+
+```bash
+npm run start:dev
+```
+
+Server berjalan di: **http://localhost:4000**
+
+### Buka Prisma Studio (opsional — untuk melihat data secara visual)
+
+```bash
+npx prisma studio
+```
+
+Buka http://localhost:5555 di browser.
+
+---
+
+## 2. Akun Testing (Seed Data)
+
+Setelah `npm run seed`, akun-akun berikut sudah tersedia. **Semua password: `Test1234!`**
+
+| Email | Role | Endpoint Login | Keterangan |
+|---|---|---|---|
+| `superadmin@test.com` | Super Admin | `POST /auth/admin/login` | Akses penuh ke seluruh sistem |
+| `validator@test.com` | Admin Validator | `POST /auth/login` | Verifikasi KYB, gig, sengketa |
+| `finance@test.com` | Finance Admin | `POST /auth/login` | Verifikasi bayar, withdrawal, laporan |
+| `merchant@test.com` | Merchant Owner | `POST /auth/login` | Pemilik "Toko Test CCI" |
+| `associate@test.com` | Merchant Associate | `POST /auth/login` | Staf "Toko Test CCI" |
+| `client@test.com` | Client | `POST /auth/login` | Pembeli/pengguna jasa |
+
+> **Penting:** Super Admin **wajib** login di `POST /auth/admin/login`. Login di `/auth/login` akan ditolak.
+
+### Data Tambahan dari Seed
+
+| Data | Detail |
+|---|---|
+| Merchant | "Toko Test CCI" — status `ACTIVE`, saldo wallet Rp 500.000 |
+| Bank account | BCA, nomor `1234567890`, atas nama Merchant Owner (primary) |
+| PIN Withdrawal | `123456` |
+| Gig | "Jasa Desain Logo" — Creative Studio, harga Rp 150.000, status `ACTIVE` |
+| Kategori | Creative Studio (5%), Tech and Digital (5%), Event Essentials (3%), Consumptions (3%), Merchandise and Apparels (4%), Talents and Performers (5%) |
+
+---
+
+## 3. Base URL dan Format Request
+
+```
+Base URL: http://localhost:4000/api/v1
+```
+
+### Header Standar
+
+| Header | Nilai |
+|---|---|
+| `Content-Type` | `application/json` |
+| `Authorization` | `Bearer <token>` (wajib untuk endpoint yang memerlukan auth) |
+
+### Upload File (Multipart)
+
+Untuk endpoint upload file, gunakan `Content-Type: multipart/form-data`. Di Postman, pilih Body → **form-data** dan pilih tipe **File** untuk key file. Jangan set Content-Type secara manual — Postman akan mengaturnya otomatis termasuk boundary.
+
+---
+
+## 4. Referensi Status Order
+
+| Status | Artinya |
+|---|---|
+| `UNPAID` | Order dibuat, menunggu pembayaran |
+| `PAID_PENDING_CONFIRMATION` | Bukti transfer manual diupload, menunggu konfirmasi Finance |
+| `IN_PROGRESS` | Pembayaran terkonfirmasi, pengerjaan sedang berjalan |
+| `DELIVERED` | Vendor kirim hasil, menunggu review client (timer 3×24 jam) |
+| `IN_REVISION` | Client minta perbaikan |
+| `COMPLETED` | Client menerima hasil, dana cair ke wallet vendor |
+| `CANCELLED` | Order dibatalkan (hanya dari `UNPAID`) |
+| `REFUNDED` | Dana dikembalikan ke client |
+| `DISPUTE_IN_PROGRESS` | Sedang dalam sengketa — semua aksi dibekukan, deadline ditunda |
+| `REFUND_APPROVED_WAITING_FINANCE` | Validator setujui refund — menunggu eksekusi Finance |
+| `RELEASE_APPROVED_WAITING_FINANCE` | Validator tolak komplain — menunggu eksekusi Finance (dana ke vendor) |
+
+---
+
+## 5. Alur Testing Lengkap (Flow A–N)
+
+Ikuti urutan flow dari A karena flow berikutnya bergantung pada data yang dibuat sebelumnya. Gunakan Postman dan simpan token setiap role ke variable environment Postman untuk kemudahan.
+
+---
+
+### FLOW A — Autentikasi
+
+#### A1. Login Semua Role (kecuali Super Admin)
+
+```
+POST /auth/login
+Content-Type: application/json
+```
+
+```json
+{
+  "email": "merchant@test.com",
+  "password": "Test1234!"
+}
+```
+
+Ulangi untuk: `validator@test.com`, `finance@test.com`, `associate@test.com`, `client@test.com`.
+
+**Expected response:**
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "user": {
+    "id": 4,
+    "email": "merchant@test.com",
+    "role": "MERCHANT_OWNER"
+  }
+}
+```
+
+#### A2. Login Super Admin (endpoint khusus)
+
+```
+POST /auth/admin/login
+Content-Type: application/json
+```
+
+```json
+{
+  "email": "superadmin@test.com",
+  "password": "Test1234!"
+}
+```
+
+> Login Super Admin di `/auth/login` akan mendapat `403 Forbidden`.
+
+#### A3. Lihat Profil Diri Sendiri
+
+```
+GET /auth/profile
+Authorization: Bearer <token>
+```
+
+#### A4. Test IP Block (3× Login Gagal)
+
+Coba login 3× dengan password salah. Percobaan ke-4 harus mendapat:
+
+```json
+{
+  "statusCode": 429,
+  "message": "IP Anda diblokir sementara. Coba lagi dalam 15 menit."
+}
 ```
 
 ---
 
-## API Endpoints
+### FLOW B — KYB Vendor (Verifikasi Identitas Toko)
 
-Semua endpoint menggunakan prefix `/api/v1`. Berikut adalah daftar lengkap endpoint yang tersedia:
+> Akun `merchant@test.com` dari seed sudah berstatus `ACTIVE`. Flow B cocok untuk testing dengan akun merchant baru.
 
-### Authentication
+#### B1. Daftar Merchant Baru
 
-| Method | Endpoint        | Auth | Description                    |
-| ------ | --------------- | ---- | ------------------------------ |
-| POST   | `/auth/login`   | No   | Login & get JWT token          |
-| GET    | `/auth/profile` | Yes  | Get authenticated user profile |
-
-### Users
-
-| Method | Endpoint | Auth | Description             |
-| ------ | -------- | ---- | ----------------------- |
-| POST   | `/users` | No   | Create new user account |
-| GET    | `/users` | No   | List all users          |
-
-### Categories
-
-| Method | Endpoint          | Auth              | Description         |
-| ------ | ----------------- | ----------------- | ------------------- |
-| POST   | `/categories`     | Yes (SUPER_ADMIN) | Create category     |
-| GET    | `/categories`     | No                | List all categories |
-| GET    | `/categories/:id` | No                | Get category by ID  |
-| PATCH  | `/categories/:id` | Yes (SUPER_ADMIN) | Update category     |
-| DELETE | `/categories/:id` | Yes (SUPER_ADMIN) | Delete category     |
-
-### Merchants
-
-| Method | Endpoint                      | Auth | Description                                    |
-| ------ | ----------------------------- | ---- | ---------------------------------------------- |
-| POST   | `/merchants/register`         | No   | Register user, merchant profile & bank account |
-| GET    | `/merchants`                  | No   | List all merchants                             |
-| GET    | `/merchants/profile`          | Yes  | Get current user's merchant profile            |
-| GET    | `/merchants/details/:id`      | No   | Get merchant details by ID                     |
-| PATCH  | `/merchants/:id/edit/profile` | Yes  | Update merchant profile                        |
-| PATCH  | `/merchants/submit-kyb`       | Yes  | Submit KYB documents                           |
-| PATCH  | `/merchants/vacation-mode`    | Yes  | Toggle vacation mode                           |
-| PATCH  | `/merchants/closed`           | Yes  | Close merchant account                         |
-
-### Withdrawals
-
-| Method | Endpoint                    | Auth                 | Description                       |
-| ------ | --------------------------- | -------------------- | --------------------------------- |
-| POST   | `/withdrawals`              | Yes (Merchant Owner) | Request manual withdrawal         |
-| GET    | `/withdrawals`              | Yes (Merchant Owner) | List merchant withdrawal requests |
-| GET    | `/withdrawals/:id`          | Yes (Merchant Owner) | Get withdrawal request detail     |
-| GET    | `/withdrawals/pending`      | Yes (Admin Finance)  | List pending withdrawal requests  |
-| PATCH  | `/withdrawals/:id/complete` | Yes (Admin Finance)  | Mark withdrawal as completed      |
-| PATCH  | `/withdrawals/:id/reject`   | Yes (Admin Finance)  | Reject withdrawal request         |
-
-### Merchant Associates
-
-| Method | Endpoint               | Auth | Description                     |
-| ------ | ---------------------- | ---- | ------------------------------- |
-| POST   | `/merchant-associates` | Yes  | Add associate/staff to merchant |
-| GET    | `/merchant-associates` | Yes  | Get merchant's associates list  |
-
-### Gigs
-
-| Method | Endpoint            | Auth | Description                           |
-| ------ | ------------------- | ---- | ------------------------------------- |
-| POST   | `/gigs`             | Yes  | Create new gig/service                |
-| GET    | `/gigs`             | No   | List all active gigs                  |
-| GET    | `/gigs/my-gigs`     | Yes  | Get merchant's gigs by merchant Token |
-| GET    | `/gigs/details/:id` | No   | Get gig details by ID                 |
-| DELETE | `/gigs/:id`         | Yes  | Delete gig                            |
-
-### Orders
-
-| Method | Endpoint               | Auth | Description                            |
-| ------ | ---------------------- | ---- | -------------------------------------- |
-| POST   | `/orders`              | Yes  | Create order (direct purchase)         |
-| GET    | `/orders/my-orders`    | Yes  | Get current user's orders              |
-| GET    | `/orders/incoming`     | Yes  | Get incoming orders for merchant/staff |
-| PATCH  | `/orders/:id/pay`      | Yes  | Submit payment proof                   |
-| PATCH  | `/orders/:id/accept`   | Yes  | Merchant accepts order                 |
-| PATCH  | `/orders/:id/complete` | Yes  | Client completes order                 |
-
-### Custom Offers
-
-| Method | Endpoint                    | Auth | Description                  |
-| ------ | --------------------------- | ---- | ---------------------------- |
-| POST   | `/custom-offers/sent`       | Yes  | Create custom offer in chat  |
-| GET    | `/custom-offers/client`     | Yes  | Get custom offers for client |
-| PATCH  | `/custom-offers/:id/accept` | Yes  | Client accepts offer         |
-| PATCH  | `/custom-offers/:id/reject` | Yes  | Client rejects offer         |
-
-### Deliverables
-
-| Method | Endpoint        | Auth | Description                       |
-| ------ | --------------- | ---- | --------------------------------- |
-| POST   | `/deliverables` | Yes  | Submit deliverable/completed work |
-
-### Reviews
-
-| Method | Endpoint   | Auth | Description             |
-| ------ | ---------- | ---- | ----------------------- |
-| POST   | `/reviews` | Yes  | Create review for order |
-
-### Transactions
-
-| Method | Endpoint                        | Auth        | Description                        |
-| ------ | ------------------------------- | ----------- | ---------------------------------- |
-| GET    | `/transactions/my-history`      | Yes         | Get user's transaction history     |
-| GET    | `/transactions/all`             | Yes         | Get all transactions (admin)       |
-| PATCH  | `/transactions/:id/verify`      | Yes         | Verify transaction (Finance Admin) |
-| GET    | `/transactions/pending-refunds` | Yes (Admin) | Get pending refund orders          |
-| PATCH  | `/transactions/:id/refund`      | Yes (Admin) | Approve/reject refund order        |
-
-### Admin Validator
-
-| Method | Endpoint                                 | Auth        | Description                        |
-| ------ | ---------------------------------------- | ----------- | ---------------------------------- |
-| GET    | `/admin/validator/merchants/pending`     | Yes (Admin) | Get pending merchant verifications |
-| GET    | `/admin/validator/gigs/pending`          | Yes (Admin) | Get pending gig verifications      |
-| PATCH  | `/admin/validator/merchants/:id/verify`  | Yes (Admin) | Verify/reject merchant             |
-| PATCH  | `/admin/validator/gigs/:id/verify`       | Yes (Admin) | Verify/reject gig                  |
-| PATCH  | `/admin/validator/merchants/:id/suspend` | Yes (Admin) | Suspend merchant                   |
-
-### Featured Placements
-
-| Method | Endpoint                                 | Auth                | Description                    |
-| ------ | ---------------------------------------- | ------------------- | ------------------------------ |
-| POST   | `/featured-placements/promote`           | Yes (Merchant)      | Create promotion/boost request |
-| POST   | `/featured-placements/upload-proof/:id`  | Yes (Merchant)      | Upload payment proof for boost |
-| GET    | `/featured-placements/my-promotes`       | Yes (Merchant)      | Get merchant's promotions      |
-| POST   | `/featured-placements/admin/approve/:id` | Yes (Admin Finance) | Approve feature placement      |
-| POST   | `/featured-placements/admin/reject/:id`  | Yes (Admin Finance) | Reject feature placement       |
-| GET    | `/featured-placements/admin/pending`     | Yes (Admin Finance) | Get pending feature placements |
-
-### Monthly Reports
-
-| Method | Endpoint                                | Auth                | Description                                            |
-| ------ | --------------------------------------- | ------------------- | ------------------------------------------------------ |
-| POST   | `/monthly-reports/generate`             | Yes (Admin Finance) | Generate monthly financial report for specified period |
-| PATCH  | `/monthly-reports/:id/operational-cost` | Yes (Admin Finance) | Update operational cost for DRAFT report               |
-| POST   | `/monthly-reports/:id/process-dividend` | Yes (Admin Finance) | Process dividend allocation and mark report PROCESSED  |
-| POST   | `/monthly-reports/:id/lock`             | Yes (Admin Finance) | Lock a processed report                                |
-| POST   | `/monthly-reports/:id/upload-proof`     | Yes (Admin Finance) | Upload proof of transfer for report                    |
-| GET    | `/monthly-reports`                      | Yes (Admin Finance) | List all monthly reports                               |
-| GET    | `/monthly-reports/:id`                  | Yes (Admin Finance) | Get report detail by ID                                |
-
-### Disputes
-
-| Method | Endpoint                | Auth | Description             |
-| ------ | ----------------------- | ---- | ----------------------- |
-| POST   | `/disputes`             | Yes  | Open dispute            |
-| PATCH  | `/disputes/:id/resolve` | Yes  | Resolve dispute (Admin) |
-
-### Chat (Stream Integration)
-
-| Method | Endpoint               | Auth | Description                                    |
-| ------ | ---------------------- | ---- | ---------------------------------------------- |
-| GET    | `/chat/token`          | Yes  | Dapatkan Stream chat token untuk user saat ini |
-| POST   | `/chat/create-channel` | Yes  | Buat channel chat untuk pesanan/gig tertentu   |
-
----
-
-## API Testing Guide
-
-Dokumentasi lengkap untuk menguji seluruh fitur sistem Vendor Marketplace melalui 7 fase utama.
-
-### FASE 1: REGISTRASI & AUTENTIKASI
-
-Sistem membutuhkan berbagai role untuk mensimulasikan ekosistem marketplace yang utuh.
-
-#### 1. Pembuatan Akun Akses
-
-**Endpoint:** `POST http://localhost:4000/api/v1/users`
-
-Buat 6 akun dengan role berbeda:
-
-```json
-// Super Admin (ID 1)
-{
-  "email": "super@kampus.com",
-  "passwordHash": "pass123",
-  "fullName": "Si Paling Admin",
-  "role": "SUPER_ADMIN"
-}
-
-// Admin Validator (ID 2)
-{
-  "email": "validator@kampus.com",
-  "passwordHash": "pass123",
-  "fullName": "Si Validator",
-  "role": "ADMIN_VALIDATOR"
-}
-
-// Admin Finance (ID 3)
-{
-  "email": "finance@kampus.com",
-  "passwordHash": "pass123",
-  "fullName": "Ibu Bendahara",
-  "role": "ADMIN_FINANCE"
-}
-
-// Merchant Owner (ID 4)
-{
-  "email": "vendor@kampus.com",
-  "passwordHash": "pass123",
-  "fullName": "Budi Creative",
-  "role": "MERCHANT_OWNER"
-}
-
-// Client/Pembeli (ID 5)
-{
-  "email": "client@kampus.com",
-  "passwordHash": "pass123",
-  "fullName": "Siti Klien",
-  "role": "CLIENT"
-}
-
-// Staf Toko / Associate (ID 6)
-{
-  "email": "udin.staf@kampus.com",
-  "passwordHash": "pass123",
-  "fullName": "Udin Rajin",
-  "role": "MERCHANT_ASSOCIATE"
-}
 ```
-
-#### 2. Login & Dapatkan Token
-
-**Endpoint:** `POST http://localhost:4000/api/v1/auth/login`
+POST /merchants/register
+Content-Type: application/json
+```
 
 ```json
 {
-  "email": "vendor@kampus.com",
-  "password": "pass123"
+  "email": "merchant2@test.com",
+  "password": "Test1234!",
+  "fullName": "Vendor Baru",
+  "shopName": "Studio Kreatif Alpha",
+  "description": "Jasa desain dan kreatif untuk acara kampus",
+  "logoUrl": "https://example.com/logo.png",
+  "bannerUrl": "https://example.com/banner.png",
+  "bankName": "BRI",
+  "accountNumber": "987654321",
+  "accountHolderName": "Vendor Baru"
 }
 ```
 
-**Catatan:** Login ke semua akun untuk mendapatkan token masing-masing user.
+**Expected:** Status toko `INCOMPLETE`.
 
----
+#### B2. Submit Dokumen KYB
 
-### FASE 2: SETUP SISTEM & TOKO VENDOR
-
-Persiapan sebelum Vendor bisa berjualan.
-
-#### 1. Pembuatan Kategori Jasa
-
-**Endpoint:** `POST http://localhost:4000/api/v1/categories`  
-**Token:** Super Admin
+```
+PATCH /merchants/submit-kyb
+Authorization: Bearer <token_merchant_baru>
+Content-Type: application/json
+```
 
 ```json
 {
-  "name": "Web & IT Development",
-  "commissionRate": 5.5
+  "kybDocumentUrl": "https://example.com/ktm-vendor.pdf",
+  "portfolioUrl": "https://example.com/portofolio.pdf"
 }
 ```
 
-#### 2. Pendaftaran Toko / Merchant Baru
+**Expected:** Status toko → `PENDING_VERIFICATION`. Validator mendapat notifikasi.
 
-**Endpoint:** `POST http://localhost:4000/api/v1/merchants/register`  
-**Token:** Public (Tidak perlu token)
+#### B3. Validator Lihat Antrian Verifikasi
 
-```json
-{
-  "email": "vendor@kampus.com",
-  "password": "pass123",
-  "fullName": "Budi Creative",
-  "shopName": "Budi Tech Studio",
-  "description": "Bikin web cepat, murah, aman.",
-  "logoUrl": "logoUrl",
-  "bannerUrl": "bannerUrl",
-  "bankName": "Bank Mandiri",
-  "accountNumber": "1300012345678",
-  "accountHolderName": "Budi Creative"
-}
+```
+GET /admin/validator/merchants/pending
+Authorization: Bearer <token_validator>
 ```
 
-#### 3. Upload Dokumen Verifikasi / KYB
+#### B4a. Validator Approve KYB
 
-**Endpoint:** `PATCH http://localhost:4000/api/v1/merchants/submit-kyb`  
-**Token:** Merchant Owner
-
-```json
-{
-  "kybDocumentUrl": "https://gdrive.com/ktm-budi.pdf",
-  "portfolioUrl": "document cv"
-}
 ```
-
-#### 4. Melihat seluruh toko (merchant)
-
-**Endpoint:** `GET http://localhost:4000/api/v1/merchants`
-
-#### 5. Melihat detail toko by id
-
-**Endpoint:** `GET http://localhost:4000/api/v1/merchants/details/{id}`
-
-#### 6. Melihat profile toko sendiri
-
-**Endpoint:** `GET http://localhost:4000/api/v1/merchants/profile`  
-**Token:** Merchant Owner atau Staf Associate
-
-#### 7. Edit profile toko by id
-
-**Endpoint:** `PATCH http://localhost:4000/api/v1/merchants/{id}/edit/profile`  
-**Token:** Merchant Owner
-
-```json
-{
-  "shopName": (optional),
-  "description": (optional),
-  "logoUrl": (optional),
-  "bannerUrl": (optional)
-}
+PATCH /admin/validator/merchants/:merchantId/verify
+Authorization: Bearer <token_validator>
+Content-Type: application/json
 ```
-
-#### 8. Merchant mode libur (Vacation-Mode)
-
-**Endpoint:** `PATCH http://localhost:4000/api/v1/merchants/vacation-mode`  
-**Token:** Merchant Owner
-
-```json
-{
-  "isOnVacation": true
-}
-```
-
-#### 9. Admin Memvalidasi Toko
-
-**Endpoint:** `PATCH http://localhost:4000/api/v1/admin/validator/merchants/1/verify`  
-**Token:** Admin Validator
-
-**Jika Terima:**
 
 ```json
 {
@@ -390,75 +305,167 @@ Persiapan sebelum Vendor bisa berjualan.
 }
 ```
 
-**Jika Tolak:**
+**Expected:** Status → `ACTIVE`, badge `NEWCOMER` diberikan.
+
+#### B4b. Validator Reject KYB
+
+```
+PATCH /admin/validator/merchants/:merchantId/verify
+Authorization: Bearer <token_validator>
+Content-Type: application/json
+```
 
 ```json
 {
   "isApproved": false,
-  "rejectionReason": "Foto KTM buram."
+  "rejectionReason": "Foto KTM buram, tidak terbaca. Mohon upload ulang dengan kualitas lebih baik."
 }
 ```
 
-#### 10. Vendor Mendaftarkan Rekening Pencairan
+**Expected:** Status → `REJECTED`.
 
-_(Fitur ini telah digabungkan di pendaftaran awal merchant)_
+#### B5. Merchant Acknowledge Rejection (wajib sebelum re-submit)
 
----
+```
+PATCH /merchants/kyb/acknowledge-rejection
+Authorization: Bearer <token_merchant_baru>
+```
 
-### FASE 3: MANAJEMEN KARYAWAN & ETALASE
+**Expected:** Status kembali ke `INCOMPLETE`. Merchant bisa submit ulang (ulangi B2).
 
-Melibatkan staf untuk membantu mengelola toko dan memajang jasa di etalase.
+#### B6. Suspend Merchant (oleh Validator)
 
-#### 1. Bos Merekrut Staf ke Toko
-
-**Endpoint:** `POST http://localhost:4000/api/v1/merchant-associates`  
-**Token:** Merchant Owner
+```
+PATCH /admin/validator/merchants/:merchantId/suspend
+Authorization: Bearer <token_validator>
+Content-Type: application/json
+```
 
 ```json
 {
-  "email": "udin.staf@kampus.com",
+  "isSuspended": true,
+  "reason": "Pelanggaran berulang terhadap syarat layanan"
+}
+```
+
+**Expected:** Merchant tidak bisa login (akun terkunci).
+
+#### B7. Unsuspend Merchant (hanya Super Admin)
+
+```
+PATCH /admin/validator/merchants/:merchantId/suspend
+Authorization: Bearer <token_super_admin>
+Content-Type: application/json
+```
+
+```json
+{
+  "isSuspended": false
+}
+```
+
+> Validator yang mencoba unsuspend akan mendapat `403 Forbidden`.
+
+---
+
+### FLOW C — Manajemen Jasa (Gig)
+
+#### C1. Tambah Associate/Staf ke Toko
+
+```
+POST /merchant-associates
+Authorization: Bearer <token_merchant>
+Content-Type: application/json
+```
+
+```json
+{
+  "email": "associate@test.com",
   "permission": "FULL_ACCESS"
 }
 ```
 
-#### 2. Membuat Etalase Jasa / Gigs
+> Opsi `permission`: `MANAGE_ORDERS`, `MANAGE_GIGS`, `FULL_ACCESS`
 
-**Endpoint:** `POST http://localhost:4000/api/v1/gigs`  
-**Token:** Merchant Owner
+#### C2. Buat Gig Baru
+
+```
+POST /gigs
+Authorization: Bearer <token_merchant>
+Content-Type: application/json
+```
 
 ```json
 {
   "categoryId": 1,
-  "title": "Jasa Pembuatan Web Company Profile",
-  "description": "Website elegan dan responsif.",
-  "price": 2500000,
-  "mediaUrls": "https://example.com/image.jpg"
+  "title": "Jasa Desain Poster Acara",
+  "description": "Desain poster profesional untuk semua jenis acara kampus. Revisi 2x.",
+  "price": 250000,
+  "mediaUrls": "https://example.com/portofolio-poster.jpg"
 }
 ```
 
-#### 3. Melihat semua gigs aktif
+**Expected:** Status gig → `PENDING_APPROVAL`. Validator mendapat notifikasi.
 
-**Endpoint:** `GET http://localhost:4000/api/v1/gigs`
+#### C3. Validator Lihat Gig Pending
 
-#### 4. Melihat gigs milik merchant tertentu
+```
+GET /admin/validator/gigs/pending
+Authorization: Bearer <token_validator>
+```
 
-**Endpoint:** `GET http://localhost:4000/api/v1/gigs/my-gigs`  
-**Token:** Merchant Owner atau Staf Associate
+#### C4a. Validator Approve Gig
 
-#### 5. Melihat detail gig by id
+```
+PATCH /admin/validator/gigs/:gigId/verify
+Authorization: Bearer <token_validator>
+Content-Type: application/json
+```
 
-**Endpoint:** `GET http://localhost:4000/api/v1/gigs/details/{id}`
+```json
+{
+  "isApproved": true
+}
+```
+
+**Expected:** Status gig → `ACTIVE`.
+
+#### C4b. Validator Reject Gig
+
+```
+PATCH /admin/validator/gigs/:gigId/verify
+Authorization: Bearer <token_validator>
+Content-Type: application/json
+```
+
+```json
+{
+  "isApproved": false,
+  "rejectionReason": "Deskripsi tidak informatif. Mohon sertakan contoh hasil karya."
+}
+```
+
+#### C5. Cek Gig Muncul di Pencarian Publik
+
+```
+GET /gigs
+```
+
+**Expected:** Hanya gig berstatus `ACTIVE` yang muncul.
 
 ---
 
-### FASE 4: PEMESANAN JASA
+### FLOW D — Pesanan Direct Order (via Midtrans)
 
-Pembeli memiliki dua metode untuk memesan jasa.
+Alur utama transaksi menggunakan Midtrans sebagai payment gateway.
 
-#### OPSI A: Jalur Pembelian Langsung (Direct Order)
+#### D1. Client Buat Order
 
-**Endpoint:** `POST http://localhost:4000/api/v1/orders`  
-**Token:** Client
+```
+POST /orders
+Authorization: Bearer <token_client>
+Content-Type: application/json
+```
 
 ```json
 {
@@ -466,27 +473,139 @@ Pembeli memiliki dua metode untuk memesan jasa.
 }
 ```
 
-#### OPSI B: Jalur Negosiasi (Custom Offer)
+**Expected response:**
+```json
+{
+  "id": 1,
+  "status": "UNPAID",
+  "totalAmount": 150000,
+  "adminFee": 7500
+}
+```
 
-**Tahap 1: Vendor Mengirim Penawaran via Chat**  
-**Endpoint:** `POST http://localhost:4000/api/v1/custom-offers/sent`  
-**Token:** Merchant Owner
+> `adminFee` = `totalAmount × commissionRate`. Creative Studio 5% → Rp 7.500.
+
+#### D2. Initiate Pembayaran Midtrans
+
+```
+POST /orders/:orderId/initiate-payment
+Authorization: Bearer <token_client>
+```
+
+**Expected response:**
+```json
+{
+  "snapToken": "66e4fa55-fdac-4ef9-91b5-733b97d1b862",
+  "clientKey": "SB-Mid-client-xxxxxx",
+  "redirectUrl": "https://app.sandbox.midtrans.com/snap/v4/redirection/..."
+}
+```
+
+> Di frontend, gunakan `snapToken` untuk memanggil `window.snap.pay(snapToken)`. Untuk testing backend saja, simulasikan webhook (lihat **Seksi 6**).
+
+#### D3. Simulasi Webhook Settlement
+
+Lihat **Seksi 6** untuk cara menghitung signature dan contoh payload lengkap.
+
+**Expected setelah webhook settlement diterima:** Status order → `IN_PROGRESS`, `pendingBalance` merchant bertambah, Merchant mendapat notifikasi pesanan baru.
+
+#### D4. Merchant Accept Order
+
+```
+PATCH /orders/:orderId/accept
+Authorization: Bearer <token_merchant>
+```
+
+#### D5. Merchant Deliver Pekerjaan
+
+```
+POST /deliverables
+Authorization: Bearer <token_merchant>
+Content-Type: application/json
+```
+
+```json
+{
+  "orderId": 1,
+  "fileUrl": "https://drive.google.com/hasil-desain-logo-final.zip",
+  "message": "Halo kak, pesanan sudah selesai! Mohon dicek dan dikonfirmasi."
+}
+```
+
+**Expected:** Status order → `DELIVERED`. Client mendapat notifikasi.
+
+#### D6. Client Terima Pesanan
+
+```
+PATCH /orders/:orderId/complete
+Authorization: Bearer <token_client>
+```
+
+**Expected:** Status → `COMPLETED`. Dana (Rp 150.000 − Rp 7.500 = **Rp 142.500**) masuk ke `walletBalance` merchant.
+
+#### D7. Client Beri Ulasan
+
+```
+POST /reviews
+Authorization: Bearer <token_client>
+Content-Type: application/json
+```
+
+```json
+{
+  "orderId": 1,
+  "rating": 5,
+  "comment": "Sangat puas! Desain keren, pengerjaan cepat."
+}
+```
+
+#### D8. Download Invoice PDF
+
+```
+GET /orders/:orderId/invoice
+Authorization: Bearer <token_client>
+```
+
+**Expected:** File PDF didownload berisi detail transaksi. Hanya tersedia untuk order berstatus `COMPLETED`.
+
+---
+
+### FLOW E — Pesanan via Custom Offer
+
+#### E1. Merchant Buat Custom Offer
+
+```
+POST /custom-offers/sent
+Authorization: Bearer <token_merchant>
+Content-Type: application/json
+```
 
 ```json
 {
   "clientId": 5,
   "gigId": 1,
   "channelId": "gig-1-client-5",
-  "title": "Web Custom",
-  "description": "Spesial diskon",
-  "price": 1200000,
-  "deadlineDays": 10
+  "title": "Paket Desain Logo + Kartu Nama",
+  "description": "Bundling spesial dengan harga terjangkau",
+  "price": 350000,
+  "deadlineDays": 5
 }
 ```
 
-**Tahap 2: Klien Menerima Penawaran**  
-**Endpoint:** `PATCH http://localhost:4000/api/v1/custom-offers/1/accept`  
-**Token:** Client
+#### E2. Client Lihat Custom Offer
+
+```
+GET /custom-offers/client
+Authorization: Bearer <token_client>
+```
+
+#### E3. Client Terima Offer → Order Otomatis Terbuat
+
+```
+PATCH /custom-offers/:offerId/accept
+Authorization: Bearer <token_client>
+Content-Type: application/json
+```
 
 ```json
 {
@@ -494,9 +613,15 @@ Pembeli memiliki dua metode untuk memesan jasa.
 }
 ```
 
-**Tahap 3: Klien Menolak Penawaran**  
-**Endpoint:** `PATCH http://localhost:4000/api/v1/custom-offers/1/reject`  
-**Token:** Client
+**Expected:** Order dibuat otomatis dengan status `UNPAID`. Lanjutkan dari langkah D2.
+
+#### E4. Client Tolak Offer
+
+```
+PATCH /custom-offers/:offerId/reject
+Authorization: Bearer <token_client>
+Content-Type: application/json
+```
 
 ```json
 {
@@ -506,262 +631,479 @@ Pembeli memiliki dua metode untuk memesan jasa.
 
 ---
 
-### FASE 5: PEMBAYARAN & VERIFIKASI KEUANGAN
+### FLOW F — Pembayaran Manual (Fallback Transfer Bank)
 
-Uang masuk dari Klien dan diverifikasi oleh tim internal kampus/platform.
+Digunakan jika client memilih transfer manual alih-alih Midtrans.
 
-#### 1. Klien Melakukan Pembayaran
+#### F1. Upload Foto Bukti Transfer
 
-**Endpoint:** `PATCH http://localhost:4000/api/v1/orders/1/pay`  
-**Token:** Client
+Di Postman, pilih Body → **form-data**:
+
+```
+POST /orders/:orderId/upload-payment-proof
+Authorization: Bearer <token_client>
+Content-Type: multipart/form-data
+
+Key: file  (tipe: File)  → pilih foto/screenshot bukti transfer
+```
+
+**Expected:** File tersimpan di Supabase Storage. Status order → `PAID_PENDING_CONFIRMATION`. Finance Admin mendapat notifikasi.
+
+#### F2. Finance Admin Konfirmasi Pembayaran
+
+```
+PATCH /transactions/:transactionId/verify
+Authorization: Bearer <token_finance>
+Content-Type: application/json
+```
 
 ```json
 {
-  "proofUrl": "https://gdrive.com/bukti-transfer-siti.png"
+  "status": "VERIFIED",
+  "verificationNote": "Nominal cocok Rp 150.000 atas nama Client User tgl 18/05/2026"
 }
 ```
 
-**Catatan:** Endpoint ini akan mencetak nomor transaksi di database (misal: Transaction ID 1).
+**Expected:** Status order → `IN_PROGRESS`. Merchant mendapat notifikasi.
 
-#### 2. Finance Memverifikasi Uang Masuk
+#### F3. Finance Admin Tolak Pembayaran
 
-**Endpoint:** `PATCH http://localhost:4000/api/v1/transactions/1/verify`  
-**Token:** Admin Finance
+```
+PATCH /transactions/:transactionId/verify
+Authorization: Bearer <token_finance>
+Content-Type: application/json
+```
 
 ```json
 {
-  "status": "VERIFIED"
+  "status": "REJECTED",
+  "verificationNote": "Nominal tidak sesuai — terkirim Rp 100.000 bukan Rp 150.000"
 }
 ```
 
-**Catatan:** Setelah Finance ACC, status Order otomatis menjadi `IN_PROGRESS`.
+**Expected:** Status order kembali ke `UNPAID`. Client mendapat notifikasi untuk upload ulang.
 
 ---
 
-### FASE 6: PENGERJAAN & PENYELESAIAN PESANAN
+### FLOW G — Revisi Pekerjaan
 
-Proses pengerjaan oleh pihak Vendor/Staf hingga pesanan ditutup oleh Klien.
+#### G1. Client Request Revisi (setelah status DELIVERED)
 
-#### 1. Vendor Menerima dan Memulai Pekerjaan
+```
+PATCH /orders/:orderId/revision
+Authorization: Bearer <token_client>
+Content-Type: application/json
+```
 
-**Endpoint:** `PATCH http://localhost:4000/api/v1/orders/1/accept`  
-**Token:** Merchant Owner atau Staf Associate
+```json
+{
+  "revisionNote": "Warna font kurang kontras. Mohon ganti background menjadi lebih gelap."
+}
+```
 
-#### 2. Vendor/Staf Mengirimkan Hasil Pekerjaan
+**Expected:** Status → `IN_REVISION`.
 
-**Endpoint:** `POST http://localhost:4000/api/v1/deliverables`  
-**Token:** Merchant Owner atau Staf Associate
+#### G2. Merchant Kirim Ulang Hasil
+
+```
+POST /deliverables
+Authorization: Bearer <token_merchant>
+Content-Type: application/json
+```
 
 ```json
 {
   "orderId": 1,
-  "fileUrl": "https://gdrive.com/hasil-web-final.zip",
-  "message": "Halo kak, pesanan sudah selesai ya!"
+  "fileUrl": "https://drive.google.com/hasil-revisi-v2.zip",
+  "message": "Sudah diperbaiki sesuai masukan kak!"
 }
 ```
 
-#### 3. Klien Menerima Hasil dan Menutup Pesanan
+**Expected:** Status kembali ke `DELIVERED`.
 
-**Endpoint:** `PATCH http://localhost:4000/api/v1/orders/1/complete`  
-**Token:** Client
+---
 
-#### 4. Klien Memberikan Ulasan
+### FLOW H — Sengketa (Dispute)
 
-**Endpoint:** `POST http://localhost:4000/api/v1/reviews`  
-**Token:** Client
+> Sengketa hanya bisa dibuka oleh Validator/Super Admin. Client/Merchant harus lapor ke CS via Instagram DM terlebih dahulu.
+
+#### H1. Validator Buka Tiket Sengketa
+
+```
+POST /disputes
+Authorization: Bearer <token_validator>
+Content-Type: application/json
+```
 
 ```json
 {
   "orderId": 1,
-  "rating": 5,
-  "comment": "Pengerjaan sangat cepat dan rapi!"
+  "reason": "Client melaporkan hasil tidak sesuai spesifikasi. Terlampir bukti percakapan dan file deliverable.",
+  "evidenceUrls": "https://drive.google.com/bukti-sengketa.png"
 }
 ```
 
----
+**Expected:** Status order → `DISPUTE_IN_PROGRESS`. Deadline order dibekukan.
 
-### FASE 7: PENGECEKAN METRIK KEUANGAN & OPERASIONAL
+> Client/Merchant yang mencoba buka dispute langsung akan mendapat `403 Forbidden`.
 
-Tahap validasi bahwa sistem berjalan lancar dan pembagian hak akses terjamin.
+#### H2. Validator Submit Verdict (Tahap 1 — Simpan Keputusan)
 
-#### 1. Cek Riwayat Transaksi
-
-**Endpoint:** `GET http://localhost:4000/api/v1/transactions/my-history`  
-**Token:** Merchant Owner
-
-#### 2. Staf Mengecek Daftar Pesanan Masuk
-
-**Endpoint:** `GET http://localhost:4000/api/v1/orders/incoming`  
-**Token:** Merchant Associate
-
-#### 3. Admin Mengecek Semua Transaksi
-
-**Endpoint:** `GET http://localhost:4000/api/v1/transactions/all`  
-**Token:** Admin Finance
-
----
-
-### FASE 8: FITUR PROMOTE GIGS
-
-#### 1. Featured Placements / Promosi Gig
-
-**Endpoint:** `POST http://localhost:4000/api/v1/featured-placements/promote`  
-**Token:** Merchant Owner
+```
+PATCH /admin/validator/disputes/:disputeId/submit-verdict
+Authorization: Bearer <token_validator>
+Content-Type: application/json
+```
 
 ```json
 {
-  "gigId": 1
+  "verdict": "APPROVE_REFUND",
+  "notes": "Bukti dari client kuat. Hasil tidak sesuai deskripsi gig."
 }
 ```
 
-**Upload Bukti Pembayaran:** `POST http://localhost:4000/api/v1/featured-placements/upload-proof/1`  
-**Token:** Merchant Owner
+**Expected:** Keputusan tersimpan sebagai `pendingVerdict`. Status dispute → `UNDER_REVIEW`. Belum ada perubahan uang atau status order.
 
-```json
-{
-  "proofUrl": "https://gdrive.com/bukti-promo.png"
-}
+#### H3. Validator Confirm Verdict (Tahap 2 — Eksekusi)
+
+```
+PATCH /admin/validator/disputes/:disputeId/confirm-verdict
+Authorization: Bearer <token_validator>
 ```
 
-**Admin Approve:** `POST http://localhost:4000/api/v1/featured-placements/admin/approve/1`  
-**Token:** Admin Finance
+**Expected:** Status order → `REFUND_APPROVED_WAITING_FINANCE`. Finance Admin mendapat notifikasi.
 
-#### 2. Membuka Dispute
+> Untuk tolak komplain (dana ke merchant): gunakan `"verdict": "REJECT_COMPLAINT"` di H2 → order berubah ke `RELEASE_APPROVED_WAITING_FINANCE`.
 
-**Endpoint:** `POST http://localhost:4000/api/v1/disputes`  
-**Token:** Client atau Merchant Owner
+#### H4a. Finance Admin Eksekusi Refund
+
+```
+PATCH /orders/:orderId/execute-refund
+Authorization: Bearer <token_finance>
+```
+
+**Expected:** Status → `REFUNDED`. `pendingBalance` merchant berkurang. Dispute ditutup. Client mendapat notifikasi. Jika order dibayar via Midtrans, sistem otomatis memanggil Midtrans Refund API.
+
+#### H4b. Finance Admin Eksekusi Release Dana ke Merchant
+
+```
+PATCH /orders/:orderId/execute-release
+Authorization: Bearer <token_finance>
+```
+
+**Expected:** Status → `COMPLETED`. Dana cair ke `walletBalance` merchant (minus komisi). Dispute ditutup.
+
+---
+
+### FLOW I — Banding (Appeal)
+
+#### I1. Client atau Merchant Ajukan Banding
+
+```
+POST /appeals
+Authorization: Bearer <token_client_atau_merchant>
+Content-Type: application/json
+```
 
 ```json
 {
   "orderId": 1,
-  "reason": "Hasil tidak sesuai spesifikasi",
-  "evidenceUrls": "https://gdrive.com/bukti1.png" // Optional: Link bukti dispute
+  "reason": "Saya merasa keputusan tidak adil. Saya sudah mengirim hasil sesuai spesifikasi dan ada bukti konfirmasi sebelumnya.",
+  "evidenceUrls": "https://drive.google.com/bukti-banding.png"
 }
 ```
 
-**Admin Resolve Dispute:** `PATCH http://localhost:4000/api/v1/disputes/1/resolve`  
-**Token:** Admin Validator
+**Expected:** Super Admin mendapat notifikasi. Hanya satu banding per order per pihak.
+
+#### I2. Super Admin Lihat Semua Banding
+
+```
+GET /appeals
+Authorization: Bearer <token_super_admin>
+```
+
+#### I3. Super Admin Executive Decision
+
+```
+PATCH /admin/validator/disputes/:disputeId/executive-decision
+Authorization: Bearer <token_super_admin>
+Content-Type: application/json
+```
 
 ```json
 {
-  "decision": "APPROVE_REFUND"
+  "decision": "FORCE_REFUND",
+  "notes": "Setelah review bukti banding, memutuskan refund ke client."
 }
 ```
 
-**Catatan:** Status order menjadi REFUND_APPROVED_WAITING_FINANCE
-
-```json
-{
-  "status": "REJECT_COMPLAINT"
-}
-```
-
-**Catatan:** Status order menjadi RELEASE_APPROVED_WAITING_FINANCE
-
-**Masuk ke admin finance**
-
-#### 3. Mendapatkan List Refund Order yang sudah di Approve oleh Admin Validator
-
-**Endpoint:** `GET http://localhost:4000/api/v1/transactions/pending-refunds`  
-**Token:** Admin Finance
-
-#### 4. Admin Finance Approve Refund
-
-**Endpoint:** `PATCH http://localhost:4000/api/v1/transactions/:id/refund`  
-**Token:** Admin Finance
-
-**Catatan:** Status order menjadi REFUNDED, Dana dari Escrow dikirim ke Client
+> Opsi: `FORCE_REFUND` atau `FORCE_RELEASE`. Langsung dari `DISPUTE_IN_PROGRESS` tanpa perlu Finance.
 
 ---
 
-### FASE 9: PENARIKAN DANA MANUAL (WITHDRAWAL)
+### FLOW J — Pencairan Dana (Withdrawal)
 
-#### 1. Setup PIN Penarikan
+#### J0. Set PIN Withdrawal (pertama kali)
 
-Sebelum dapat menarik dana, merchant harus mengatur `withdrawalPin` di profil toko melalui endpoint edit profil.
+```
+PATCH /merchants/:merchantId/edit/profile
+Authorization: Bearer <token_merchant>
+Content-Type: application/json
+```
 
-#### 2. Request Withdrawal
+```json
+{
+  "withdrawalPin": "123456"
+}
+```
 
-**Endpoint:** `POST http://localhost:4000/api/v1/withdrawals`  
-**Token:** Merchant Owner
+> Dari seed, PIN sudah di-set ke `123456`.
+
+#### J1. Merchant Request Withdrawal
+
+```
+POST /withdrawals
+Authorization: Bearer <token_merchant>
+Content-Type: application/json
+```
 
 ```json
 {
   "bankAccountId": 1,
-  "amount": 150000,
-  "pin": "1234"
+  "amount": 100000,
+  "pin": "123456"
 }
 ```
 
-#### 3. List Withdrawal Requests
+**Expected:** `walletBalance` langsung berkurang (dana dikunci). Status withdrawal `PENDING`. Finance mendapat notifikasi.
 
-**Endpoint:** `GET http://localhost:4000/api/v1/withdrawals`  
-**Token:** Merchant Owner
+> Minimal: **Rp 50.000**. Jika ada sengketa aktif, akan ditolak.
 
-#### 4. Get Withdrawal Detail
+#### J2. Finance Admin Lihat Request Pending
 
-**Endpoint:** `GET http://localhost:4000/api/v1/withdrawals/1`  
-**Token:** Merchant Owner
+```
+GET /withdrawals/pending
+Authorization: Bearer <token_finance>
+```
 
-#### 5. Finance Admin Approve Request
+#### J3. Finance Admin Selesaikan Transfer
 
-**Endpoint:** `GET http://localhost:4000/api/v1/withdrawals/pending`  
-**Token:** Admin Finance
-
-#### 6. Finance Admin Complete Transfer
-
-**Endpoint:** `PATCH http://localhost:4000/api/v1/withdrawals/1/complete`  
-**Token:** Admin Finance
+```
+PATCH /withdrawals/:withdrawalId/complete
+Authorization: Bearer <token_finance>
+Content-Type: application/json
+```
 
 ```json
 {
-  "proofUrl": "https://drive.google.com/bukti-transfer.png"
+  "proofUrl": "https://drive.google.com/bukti-transfer-withdrawal.png"
 }
 ```
 
-#### 7. Finance Admin Reject Request
+**Expected:** Status → `COMPLETED`. Merchant mendapat notifikasi "Dana Cair!".
 
-**Endpoint:** `PATCH http://localhost:4000/api/v1/withdrawals/1/reject`  
-**Token:** Admin Finance
+#### J4. Finance Admin Tolak Request
 
-**Catatan:**
+```
+PATCH /withdrawals/:withdrawalId/reject
+Authorization: Bearer <token_finance>
+```
 
-- Jumlah penarikan minimal adalah Rp 50.000.
-- Merchant harus input `pin` yang sama dengan `withdrawalPin` di profil merchant.
-- Saat request dibuat, saldo `walletBalance` berkurang dan `pendingBalance` bertambah.
-- Finance Admin akan melihat request `PENDING` dan menandai `COMPLETED` setelah transfer ke bank.
-- Jika ditolak, uang kembali ke `walletBalance` dan `pendingBalance` berkurang.
+**Expected:** Dana dikembalikan ke `walletBalance` merchant.
 
 ---
 
-### FASE 10: LAPORAN BULANAN
+### FLOW K — Featured Placement (Boost Gig)
 
-#### 1. Generate Monthly Report
+#### K1. Boost via Potong Saldo Wallet (Instan)
 
-**Endpoint:** `POST http://localhost:4000/api/v1/monthly-reports/generate`  
-**Token:** Admin Finance
+```
+POST /featured-placements/promote
+Authorization: Bearer <token_merchant>
+Content-Type: application/json
+```
 
 ```json
 {
-  "period": "2026-04"
+  "gigId": 1,
+  "durationDays": 7,
+  "payWithWallet": true
 }
 ```
 
-#### 2. Update Operational Cost
+**Expected:** `walletBalance` berkurang. Status gig → `FEATURED`. Timer countdown mulai.
 
-**Endpoint:** `PATCH http://localhost:4000/api/v1/monthly-reports/1/operational-cost`  
-**Token:** Admin Finance
+> Merchant harus punya saldo cukup (minimal Rp 50.000).
+
+#### K2. Boost via Transfer Manual
+
+```
+POST /featured-placements/promote
+Authorization: Bearer <token_merchant>
+Content-Type: application/json
+```
 
 ```json
 {
-  "operationalCost": 1500000
+  "gigId": 1,
+  "durationDays": 7,
+  "payWithWallet": false
 }
 ```
 
-#### 3. Process Dividend Allocation
+#### K3. Upload Bukti Bayar Boost
 
-**Endpoint:** `POST http://localhost:4000/api/v1/monthly-reports/1/process-dividend`  
-**Token:** Admin Finance
+```
+POST /featured-placements/upload-proof/:featuredPlacementId
+Authorization: Bearer <token_merchant>
+Content-Type: application/json
+```
+
+```json
+{
+  "proofUrl": "https://drive.google.com/bukti-bayar-boost.png"
+}
+```
+
+#### K4. Finance Admin Approve Boost
+
+```
+POST /featured-placements/admin/approve/:featuredPlacementId
+Authorization: Bearer <token_finance>
+```
+
+**Expected:** Status gig → `FEATURED`. Timer countdown mulai.
+
+#### K5. Verifikasi di Pencarian Publik
+
+```
+GET /gigs
+```
+
+**Expected:** Gig berstatus `FEATURED` muncul di posisi teratas.
+
+> **Test Associate tidak bisa boost:** Login sebagai associate, coba `POST /featured-placements/promote` → harus mendapat `403 Forbidden`.
+
+---
+
+### FLOW L — Konfigurasi Sistem (Super Admin)
+
+#### L1. Lihat Semua Konfigurasi
+
+```
+GET /system-config
+Authorization: Bearer <token_super_admin>
+```
+
+**Expected response:**
+```json
+[
+  { "key": "maintenance_mode", "value": "false" },
+  { "key": "default_commission_rate", "value": "5" }
+]
+```
+
+#### L2. Ubah Tarif Komisi per Kategori
+
+```
+PUT /system-config/commission_rate_1
+Authorization: Bearer <token_super_admin>
+Content-Type: application/json
+```
+
+```json
+{
+  "value": "6",
+  "confirmPassword": "Test1234!"
+}
+```
+
+**Expected:** Komisi kategori 1 berubah ke 6%. Order lama tidak berubah — hanya order baru yang menggunakan rate baru. Tanpa `confirmPassword` atau password salah → `401 Unauthorized`.
+
+#### L3. Aktifkan Maintenance Mode
+
+```
+PUT /system-config/maintenance_mode
+Authorization: Bearer <token_super_admin>
+Content-Type: application/json
+```
+
+```json
+{
+  "value": "true",
+  "confirmPassword": "Test1234!"
+}
+```
+
+**Test:** Coba login sebagai client → harus mendapat `503 Service Unavailable`. Login Super Admin tetap berhasil.
+
+#### L4. Nonaktifkan Maintenance Mode
+
+```
+PUT /system-config/maintenance_mode
+Authorization: Bearer <token_super_admin>
+Content-Type: application/json
+```
+
+```json
+{
+  "value": "false",
+  "confirmPassword": "Test1234!"
+}
+```
+
+#### L5. Lihat Audit Log
+
+```
+GET /system-config/audit-logs
+Authorization: Bearer <token_super_admin>
+```
+
+**Expected:** Log semua perubahan config: siapa, kapan, nilai lama, nilai baru.
+
+---
+
+### FLOW M — Laporan Keuangan Bulanan
+
+#### M1. Generate Laporan
+
+```
+POST /monthly-reports/generate
+Authorization: Bearer <token_finance>
+Content-Type: application/json
+```
+
+```json
+{
+  "period": "2026-05"
+}
+```
+
+**Expected:** Laporan dibuat status `DRAFT`. GMV, Gross Revenue, Commission Fee dihitung otomatis dari semua transaksi bulan tersebut.
+
+#### M2. Input Biaya Operasional
+
+```
+PATCH /monthly-reports/:reportId/operational-cost
+Authorization: Bearer <token_finance>
+Content-Type: application/json
+```
+
+```json
+{
+  "operationalCost": 2500000
+}
+```
+
+> Hanya bisa saat status masih `DRAFT`.
+
+#### M3. Proses Pembagian Dividen
+
+```
+POST /monthly-reports/:reportId/process-dividend
+Authorization: Bearer <token_finance>
+Content-Type: application/json
+```
 
 ```json
 {
@@ -770,135 +1112,500 @@ Sebelum dapat menarik dana, merchant harus mengatur `withdrawalPin` di profil to
 }
 ```
 
-#### 4. Lock Report
+**Expected:** Status → `PROCESSED`. Jumlah dividen CSC dan CCI dihitung dari `Net Profit`.
 
-**Endpoint:** `POST http://localhost:4000/api/v1/monthly-reports/1/lock`  
-**Token:** Admin Finance
+#### M4. Kunci Laporan (Close Book)
 
-#### 5. Upload Proof of Transfer
+```
+POST /monthly-reports/:reportId/lock
+Authorization: Bearer <token_finance>
+```
 
-**Endpoint:** `POST http://localhost:4000/api/v1/monthly-reports/1/upload-proof`  
-**Token:** Admin Finance
+**Expected:** Status → `LOCKED`. Data tidak bisa diubah. Email PDF dividen otomatis terkirim ke CSC dan CCI jika konfigurasi SMTP sudah diisi.
+
+**Test proteksi:** Coba ubah `operational-cost` setelah dikunci → harus mendapat `400 Bad Request`.
+
+#### M5. Upload Bukti Transfer Dividen
+
+```
+POST /monthly-reports/:reportId/upload-proof
+Authorization: Bearer <token_finance>
+Content-Type: application/json
+```
 
 ```json
 {
-  "proofUrl": "https://drive.google.com/bukti-transfer.png"
+  "proofUrl": "https://drive.google.com/bukti-dividen-mei-2026.png"
 }
 ```
 
-#### 6. View Reports
+> Hanya bisa setelah status `LOCKED`.
 
-**Endpoint:** `GET http://localhost:4000/api/v1/monthly-reports`  
-**Token:** Admin Finance
+#### M6. Lihat Semua Laporan
 
-#### 7. Get Report Detail
-
-**Endpoint:** `GET http://localhost:4000/api/v1/monthly-reports/1`  
-**Token:** Admin Finance
-
-**Catatan:**
-
-- `operationalCost` hanya bisa diubah saat status laporan masih `DRAFT`.
-- `process-dividend` mengubah status laporan menjadi `PROCESSED`.
-- `lock` hanya bisa dilakukan setelah laporan berstatus `PROCESSED`.
-- Semua endpoint `monthly-reports` hanya mengizinkan `Admin Finance`.
+```
+GET /monthly-reports
+Authorization: Bearer <token_finance>
+```
 
 ---
 
-### FASE 11: FITUR CHAT (STREAM)
+### FLOW N — Leaderboard & Badge
 
-Sistem menggunakan integrasi Stream Chat untuk memfasilitasi komunikasi antara Klien dan Merchant/Staf.
+#### N1. Lihat Leaderboard (Publik — Tanpa Auth)
 
-#### 1. Dapatkan Token Chat
+```
+GET /merchants/leaderboard
+```
 
-Setiap user harus mengambil token akses Stream sebelum dapat join ke Stream interface.
-**Endpoint:** `GET http://localhost:4000/api/v1/chat/token`  
-**Token:** Valid user JWT (Bisa Client, Merchant, dll)
-
-**Response:**
-
+**Expected response:**
 ```json
 {
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  "mostBooked": [
+    { "merchantId": 1, "shopName": "Toko Test CCI", "completedOrders": 10 }
+  ],
+  "bestRating": [
+    { "merchantId": 1, "shopName": "Toko Test CCI", "avgRating": 4.8 }
+  ],
+  "fastestResponse": [
+    { "merchantId": 1, "shopName": "Toko Test CCI", "avgResponseHours": 2.5 }
+  ]
 }
 ```
 
-#### 2. Buat Channel Chat
+#### N2. Cek Badge Merchant
 
-Memulai percakapan baru untuk sebuah Gig.
-**Endpoint:** `POST http://localhost:4000/api/v1/chat/create-channel`  
-**Token:** Client
-
-```json
-{
-  "gigId": 1
-}
+```
+GET /merchants/profile
+Authorization: Bearer <token_merchant>
 ```
 
-**Response:**
-
-```json
-{
-  "channelId": "namachannel...",
-  "token": "eyJhbGciOiJIUz..."
-}
-```
-
-**Catatan:**
-
-- Request pembuatan channel otomatis menambahkan akun Client dan akun pemilik Merchant ke platform Stream.
-- Channel akan terbuka dan bisa digunakan langsung untuk bertukar pesan terkait penawaran jasa terkait (Gig).
+| Badge | Syarat Otomatis |
+|---|---|
+| `NEWCOMER` | KYB di-approve |
+| `RISING_STAR` | 5+ order `COMPLETED` |
+| `STAR_VENDOR` | 10+ order `COMPLETED` + rata-rata rating ≥ 4.0 |
+| `SIGNATURE_PARTNER` | 25+ order `COMPLETED` + rata-rata rating ≥ 4.5 |
 
 ---
 
-### FASE 12: UPLOAD GAMBAR (SUPABASE STORAGE)
+## 6. Testing Webhook Midtrans
 
-Sistem menggunakan arsitektur **Two-Step Upload** (Upload Dua Tahap). Endpoint ini bersifat global dan harus digunakan pertama kali untuk mendapatkan URL publik gambar sebelum mengirimkan form (JSON) ke endpoint lainnya.
+### Setup ngrok (Tunnel ke Localhost)
 
-#### 1. Upload File / Gambar
+1. Download dan install ngrok: https://ngrok.com/download
+2. Jalankan tunnel:
+   ```bash
+   ngrok http 4000
+   ```
+3. Catat URL yang diberikan ngrok, contoh: `https://abc123.ngrok.io`
+4. Daftarkan URL webhook di Midtrans Dashboard → Settings → Configuration:
+   ```
+   https://abc123.ngrok.io/api/v1/payments/midtrans/webhook
+   ```
 
-Endpoint tunggal untuk mengunggah berbagai macam gambar, dokumen, atau file bukti transaksi.
+### Cara Menghitung Signature (Wajib)
 
-**Endpoint:** `POST http://localhost:4000/api/v1/upload/image`  
-**Tipe Request:** `multipart/form-data`  
-**Token:** Tidak diwajibkan, namun bisa diakses oleh siapa saja.
+Midtrans memverifikasi keaslian setiap webhook menggunakan SHA-512:
 
-**Body (Form-Data):**
+```
+signature = SHA512(order_id + status_code + gross_amount + server_key)
+```
 
-- `file` : Pilih tipe **File**, lalu masukkan file gambar/dokumenmu (wajib).
-- `folder` : Teks nama folder penyimpanan di Supabase (opsional, default: `images`).
+#### Script PowerShell
 
-**Rekomendasi Folder:**
+```powershell
+$orderId     = "ORDER-1"
+$statusCode  = "200"
+$grossAmount = "150000.00"
+$serverKey   = "SB-Mid-server-xxxxxxxxxxxxxxxx"
 
-- `merchants/logos` (Logo toko)
-- `merchants/banners` (Banner toko)
-- `merchants/kyb` (Dokumen verifikasi Merchant)
-- `gigs/media` (Gambar/Katalog Gig)
-- `withdrawals/proofs` (Bukti transfer penarikan)
-- `transactions/proofs` (Bukti bayar klien)
+$rawString = $orderId + $statusCode + $grossAmount + $serverKey
 
-**Response:**
+$sha512    = [System.Security.Cryptography.SHA512]::Create()
+$bytes     = [System.Text.Encoding]::UTF8.GetBytes($rawString)
+$hashBytes = $sha512.ComputeHash($bytes)
+$signature = [System.BitConverter]::ToString($hashBytes).Replace("-", "").ToLower()
 
+Write-Output "Signature: $signature"
+```
+
+#### Script Bash/Node.js
+
+```bash
+node -e "
+const crypto = require('crypto');
+const raw = 'ORDER-1' + '200' + '150000.00' + 'SB-Mid-server-xxxxxxxxxxxxxxxx';
+const sig = crypto.createHash('sha512').update(raw).digest('hex');
+console.log('Signature:', sig);
+"
+```
+
+### Payload — Settlement (Pembayaran Berhasil)
+
+```
+POST http://localhost:4000/api/v1/payments/midtrans/webhook
+Content-Type: application/json
+(Tanpa Authorization header)
+```
+
+```json
+{
+  "order_id": "ORDER-1",
+  "transaction_id": "txn-midtrans-unique-001",
+  "status_code": "200",
+  "gross_amount": "150000.00",
+  "transaction_status": "settlement",
+  "fraud_status": "accept",
+  "payment_type": "bank_transfer",
+  "signature_key": "<HASIL_HITUNG_DI_ATAS>"
+}
+```
+
+**Expected:** Status order → `IN_PROGRESS`.
+
+### Payload — Expire (Pembayaran Kadaluarsa)
+
+```json
+{
+  "order_id": "ORDER-1",
+  "transaction_id": "txn-midtrans-unique-001",
+  "status_code": "407",
+  "gross_amount": "150000.00",
+  "transaction_status": "expire",
+  "signature_key": "<HITUNG_ULANG_DENGAN_STATUS_CODE_407>"
+}
+```
+
+**Expected:** Status order → `CANCELLED`.
+
+### Payload — Cancel
+
+```json
+{
+  "order_id": "ORDER-1",
+  "transaction_id": "txn-midtrans-unique-001",
+  "status_code": "200",
+  "gross_amount": "150000.00",
+  "transaction_status": "cancel",
+  "signature_key": "<HASIL_HITUNG>"
+}
+```
+
+### Cara Cek Log di Terminal
+
+Server menampilkan log setiap kali webhook masuk:
+- Signature valid → proses dilanjutkan
+- Signature tidak valid → `[Webhook] Invalid signature, dropping request`
+- Duplikat (transaction_id sama) → `[Webhook] Duplicate transaction, skipping`
+
+---
+
+## 7. Referensi Endpoint Lengkap
+
+Semua endpoint menggunakan prefix `/api/v1`.
+
+### Authentication
+
+| Method | Endpoint | Auth | Keterangan |
+|---|---|---|---|
+| POST | `/auth/login` | Tidak | Login semua role kecuali Super Admin |
+| POST | `/auth/admin/login` | Tidak | Login khusus Super Admin |
+| GET | `/auth/profile` | Ya | Profil user yang sedang login |
+
+### Users
+
+| Method | Endpoint | Auth | Keterangan |
+|---|---|---|---|
+| POST | `/users` | Tidak | Daftar akun baru (role selalu `CLIENT`) |
+| GET | `/users` | Ya | List semua user (Admin) |
+
+### Categories
+
+| Method | Endpoint | Auth | Keterangan |
+|---|---|---|---|
+| POST | `/categories` | Ya (Super Admin) | Buat kategori baru |
+| GET | `/categories` | Tidak | List semua kategori |
+| GET | `/categories/:id` | Tidak | Detail kategori |
+| PATCH | `/categories/:id` | Ya (Super Admin) | Update kategori |
+| DELETE | `/categories/:id` | Ya (Super Admin) | Hapus kategori |
+
+### Merchants
+
+| Method | Endpoint | Auth | Keterangan |
+|---|---|---|---|
+| POST | `/merchants/register` | Tidak | Daftar merchant baru |
+| GET | `/merchants` | Tidak | List merchant (ACTIVE + VACATION) |
+| GET | `/merchants/leaderboard` | Tidak | Leaderboard publik (3 kategori) |
+| GET | `/merchants/profile` | Ya | Profil merchant milik sendiri |
+| GET | `/merchants/details/:id` | Tidak | Detail merchant by ID |
+| PATCH | `/merchants/:id/edit/profile` | Ya (Owner) | Update profil toko |
+| PATCH | `/merchants/submit-kyb` | Ya (Owner) | Submit dokumen KYB |
+| PATCH | `/merchants/kyb/acknowledge-rejection` | Ya (Owner) | Acknowledge rejection → kembali ke INCOMPLETE |
+| PATCH | `/merchants/vacation-mode` | Ya (Owner) | Toggle mode liburan |
+| PATCH | `/merchants/closed` | Ya (Owner) | Tutup toko |
+| POST | `/merchants/:id/associates` | Ya (Owner) | Tambah associate (alias RESTful) |
+
+### Withdrawals
+
+| Method | Endpoint | Auth | Keterangan |
+|---|---|---|---|
+| POST | `/withdrawals` | Ya (Owner) | Request withdrawal (min Rp 50.000) |
+| GET | `/withdrawals` | Ya (Owner) | Riwayat withdrawal merchant |
+| GET | `/withdrawals/:id` | Ya (Owner) | Detail withdrawal |
+| GET | `/withdrawals/pending` | Ya (Finance) | Antrian withdrawal pending |
+| PATCH | `/withdrawals/:id/complete` | Ya (Finance) | Tandai selesai + upload bukti |
+| PATCH | `/withdrawals/:id/reject` | Ya (Finance) | Tolak request |
+
+### Merchant Associates
+
+| Method | Endpoint | Auth | Keterangan |
+|---|---|---|---|
+| POST | `/merchant-associates` | Ya (Owner) | Tambah associate |
+| GET | `/merchant-associates` | Ya | List associate merchant |
+
+### Gigs
+
+| Method | Endpoint | Auth | Keterangan |
+|---|---|---|---|
+| POST | `/gigs` | Ya (Owner/Associate) | Buat gig baru (masuk `PENDING_APPROVAL`) |
+| GET | `/gigs` | Tidak | List gig ACTIVE publik |
+| GET | `/gigs/my-gigs` | Ya | Gig milik merchant |
+| GET | `/gigs/details/:id` | Tidak | Detail gig |
+| DELETE | `/gigs/:id` | Ya | Hapus gig |
+
+### Orders
+
+| Method | Endpoint | Auth | Keterangan |
+|---|---|---|---|
+| POST | `/orders` | Ya (Client) | Buat order dari gig |
+| GET | `/orders/my-orders` | Ya | Order milik client |
+| GET | `/orders/incoming` | Ya (Merchant/Associate) | Order masuk ke merchant |
+| POST | `/orders/:id/initiate-payment` | Ya (Client) | Inisiasi pembayaran Midtrans → dapat `snapToken` |
+| POST | `/orders/:id/upload-payment-proof` | Ya (Client) | Upload bukti transfer manual (multipart) |
+| PATCH | `/orders/:id/pay` | Ya (Client) | Submit proof URL (alternatif upload) |
+| PATCH | `/orders/:id/accept` | Ya (Merchant/Associate) | Merchant terima order |
+| PATCH | `/orders/:id/decline` | Ya (Merchant/Associate) | Merchant tolak order → `REFUNDED` |
+| PATCH | `/orders/:id/complete` | Ya (Client) | Client terima hasil → `COMPLETED` |
+| PATCH | `/orders/:id/cancel` | Ya (Client) | Batalkan order (hanya dari `UNPAID`) |
+| GET | `/orders/:id/invoice` | Ya (Client) | Download invoice PDF (hanya `COMPLETED`) |
+
+### Custom Offers
+
+| Method | Endpoint | Auth | Keterangan |
+|---|---|---|---|
+| POST | `/custom-offers/sent` | Ya (Merchant/Associate) | Buat penawaran custom |
+| GET | `/custom-offers/client` | Ya (Client) | Penawaran yang diterima client |
+| PATCH | `/custom-offers/:id/accept` | Ya (Client) | Terima → order otomatis terbuat |
+| PATCH | `/custom-offers/:id/reject` | Ya (Client) | Tolak penawaran |
+
+### Deliverables
+
+| Method | Endpoint | Auth | Keterangan |
+|---|---|---|---|
+| POST | `/deliverables` | Ya (Merchant/Associate) | Submit hasil pekerjaan |
+
+### Reviews
+
+| Method | Endpoint | Auth | Keterangan |
+|---|---|---|---|
+| POST | `/reviews` | Ya (Client) | Beri ulasan setelah `COMPLETED` |
+
+### Transactions
+
+| Method | Endpoint | Auth | Keterangan |
+|---|---|---|---|
+| GET | `/transactions/my-history` | Ya | Riwayat transaksi sendiri |
+| GET | `/transactions/all` | Ya (Finance/Super Admin) | Semua transaksi |
+| PATCH | `/transactions/:id/verify` | Ya (Finance) | Verifikasi pembayaran manual |
+| GET | `/transactions/pending-refunds` | Ya (Finance) | Order menunggu refund/release |
+| PATCH | `/transactions/:id/refund` | Ya (Finance) | Approve/reject refund |
+| PATCH | `/transactions/:id/release` | Ya (Finance) | Release dana ke merchant |
+
+### Payments
+
+| Method | Endpoint | Auth | Keterangan |
+|---|---|---|---|
+| POST | `/payments/midtrans/webhook` | **Tidak** | Webhook Midtrans (publik, validasi signature) |
+
+### Admin Validator
+
+| Method | Endpoint | Auth | Keterangan |
+|---|---|---|---|
+| GET | `/admin/validator/merchants/pending` | Ya (Validator/SA) | Antrian verifikasi merchant |
+| GET | `/admin/validator/gigs/pending` | Ya (Validator/SA) | Antrian verifikasi gig |
+| PATCH | `/admin/validator/merchants/:id/verify` | Ya (Validator) | Approve/reject KYB |
+| PATCH | `/admin/validator/gigs/:id/verify` | Ya (Validator) | Approve/reject gig |
+| PATCH | `/admin/validator/merchants/:id/suspend` | Ya (Validator: suspend; SA: unsuspend) | Suspend/unsuspend merchant |
+| PATCH | `/admin/validator/disputes/:id/submit-verdict` | Ya (Validator) | Simpan keputusan sengketa (tahap 1) |
+| PATCH | `/admin/validator/disputes/:id/confirm-verdict` | Ya (Validator) | Eksekusi keputusan (tahap 2) |
+| PATCH | `/admin/validator/disputes/:id/executive-decision` | Ya (Super Admin) | Override keputusan langsung |
+
+### Disputes
+
+| Method | Endpoint | Auth | Keterangan |
+|---|---|---|---|
+| POST | `/disputes` | Ya (Validator/SA) | Buka tiket sengketa |
+| PATCH | `/disputes/:id/resolve` | Ya (Admin) | Resolve dispute (endpoint lama) |
+
+### Appeals
+
+| Method | Endpoint | Auth | Keterangan |
+|---|---|---|---|
+| POST | `/appeals` | Ya (Client/Merchant) | Ajukan banding |
+| GET | `/appeals` | Ya (Super Admin) | Lihat semua banding |
+| PATCH | `/appeals/:id/resolve` | Ya (Super Admin) | Selesaikan banding |
+
+### Featured Placements
+
+| Method | Endpoint | Auth | Keterangan |
+|---|---|---|---|
+| POST | `/featured-placements/promote` | Ya (Owner) | Boost gig (via wallet atau transfer manual) |
+| POST | `/featured-placements/upload-proof/:id` | Ya (Owner) | Upload bukti bayar boost |
+| GET | `/featured-placements/my-promotes` | Ya (Merchant) | Daftar boost milik merchant |
+| POST | `/featured-placements/admin/approve/:id` | Ya (Finance) | Approve boost |
+| POST | `/featured-placements/admin/reject/:id` | Ya (Finance) | Reject boost |
+| GET | `/featured-placements/admin/pending` | Ya (Finance) | Boost pending approval |
+
+### System Config
+
+| Method | Endpoint | Auth | Keterangan |
+|---|---|---|---|
+| GET | `/system-config` | Ya (Super Admin) | Semua konfigurasi sistem |
+| GET | `/system-config/:key` | Ya (Super Admin) | Nilai konfigurasi by key |
+| PUT | `/system-config/:key` | Ya (Super Admin) | Update konfigurasi (wajib `confirmPassword`) |
+| GET | `/system-config/audit-logs` | Ya (Super Admin) | Log semua perubahan konfigurasi |
+
+### Monthly Reports
+
+| Method | Endpoint | Auth | Keterangan |
+|---|---|---|---|
+| POST | `/monthly-reports/generate` | Ya (Finance) | Generate laporan bulanan |
+| PATCH | `/monthly-reports/:id/operational-cost` | Ya (Finance) | Input biaya operasional (hanya `DRAFT`) |
+| POST | `/monthly-reports/:id/process-dividend` | Ya (Finance) | Proses dividen → `PROCESSED` |
+| POST | `/monthly-reports/:id/lock` | Ya (Finance) | Kunci laporan → `LOCKED` + kirim email |
+| POST | `/monthly-reports/:id/upload-proof` | Ya (Finance) | Upload bukti transfer dividen (hanya `LOCKED`) |
+| GET | `/monthly-reports` | Ya (Finance) | Semua laporan |
+| GET | `/monthly-reports/:id` | Ya (Finance) | Detail laporan |
+
+### Notifications
+
+| Method | Endpoint | Auth | Keterangan |
+|---|---|---|---|
+| GET | `/notifications` | Ya | Notifikasi milik sendiri |
+| PATCH | `/notifications/:id/read` | Ya | Tandai satu notifikasi sudah dibaca |
+| PATCH | `/notifications/read-all` | Ya | Tandai semua notifikasi sudah dibaca |
+
+### Chat (Stream)
+
+| Method | Endpoint | Auth | Keterangan |
+|---|---|---|---|
+| GET | `/chat/token` | Ya | Dapatkan token Stream Chat |
+| POST | `/chat/create-channel` | Ya (Client) | Buat channel chat untuk gig |
+
+### Upload File
+
+| Method | Endpoint | Auth | Keterangan |
+|---|---|---|---|
+| POST | `/upload/image` | Tidak wajib | Upload file ke Supabase Storage |
+
+**Rekomendasi nama folder saat upload:**
+
+| Folder | Digunakan untuk |
+|---|---|
+| `merchants/logos` | Logo toko |
+| `merchants/banners` | Banner toko |
+| `merchants/kyb` | Dokumen KYB (KTM/SK Organisasi) |
+| `gigs/media` | Gambar/katalog gig |
+| `transactions/proofs` | Bukti bayar client |
+| `withdrawals/proofs` | Bukti transfer withdrawal |
+
+**Contoh response upload:**
 ```json
 {
   "success": true,
-  "url": "https://<supabase-id>.supabase.co/storage/v1/object/public/namabucket/merchants/logos/1684345-logo.png"
+  "url": "https://<supabase-id>.supabase.co/storage/v1/object/public/bucket/merchants/logos/logo.png"
 }
 ```
 
-#### 2. Alur Penggunaan (Frontend)
+---
 
-Setelah mendapatkan string `url` dari response di atas, kirimkan URL tersebut di dalam _payload JSON_ saat memanggil API lainnya.
+## 8. Troubleshooting Umum
 
-**Contoh Kasus: Update Profil Merchant**
+### Port sudah dipakai
 
-1. Frontend memanggil `POST /api/v1/upload/image` dengan `file` logo toko.
-2. Frontend mendapatkan balasan `url`.
-3. Frontend mengirim JSON ke `PATCH /api/v1/merchants/:id/edit/profile`:
+**Gejala:** `Error: listen EADDRINUSE: address already in use :::4000`
 
-```json
-{
-  "logoUrl": "https://.../1684345-logo.png",
-  "shopName": "Toko Baruku"
-}
+**Solusi (PowerShell):**
+```powershell
+netstat -ano | findstr :4000
+taskkill /PID <PID_dari_output_di_atas> /F
 ```
+
+**Solusi (Bash):**
+```bash
+lsof -i :4000
+kill -9 <PID>
+```
+
+### Database Error / Tabel Tidak Ditemukan
+
+**Gejala:** `PrismaClientInitializationError` atau error "table not found"
+
+**Solusi:**
+1. Pastikan `DATABASE_URL` dan `DIRECT_URL` di `.env` sudah benar
+2. Jalankan ulang migrasi:
+   ```bash
+   npx prisma migrate deploy
+   npx prisma generate
+   ```
+3. Jika masih error (khusus dev — **data akan hilang**):
+   ```bash
+   npx prisma migrate reset
+   npm run seed
+   ```
+
+### Token JWT Expired
+
+**Gejala:** Response `401 Unauthorized` dengan pesan `jwt expired`
+
+**Solusi:** Login ulang untuk mendapat token baru:
+```
+POST /auth/login
+{ "email": "...", "password": "Test1234!" }
+```
+
+Simpan token baru ke Postman Environment.
+
+### Webhook Midtrans Tidak Mengubah Status Order
+
+**Cek checklist berikut:**
+1. ngrok aktif dan URL sudah didaftarkan di dashboard Midtrans
+2. Signature dihitung dengan urutan yang benar: `order_id + status_code + gross_amount + server_key`
+3. `order_id` di payload cocok dengan ID order di database
+4. `transaction_id` belum pernah diproses sebelumnya (idempotency — duplikat di-skip)
+5. Cek log di terminal untuk pesan error
+
+### Merchant PIN Tidak Valid
+
+**Gejala:** Withdrawal ditolak meski PIN sudah di-set.
+
+**Penyebab:** Setelah perbaikan keamanan, PIN sekarang di-hash dengan bcrypt. PIN lama yang tersimpan plain text tidak bisa diverifikasi.
+
+**Solusi:** Set ulang PIN lewat endpoint edit profil merchant.
+
+### Tidak Bisa Login (Maintenance Mode Aktif)
+
+**Gejala:** Semua login mendapat `503 Service Unavailable`
+
+**Solusi:** Login sebagai Super Admin dan nonaktifkan maintenance:
+```
+PUT /system-config/maintenance_mode
+Authorization: Bearer <token_super_admin>
+
+{ "value": "false", "confirmPassword": "Test1234!" }
+```
+
+### Associate Tidak Bisa Lihat Saldo atau Withdraw
+
+Ini bukan bug — ini desain yang benar. Associate memang tidak punya akses ke wallet, saldo, dan withdrawal. Hanya Merchant Owner yang bisa mengakses fitur keuangan.

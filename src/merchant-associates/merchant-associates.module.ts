@@ -4,8 +4,9 @@ import { MerchantAssociatesController } from './merchant-associates.controller';
 import { AuthModule } from 'src/auth/auth.module';
 
 @Module({
-  imports:[AuthModule],
+  imports: [AuthModule],
   providers: [MerchantAssociatesService],
   controllers: [MerchantAssociatesController],
+  exports: [MerchantAssociatesService],
 })
 export class MerchantAssociatesModule {}

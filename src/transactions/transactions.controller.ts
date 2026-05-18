@@ -41,12 +41,13 @@ export class TransactionsController {
   async verifyTransaction(
     @Request() req: RequestWithUsers,
     @Param('id', ParseIntPipe) id: number,
-    @Body() body: { status: TransactionStatus },
+    @Body() body: { status: TransactionStatus; verificationNote?: string },
   ) {
     return this.transactionsService.verifyTransaction(
       req.user.sub,
       id,
       body.status,
+      body.verificationNote,
     );
   }
 

@@ -73,6 +73,7 @@ export class TransactionsService {
     adminId: number,
     transactionId: number,
     status: TransactionStatus,
+    verificationNote?: string,
   ) {
     await this.checkAdminRole(adminId, [Role.SUPER_ADMIN, Role.ADMIN_FINANCE]);
 
@@ -94,7 +95,7 @@ export class TransactionsService {
     return this.prisma.$transaction(async (prisma) => {
       const updatedTransaction = await prisma.transaction.update({
         where: { id: transactionId },
-        data: { status, verifiedBy: adminId },
+        data: { status, verifiedBy: adminId, verificationNote: verificationNote ?? null },
       });
 
       if (transaction.orderId) {

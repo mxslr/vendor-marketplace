@@ -56,12 +56,15 @@ export class MidtransService {
   validateWebhookSignature(
     orderId: string,
     statusCode: string,
-    grossAmount: string,
+    grossAmount: string | number,
     incomingSignature: string,
   ): boolean {
+    // Midtrans always sends gross_amount as "150000.00" (string with 2 decimals).
+    // If a numeric value slips through JSON parsing, stringify it to avoid hash mismatch.
+    const grossStr = String(grossAmount);
     const hash = crypto
       .createHash('sha512')
-      .update(orderId + statusCode + grossAmount + this.serverKey)
+      .update(orderId + statusCode + grossStr + this.serverKey)
       .digest('hex');
     return hash === incomingSignature;
   }

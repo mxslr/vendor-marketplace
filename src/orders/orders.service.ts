@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { ConfigService } from '@nestjs/config';
@@ -40,7 +41,9 @@ export class OrdersService {
     });
     if (!gig) throw new NotFoundException('Layanan tidak ditemukan.');
     if (gig.status !== GigStatus.ACTIVE && gig.status !== GigStatus.FEATURED) {
-      throw new BadRequestException('Layanan ini tidak tersedia untuk dipesan saat ini.');
+      throw new BadRequestException(
+        'Layanan ini tidak tersedia untuk dipesan saat ini.',
+      );
     }
 
     // CFG-01: read commission rate from SystemConfig (per-category override), fallback to category default
@@ -70,7 +73,11 @@ export class OrdersService {
   async initiateMidtransPayment(
     orderId: number,
     clientId: number,
-  ): Promise<{ snapToken: string; clientKey: string; midtransOrderId: string }> {
+  ): Promise<{
+    snapToken: string;
+    clientKey: string;
+    midtransOrderId: string;
+  }> {
     const order = await this.prisma.order.findFirst({
       where: { id: orderId, clientId },
       include: {
@@ -136,7 +143,7 @@ export class OrdersService {
     const order = await this.prisma.order.findFirst({
       where: { id: orderId, clientId: clientId },
     });
-    
+
     if (!order) {
       throw new NotFoundException('Pesanan tidak ditemukan.');
     }
@@ -387,7 +394,9 @@ export class OrdersService {
   }
 
   private async upgradeBadgeIfEligible(merchantId: number, tx: any) {
-    const merchant = await tx.merchant.findUnique({ where: { id: merchantId } });
+    const merchant = await tx.merchant.findUnique({
+      where: { id: merchantId },
+    });
     if (!merchant) return;
 
     const completedCount = await tx.order.count({
@@ -402,16 +411,30 @@ export class OrdersService {
 
     let newBadge: MerchantBadge | null = null;
 
-    if (completedCount >= 25 && avgRating >= 4.5 && merchant.badge !== MerchantBadge.SIGNATURE_PARTNER) {
+    if (
+      completedCount >= 25 &&
+      avgRating >= 4.5 &&
+      merchant.badge !== MerchantBadge.SIGNATURE_PARTNER
+    ) {
       newBadge = MerchantBadge.SIGNATURE_PARTNER;
-    } else if (completedCount >= 10 && avgRating >= 4.0 && merchant.badge === MerchantBadge.RISING_STAR) {
+    } else if (
+      completedCount >= 10 &&
+      avgRating >= 4.0 &&
+      merchant.badge === MerchantBadge.RISING_STAR
+    ) {
       newBadge = MerchantBadge.STAR_VENDOR;
-    } else if (completedCount >= 5 && merchant.badge === MerchantBadge.NEWCOMER) {
+    } else if (
+      completedCount >= 5 &&
+      merchant.badge === MerchantBadge.NEWCOMER
+    ) {
       newBadge = MerchantBadge.RISING_STAR;
     }
 
     if (newBadge) {
-      await tx.merchant.update({ where: { id: merchantId }, data: { badge: newBadge } });
+      await tx.merchant.update({
+        where: { id: merchantId },
+        data: { badge: newBadge },
+      });
     }
   }
 
@@ -445,6 +468,48 @@ export class OrdersService {
 
         await this.upgradeBadgeIfEligible(order.merchantId, prisma);
       });
+    }
+  }
+
+  async getOrderDetail(orderId: number, userId: number) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        gig: true,
+        merchant: true,
+        client: { select: { fullName: true, email: true } },
+        deliverables: true,
+      },
+    });
+
+    if (!order) throw new NotFoundException('Pesanan tidak ditemukan.');
+    if (order.clientId === userId) {
+      return order;
+    }
+    if (order.merchant.userId === userId) {
+      return order;
+    }
+
+    const associate = await this.prisma.merchantAssociate.findFirst({
+      where: {
+        merchantId: order.merchant.id,
+        userId: userId,
+        permission: {
+          in: [
+            AssociatePermission.MANAGE_ORDERS,
+            AssociatePermission.FULL_ACCESS,
+          ],
+        },
+      },
+    });
+    if (associate) {
+      return order;
+    }
+
+    if (!associate) {
+      throw new UnauthorizedException(
+        'Anda bukan pemilik toko atau associate yang memiliki akses ke pesanan ini.',
+      );
     }
   }
 }

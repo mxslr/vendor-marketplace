@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { StreamService } from 'src/chat/stream.service';
+import { AssociatePermission } from '@prisma/client';
 
 @Injectable()
 export class CustomOffersService {
@@ -25,7 +26,15 @@ export class CustomOffersService {
 
     if (!merchant) {
       const associate = await this.prisma.merchantAssociate.findFirst({
-        where: { userId },
+        where: {
+          userId,
+          permission: {
+            in: [
+              AssociatePermission.MANAGE_ORDERS,
+              AssociatePermission.FULL_ACCESS,
+            ],
+          },
+        },
         include: { merchant: true },
       });
       if (associate) {

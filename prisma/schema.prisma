@@ -27,6 +27,12 @@ enum MerchantStatus {
   CLOSED
 }
 
+enum GigPlan {
+  BASIC
+  STANDARD
+  PREMIUM
+}
+
 enum GigStatus {
   DRAFT
   PENDING_APPROVAL
@@ -243,6 +249,7 @@ model Gig {
   title          String
   description    String
   price          Decimal   @db.Decimal(15, 2)
+  plan           GigPlan   @default(BASIC)
   mediaUrls      String?   
   status         GigStatus @default(DRAFT)
   rejectionReason String?  

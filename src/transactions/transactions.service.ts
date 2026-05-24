@@ -5,7 +5,13 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { DisputeStatus, NotificationType, OrderStatus, Role, TransactionStatus } from '@prisma/client';
+import {
+  DisputeStatus,
+  NotificationType,
+  OrderStatus,
+  Role,
+  TransactionStatus,
+} from '@prisma/client';
 import { NotificationsService } from '../notifications/notifications.service';
 import { MidtransService } from '../midtrans/midtrans.service';
 
@@ -65,6 +71,7 @@ export class TransactionsService {
       orderBy: { createdAt: 'desc' },
       include: {
         user: { select: { fullName: true, email: true } },
+        order: { select: { status: true } },
       },
     });
   }
@@ -95,7 +102,11 @@ export class TransactionsService {
     return this.prisma.$transaction(async (prisma) => {
       const updatedTransaction = await prisma.transaction.update({
         where: { id: transactionId },
-        data: { status, verifiedBy: adminId, verificationNote: verificationNote ?? null },
+        data: {
+          status,
+          verifiedBy: adminId,
+          verificationNote: verificationNote ?? null,
+        },
       });
 
       if (transaction.orderId) {
@@ -219,7 +230,10 @@ export class TransactionsService {
       });
 
       await prisma.dispute.updateMany({
-        where: { orderId: transactionId, status: { not: DisputeStatus.CLOSED } },
+        where: {
+          orderId: transactionId,
+          status: { not: DisputeStatus.CLOSED },
+        },
         data: { status: DisputeStatus.CLOSED },
       });
 
@@ -257,9 +271,11 @@ export class TransactionsService {
       );
     }
     if (order.status !== OrderStatus.RELEASE_APPROVED_WAITING_FINANCE) {
-      throw new BadRequestException('Dana transaksi tidak dapat diteruskan ke merchant pada status ini');
+      throw new BadRequestException(
+        'Dana transaksi tidak dapat diteruskan ke merchant pada status ini',
+      );
     }
-    
+
     return this.prisma.$transaction(async (prisma) => {
       const updatedOrder = await prisma.order.update({
         where: { id: transactionId },
@@ -279,7 +295,10 @@ export class TransactionsService {
       });
 
       await prisma.dispute.updateMany({
-        where: { orderId: transactionId, status: { not: DisputeStatus.CLOSED } },
+        where: {
+          orderId: transactionId,
+          status: { not: DisputeStatus.CLOSED },
+        },
         data: { status: DisputeStatus.CLOSED },
       });
 
@@ -294,5 +313,137 @@ export class TransactionsService {
 
       return updatedOrder;
     });
+  }
+
+  /**
+   * Ringkasan finansial untuk dashboard Finance Admin.
+   * - Saldo Escrow: dana yang sedang ditahan (order IN_PROGRESS, DELIVERED, IN_REVISION, DISPUTE)
+   * - Komparasi periode: persentase pertumbuhan vs periode sebelumnya
+   */
+  async getFinancialSummary(
+    adminId: number,
+    period: 'day' | 'week' | 'month' = 'month',
+  ) {
+    await this.checkAdminRole(adminId, [Role.SUPER_ADMIN, Role.ADMIN_FINANCE]);
+
+    const now = new Date();
+
+    // Hitung durasi periode dalam milidetik
+    let periodMs: number;
+    switch (period) {
+      case 'day':
+        periodMs = 24 * 60 * 60 * 1000;
+        break;
+      case 'week':
+        periodMs = 7 * 24 * 60 * 60 * 1000;
+        break;
+      case 'month':
+        periodMs = 30 * 24 * 60 * 60 * 1000;
+        break;
+    }
+
+    const currentStart = new Date(now.getTime() - periodMs);
+    const previousStart = new Date(currentStart.getTime() - periodMs);
+
+    // --- Saldo Escrow (total dana yang masih "ditahan" platform) ---
+    const escrowStatuses = [
+      OrderStatus.IN_PROGRESS,
+      OrderStatus.DELIVERED,
+      OrderStatus.IN_REVISION,
+      OrderStatus.DISPUTE_IN_PROGRESS,
+      OrderStatus.REFUND_APPROVED_WAITING_FINANCE,
+      OrderStatus.RELEASE_APPROVED_WAITING_FINANCE,
+    ];
+
+    const escrowOrders = await this.prisma.order.findMany({
+      where: { status: { in: escrowStatuses } },
+      select: { totalAmount: true },
+    });
+
+    let escrowBalance = 0;
+    for (const order of escrowOrders) {
+      escrowBalance += Number(order.totalAmount);
+    }
+
+    // --- Revenue periode saat ini vs sebelumnya ---
+    const currentCompletedOrders = await this.prisma.order.findMany({
+      where: {
+        status: OrderStatus.COMPLETED,
+        createdAt: { gte: currentStart, lte: now },
+      },
+      select: { totalAmount: true, adminFee: true },
+    });
+
+    const previousCompletedOrders = await this.prisma.order.findMany({
+      where: {
+        status: OrderStatus.COMPLETED,
+        createdAt: { gte: previousStart, lt: currentStart },
+      },
+      select: { totalAmount: true, adminFee: true },
+    });
+
+    let currentGmv = 0;
+    let currentRevenue = 0;
+    for (const o of currentCompletedOrders) {
+      currentGmv += Number(o.totalAmount);
+      currentRevenue += Number(o.adminFee);
+    }
+
+    let previousGmv = 0;
+    let previousRevenue = 0;
+    for (const o of previousCompletedOrders) {
+      previousGmv += Number(o.totalAmount);
+      previousRevenue += Number(o.adminFee);
+    }
+
+    // Hitung persentase pertumbuhan
+    const calcGrowth = (current: number, previous: number) => {
+      if (previous === 0) return current > 0 ? 100 : 0;
+      return Number((((current - previous) / previous) * 100).toFixed(2));
+    };
+
+    // --- Refund di periode saat ini ---
+    const refundedOrders = await this.prisma.order.findMany({
+      where: {
+        status: OrderStatus.REFUNDED,
+        createdAt: { gte: currentStart, lte: now },
+      },
+      select: { totalAmount: true },
+    });
+
+    let totalRefunded = 0;
+    for (const o of refundedOrders) {
+      totalRefunded += Number(o.totalAmount);
+    }
+
+    return {
+      period,
+      currentPeriod: { start: currentStart, end: now },
+      previousPeriod: { start: previousStart, end: currentStart },
+      escrow: {
+        balance: escrowBalance,
+        activeOrderCount: escrowOrders.length,
+      },
+      revenue: {
+        current: {
+          gmv: currentGmv,
+          platformRevenue: currentRevenue,
+          completedCount: currentCompletedOrders.length,
+        },
+        previous: {
+          gmv: previousGmv,
+          platformRevenue: previousRevenue,
+          completedCount: previousCompletedOrders.length,
+        },
+        growth: {
+          gmvPercent: calcGrowth(currentGmv, previousGmv),
+          revenuePercent: calcGrowth(currentRevenue, previousRevenue),
+        },
+      },
+      refunds: {
+        totalRefunded,
+        refundedCount: refundedOrders.length,
+      },
+    };
   }
 }

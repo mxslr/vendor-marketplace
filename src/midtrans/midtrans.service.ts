@@ -28,7 +28,8 @@ export class MidtransService {
     }
 
     this.serverKey = serverKey;
-    const isProduction = config.get<string>('MIDTRANS_IS_PRODUCTION') === 'true';
+    const isProduction =
+      config.get<string>('MIDTRANS_IS_PRODUCTION') === 'true';
 
     this.snap = new Midtrans.Snap({ isProduction, serverKey, clientKey });
     this.coreApi = new Midtrans.CoreApi({ isProduction, serverKey, clientKey });
@@ -49,8 +50,15 @@ export class MidtransService {
     return response.token as string;
   }
 
-  async createRefund(midtransTransactionId: string, amount: number, reason: string): Promise<void> {
-    await this.coreApi.refundTransaction(midtransTransactionId, { amount, reason });
+  async createRefund(
+    midtransTransactionId: string,
+    amount: number,
+    reason: string,
+  ): Promise<void> {
+    await this.coreApi.refundTransaction(midtransTransactionId, {
+      amount,
+      reason,
+    });
   }
 
   validateWebhookSignature(

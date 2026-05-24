@@ -5,6 +5,8 @@ import {
   Body,
   UseGuards,
   Request,
+  Param,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { MerchantAssociatesService } from './merchant-associates.service';
 import { AuthGuard } from '../auth/auth.guard';
@@ -25,10 +27,7 @@ export class MerchantAssociatesController {
 
   @UseGuards(AuthGuard)
   @Post()
-  addAssociate(
-    @Request() req: RequestWithUser,
-    @Body() dto: AddAssociateDto,
-  ) {
+  addAssociate(@Request() req: RequestWithUser, @Body() dto: AddAssociateDto) {
     return this.associatesService.addAssociate(
       req.user.sub,
       dto.email,

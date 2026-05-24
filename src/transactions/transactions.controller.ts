@@ -3,6 +3,7 @@ import {
   Get,
   Patch,
   Param,
+  Query,
   Body,
   UseGuards,
   Request,
@@ -67,6 +68,14 @@ export class TransactionsController {
   @Get('pending-releases')
   async getPendingReleases() {
     return this.transactionsService.getPendingReleaseTransactions();
+  }
+
+  @Get('financial-summary')
+  async getFinancialSummary(
+    @Request() req: RequestWithUsers,
+    @Query('period') period?: 'day' | 'week' | 'month',
+  ) {
+    return this.transactionsService.getFinancialSummary(req.user.sub, period);
   }
 
   @Patch(':id/release')

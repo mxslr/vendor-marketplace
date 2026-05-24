@@ -30,7 +30,12 @@ export class GigsService {
       const associate = await this.prisma.merchantAssociate.findFirst({
         where: {
           userId,
-          permission: { in: [AssociatePermission.MANAGE_GIGS, AssociatePermission.FULL_ACCESS] },
+          permission: {
+            in: [
+              AssociatePermission.MANAGE_GIGS,
+              AssociatePermission.FULL_ACCESS,
+            ],
+          },
         },
         include: { merchant: true },
       });
@@ -60,6 +65,7 @@ export class GigsService {
         categoryId: dto.categoryId,
         title: dto.title,
         description: dto.description,
+        plan: dto.plan,
         price: dto.price,
         mediaUrls: dto.mediaUrls,
         status: GigStatus.PENDING_APPROVAL,

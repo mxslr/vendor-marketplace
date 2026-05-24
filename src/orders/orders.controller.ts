@@ -40,6 +40,15 @@ export class OrdersController {
   }
 
   @UseGuards(AuthGuard)
+  @Get(':id')
+  getOrderDetail(
+    @Request() req: RequestWithUser,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.ordersService.getOrderDetail(id, req.user.sub);
+  }
+
+  @UseGuards(AuthGuard)
   @Get('my-orders')
   findMyOrders(@Request() req: RequestWithUser) {
     return this.ordersService.findMyOrders(req.user.sub);
@@ -90,7 +99,10 @@ export class OrdersController {
 
   @UseGuards(AuthGuard)
   @Patch(':id/cancel')
-  cancelOrder(@Request() req: RequestWithUser, @Param('id', ParseIntPipe) id: number) {
+  cancelOrder(
+    @Request() req: RequestWithUser,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
     return this.ordersService.cancelOrder(id, req.user.sub);
   }
 

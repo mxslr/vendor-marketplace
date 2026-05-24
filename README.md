@@ -1381,6 +1381,7 @@ Semua endpoint menggunakan prefix `/api/v1`.
 | POST | `/orders` | Ya (Client) | Buat order dari gig |
 | GET | `/orders/my-orders` | Ya | Order milik client |
 | GET | `/orders/incoming` | Ya (Merchant/Associate) | Order masuk ke merchant |
+| GET | `/orders/:id` | Ya (Client/Owner/Associate) | Detail order — otorisasi: client pemesan, merchant owner, atau associate (`MANAGE_ORDERS`/`FULL_ACCESS`). Include `deliverables` dan `client` data |
 | POST | `/orders/:id/initiate-payment` | Ya (Client) | Inisiasi pembayaran Midtrans → dapat `snapToken` |
 | POST | `/orders/:id/upload-payment-proof` | Ya (Client) | Upload bukti transfer manual (multipart) |
 | PATCH | `/orders/:id/pay` | Ya (Client) | Submit proof URL (alternatif upload) |
@@ -1394,7 +1395,7 @@ Semua endpoint menggunakan prefix `/api/v1`.
 
 | Method | Endpoint | Auth | Keterangan |
 |---|---|---|---|
-| POST | `/custom-offers/sent` | Ya (Merchant/Associate) | Buat penawaran custom |
+| POST | `/custom-offers/sent` | Ya (Merchant/Associate) | Buat penawaran custom. Associate harus memiliki izin `MANAGE_ORDERS` atau `FULL_ACCESS` |
 | GET | `/custom-offers/client` | Ya (Client) | Penawaran yang diterima client |
 | PATCH | `/custom-offers/:id/accept` | Ya (Client) | Terima → order otomatis terbuat |
 | PATCH | `/custom-offers/:id/reject` | Ya (Client) | Tolak penawaran |
@@ -1416,10 +1417,12 @@ Semua endpoint menggunakan prefix `/api/v1`.
 | Method | Endpoint | Auth | Keterangan |
 |---|---|---|---|
 | GET | `/transactions/my-history` | Ya | Riwayat transaksi sendiri |
-| GET | `/transactions/all` | Ya (Finance/Super Admin) | Semua transaksi |
+| GET | `/transactions/all` | Ya (Finance/Super Admin) | Semua transaksi (include `order.status` untuk kalkulasi escrow) |
+| GET | `/transactions/financial-summary` | Ya (Finance/Super Admin) | Ringkasan finansial: saldo escrow, GMV, platform revenue, pertumbuhan %. Query: `?period=day\|week\|month` |
 | PATCH | `/transactions/:id/verify` | Ya (Finance) | Verifikasi pembayaran manual |
-| GET | `/transactions/pending-refunds` | Ya (Finance) | Order menunggu refund/release |
-| PATCH | `/transactions/:id/refund` | Ya (Finance) | Approve/reject refund |
+| GET | `/transactions/pending-refunds` | Ya (Finance) | Order menunggu refund |
+| GET | `/transactions/pending-releases` | Ya (Finance) | Order menunggu release dana |
+| PATCH | `/transactions/:id/refund` | Ya (Finance) | Eksekusi refund |
 | PATCH | `/transactions/:id/release` | Ya (Finance) | Release dana ke merchant |
 
 ### Payments
@@ -1472,9 +1475,17 @@ Semua endpoint menggunakan prefix `/api/v1`.
 | Method | Endpoint | Auth | Keterangan |
 |---|---|---|---|
 | GET | `/system-config` | Ya (Super Admin) | Semua konfigurasi sistem |
+| GET | `/system-config/audit-logs` | Ya (Super Admin) | Log semua perubahan konfigurasi |
+| GET | `/system-config/users` | Ya (Super Admin) | List user. Query: `?status=active\|suspended` |
+| GET | `/system-config/midtrans/health` | Ya (Super Admin) | Health check koneksi Midtrans |
+| GET | `/system-config/analytics` | Ya (Super Admin) | Analitik transaksi: GMV, revenue, order per status. Query: `?period=day\|week\|month` |
+| GET | `/system-config/maintenance` | Ya (Super Admin) | Cek status maintenance mode |
 | GET | `/system-config/:key` | Ya (Super Admin) | Nilai konfigurasi by key |
 | PUT | `/system-config/:key` | Ya (Super Admin) | Update konfigurasi (wajib `confirmPassword`) |
-| GET | `/system-config/audit-logs` | Ya (Super Admin) | Log semua perubahan konfigurasi |
+| POST | `/system-config/create-admin` | Ya (Super Admin) | Buat akun Admin Validator atau Admin Finance |
+| POST | `/system-config/suspend-admin` | Ya (Super Admin) | Suspend admin (Validator/Finance) |
+| POST | `/system-config/unsuspend-admin` | Ya (Super Admin) | Unsuspend admin |
+| POST | `/system-config/delete-admin` | Ya (Super Admin) | Hapus akun admin (Validator/Finance) |
 
 ### Monthly Reports
 

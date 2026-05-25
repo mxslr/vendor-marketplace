@@ -33,8 +33,8 @@ export class AdminValidatorController {
 
   @UseGuards(AuthGuard)
   @Get('merchants/pending')
-  getPendingMerchants(@Request() req: RequestWithUser) {
-    this.checkValidatorRole(req.user.role);
+  async getPendingMerchants(@Request() req: RequestWithUser) {
+    await this.checkValidatorRole(req.user.role);
     return this.adminValidatorService.getPendingMerchants();
   }
   @UseGuards(AuthGuard)
@@ -86,6 +86,28 @@ export class AdminValidatorController {
       );
     }
     return this.adminValidatorService.suspendMerchant(
+      body.isSuspended,
+      id,
+      body.reason,
+      body.days,
+    );
+  }
+
+  @UseGuards(AuthGuard)
+  @Patch('users/:id/suspend')
+  async suspendUser(
+    @Request() req: RequestWithUser,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { isSuspended: boolean; reason?: string; days?: number },
+  ) {
+    await this.checkValidatorRole(req.user.role);
+    if (body.isSuspended === false && req.user.role !== 'SUPER_ADMIN') {
+      throw new ForbiddenException(
+        'Hanya Super Admin yang dapat mencabut suspend akun.',
+      );
+    }
+    return this.adminValidatorService.suspendUser(
+      req.user.sub,
       body.isSuspended,
       id,
       body.reason,

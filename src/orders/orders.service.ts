@@ -479,6 +479,7 @@ export class OrdersService {
         merchant: true,
         client: { select: { fullName: true, email: true } },
         deliverables: true,
+        dispute: true,
       },
     });
 

@@ -78,8 +78,8 @@ export class SystemConfigController {
     return this.systemConfigService.createAdminValidatorOrAdminFinance(
       req.user.sub,
       body.email,
-      body.passwordHash,
       body.fullName,
+      body.passwordHash,
       body.role,
     );
   }

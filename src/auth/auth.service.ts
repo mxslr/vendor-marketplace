@@ -84,9 +84,13 @@ export class AuthService {
         throw new UnauthorizedException('Email atau password salah');
       }
 
-      if (user.role !== Role.SUPER_ADMIN) {
+      if (
+        user.role !== Role.SUPER_ADMIN &&
+        user.role !== Role.ADMIN_VALIDATOR &&
+        user.role !== Role.ADMIN_FINANCE
+      ) {
         await this.recordFailedAttempt(ip);
-        throw new ForbiddenException('Akses ditolak. Endpoint ini hanya untuk Super Admin.');
+        throw new ForbiddenException('Akses ditolak. Endpoint ini hanya untuk Admin.');
       }
 
       await this.resetAttempts(ip);
@@ -125,11 +129,21 @@ export class AuthService {
         throw new UnauthorizedException('Email atau password salah');
       }
 
+      if (
+        user.role === Role.SUPER_ADMIN ||
+        user.role === Role.ADMIN_VALIDATOR ||
+        user.role === Role.ADMIN_FINANCE
+      ) {
+        throw new ForbiddenException(
+          'Akses ditolak. Akun admin tidak dapat login melalui portal pengguna umum.',
+        );
+      }
+
       // CFG-02: block non-SUPER_ADMIN logins during maintenance mode
       const maintenanceConfig = await this.prisma.systemConfig.findUnique({
         where: { key: 'maintenance_mode' },
       });
-      if (maintenanceConfig?.value === 'true' && user.role !== Role.SUPER_ADMIN) {
+      if (maintenanceConfig?.value === 'true' && (user.role as any) !== Role.SUPER_ADMIN) {
         throw new ServiceUnavailableException(
           'Sistem sedang dalam pemeliharaan. Silakan coba lagi nanti.',
         );

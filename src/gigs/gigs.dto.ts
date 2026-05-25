@@ -22,9 +22,9 @@ export class CreateGigDto {
   description!: string;
 
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   @IsEnum(GigPlan)
-  plan!: GigPlan;
+  plan?: GigPlan;
 
   @IsNumber()
   @IsNotEmpty()

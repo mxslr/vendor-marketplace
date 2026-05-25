@@ -384,4 +384,28 @@ export class AdminValidatorService {
       return updatedMerchant;
     });
   }
+
+  async suspendUser(
+    adminId: number,
+    isSuspended: boolean,
+    userId: number,
+    reason?: string,
+    days?: number,
+  ) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { merchant: true },
+    });
+
+    if (!user) throw new NotFoundException('User tidak ditemukan.');
+
+    if (user.merchant) {
+      return this.suspendMerchant(isSuspended, user.merchant.id, reason, days);
+    }
+
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { isSuspended: isSuspended },
+    });
+  }
 }

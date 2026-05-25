@@ -40,18 +40,24 @@ export class OrdersController {
   }
 
   @UseGuards(AuthGuard)
+  @Get('my-orders')
+  findMyOrders(@Request() req: RequestWithUser) {
+    return this.ordersService.findMyOrders(req.user.sub);
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('incoming')
+  getIncomingOrders(@Request() req: RequestWithUser) {
+    return this.ordersService.getIncomingOrders(req.user.sub);
+  }
+
+  @UseGuards(AuthGuard)
   @Get(':id')
   getOrderDetail(
     @Request() req: RequestWithUser,
     @Param('id', ParseIntPipe) id: number,
   ) {
     return this.ordersService.getOrderDetail(id, req.user.sub);
-  }
-
-  @UseGuards(AuthGuard)
-  @Get('my-orders')
-  findMyOrders(@Request() req: RequestWithUser) {
-    return this.ordersService.findMyOrders(req.user.sub);
   }
 
   @UseGuards(AuthGuard)
@@ -71,12 +77,6 @@ export class OrdersController {
     @Param('id', ParseIntPipe) id: number,
   ) {
     return this.ordersService.initiateMidtransPayment(id, req.user.sub);
-  }
-
-  @UseGuards(AuthGuard)
-  @Get('incoming')
-  getIncomingOrders(@Request() req: RequestWithUser) {
-    return this.ordersService.getIncomingOrders(req.user.sub);
   }
 
   @UseGuards(AuthGuard)

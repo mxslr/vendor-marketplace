@@ -3,6 +3,7 @@ import {
   NotFoundException,
   ForbiddenException,
   UnauthorizedException,
+  BadRequestException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
@@ -96,11 +97,23 @@ export class SystemConfigService {
         'Hanya Super Admin yang dapat membuat admin validator atau admin finance.',
       );
     }
+
+    // Check duplicate email
+    const existingUser = await this.prisma.user.findUnique({
+      where: { email },
+    });
+    if (existingUser) {
+      throw new BadRequestException('Email sudah terdaftar.');
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(passwordHash, 10);
+
     const result = await this.prisma.user.create({
       data: {
         email: email,
         fullName: fullName,
-        passwordHash: passwordHash,
+        passwordHash: hashedPassword,
         role: role,
         createdAt: new Date(),
       },
@@ -177,12 +190,17 @@ export class SystemConfigService {
   async getUsersByStatus(adminId: number, status?: 'active' | 'suspended') {
     await this.requireSuperAdmin(adminId);
 
-    const where =
-      status === 'active'
-        ? { isSuspended: false }
-        : status === 'suspended'
-          ? { isSuspended: true }
-          : {}; // tanpa filter = semua user
+    const where: any = {
+      role: {
+        in: [Role.SUPER_ADMIN, Role.ADMIN_VALIDATOR, Role.ADMIN_FINANCE],
+      },
+    };
+
+    if (status === 'active') {
+      where.isSuspended = false;
+    } else if (status === 'suspended') {
+      where.isSuspended = true;
+    }
 
     return this.prisma.user.findMany({
       where,
@@ -212,6 +230,7 @@ export class SystemConfigService {
     try {
       const response = await axios.get(
         'https://api.midtrans.com/v2/status/transaction/123',
+        { timeout: 3000 }
       );
       return response.data;
     } catch (error) {

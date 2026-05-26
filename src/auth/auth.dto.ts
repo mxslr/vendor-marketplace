@@ -1,4 +1,4 @@
-import { IsEmail, IsNotEmpty, IsOptional } from "class-validator";
+import { IsEmail, IsNotEmpty } from "class-validator";
 
 
 export class LoginDto {
@@ -9,8 +9,5 @@ export class LoginDto {
 
     @IsNotEmpty({message: 'Password is required'})
     password!: string;
-
-    @IsOptional()
-    role?: string
 }
 

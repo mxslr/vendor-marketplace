@@ -8,6 +8,7 @@ import {
   UseGuards,
   Request,
   ParseIntPipe,
+  NotFoundException,
 } from '@nestjs/common';
 import { TransactionsService } from './transactions.service';
 import { AuthGuard } from '../auth/auth.guard';
@@ -37,6 +38,37 @@ export class TransactionsController {
     return this.transactionsService.findAll(req.user.sub);
   }
 
+  @Get('pending-refunds')
+  async getPendingRefunds() {
+    return this.transactionsService.getPendingRefundTransactions();
+  }
+
+  @Get('pending-releases')
+  async getPendingReleases() {
+    return this.transactionsService.getPendingReleaseTransactions();
+  }
+
+  @Get('financial-summary')
+  async getFinancialSummary(
+    @Request() req: RequestWithUsers,
+    @Query('period') period?: 'day' | 'week' | 'month',
+  ) {
+    return this.transactionsService.getFinancialSummary(req.user.sub, period);
+  }
+
+  // IMPORTANT: Dynamic param route must be AFTER all static GET routes
+  @Get(':id')
+  async getTransactionDetails(
+    @Request() req: RequestWithUsers,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    const transaction = await this.transactionsService.getDetailTransaction(id);
+    if (!transaction) {
+      throw new NotFoundException(`Transaksi dengan ID ${id} tidak ditemukan`);
+    }
+    return transaction;
+  }
+
   // Endpoint: PATCH /transactions/:id/verify
   @Patch(':id/verify')
   async verifyTransaction(
@@ -52,30 +84,12 @@ export class TransactionsController {
     );
   }
 
-  @Get('pending-refunds')
-  async getPendingRefunds() {
-    return this.transactionsService.getPendingRefundTransactions();
-  }
-
   @Patch(':id/refund')
   async refundOrder(
     @Request() req: RequestWithUsers,
     @Param('id', ParseIntPipe) id: number,
   ) {
     return this.transactionsService.refundTransaction(req.user.sub, id);
-  }
-
-  @Get('pending-releases')
-  async getPendingReleases() {
-    return this.transactionsService.getPendingReleaseTransactions();
-  }
-
-  @Get('financial-summary')
-  async getFinancialSummary(
-    @Request() req: RequestWithUsers,
-    @Query('period') period?: 'day' | 'week' | 'month',
-  ) {
-    return this.transactionsService.getFinancialSummary(req.user.sub, period);
   }
 
   @Patch(':id/release')

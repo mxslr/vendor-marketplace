@@ -725,27 +725,24 @@ Content-Type: application/json
 
 ### FLOW H — Sengketa (Dispute)
 
-> Sengketa hanya bisa dibuka oleh Validator/Super Admin. Client/Merchant harus lapor ke CS via Instagram DM terlebih dahulu.
+> Sengketa dibuka langsung oleh Client melalui aplikasi dengan melampirkan bukti.
 
-#### H1. Validator Buka Tiket Sengketa
+#### H1. Client Buka Tiket Sengketa
 
 ```
 POST /disputes
-Authorization: Bearer <token_validator>
-Content-Type: application/json
+Authorization: Bearer <token_client>
+Content-Type: multipart/form-data
 ```
 
-```json
-{
-  "orderId": 1,
-  "reason": "Client melaporkan hasil tidak sesuai spesifikasi. Terlampir bukti percakapan dan file deliverable.",
-  "evidenceUrls": "https://drive.google.com/bukti-sengketa.png"
-}
-```
+Gunakan **form-data** pada body request di Postman dengan parameter:
+*   `orderId`: ID Pesanan (number)
+*   `reason`: Alasan sengketa (string)
+*   `file` (tipe: File): File bukti sengketa (wajib, max 5MB, format jpg/jpeg/png/pdf)
 
-**Expected:** Status order → `DISPUTE_IN_PROGRESS`. Deadline order dibekukan.
+**Expected:** File bukti sengketa diunggah ke Supabase Storage (bucket `merchant-assets`). Status order → `DISPUTE_IN_PROGRESS`. Deadline order dibekukan.
 
-> Client/Merchant yang mencoba buka dispute langsung akan mendapat `403 Forbidden`.
+> Pengguna dengan role selain CLIENT yang mencoba membuka tiket sengketa akan mendapat `403 Forbidden`.
 
 #### H2. Validator Submit Verdict (Tahap 1 — Simpan Keputusan)
 
@@ -1384,7 +1381,6 @@ Semua endpoint menggunakan prefix `/api/v1`.
 | GET | `/orders/:id` | Ya (Client/Owner/Associate) | Detail order — otorisasi: client pemesan, merchant owner, atau associate (`MANAGE_ORDERS`/`FULL_ACCESS`). Include `deliverables` dan `client` data |
 | POST | `/orders/:id/initiate-payment` | Ya (Client) | Inisiasi pembayaran Midtrans → dapat `snapToken` |
 | POST | `/orders/:id/upload-payment-proof` | Ya (Client) | Upload bukti transfer manual (multipart) |
-| PATCH | `/orders/:id/pay` | Ya (Client) | Submit proof URL (alternatif upload) |
 | PATCH | `/orders/:id/accept` | Ya (Merchant/Associate) | Merchant terima order |
 | PATCH | `/orders/:id/decline` | Ya (Merchant/Associate) | Merchant tolak order → `REFUNDED` |
 | PATCH | `/orders/:id/complete` | Ya (Client) | Client terima hasil → `COMPLETED` |
@@ -1448,7 +1444,7 @@ Semua endpoint menggunakan prefix `/api/v1`.
 
 | Method | Endpoint | Auth | Keterangan |
 |---|---|---|---|
-| POST | `/disputes` | Ya (Validator/SA) | Buka tiket sengketa |
+| POST | `/disputes` | Ya (Client) | Buka tiket sengketa dengan bukti (multipart) |
 | PATCH | `/disputes/:id/resolve` | Ya (Admin) | Resolve dispute (endpoint lama) |
 
 ### Appeals

@@ -1,16 +1,22 @@
 import {
   Controller,
   Post,
-  Patch,
   Body,
-  Param,
   UseGuards,
   Request,
-  ForbiddenException,
+  UseInterceptors,
+  UploadedFile,
+  ParseFilePipe,
+  MaxFileSizeValidator,
+  FileTypeValidator,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { DisputesService } from './disputes.service';
 import { AuthGuard } from '../auth/auth.guard';
 import { OpenDisputesDto } from './dto/open-disputes.dto';
+import { Role } from '@prisma/client';
+import { RolesGuard } from 'src/auth/roles.guard';
+import { Roles } from 'src/auth/roles.decorator';
 
 interface RequestWithUser extends Request {
   user: {
@@ -23,20 +29,32 @@ interface RequestWithUser extends Request {
 export class DisputesController {
   constructor(private disputesService: DisputesService) {}
 
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(Role.CLIENT)
   @Post()
-  openDispute(@Request() req: RequestWithUser, @Body() body: OpenDisputesDto) {
-    const allowedRoles = ['ADMIN_VALIDATOR', 'SUPER_ADMIN'];
-    if (!allowedRoles.includes(req.user.role)) {
-      throw new ForbiddenException(
-        'Hanya Admin Validator atau Super Admin yang dapat membuka tiket sengketa.',
-      );
-    }
+  @UseInterceptors(FileInterceptor('file'))
+  async openDispute(
+    @Request() req: RequestWithUser,
+    @Body() body: OpenDisputesDto,
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({
+            maxSize: 1024 * 1024 * 5,
+            message: 'Ukuran file bukti maksimal 5MB',
+          }),
+          new FileTypeValidator({ fileType: /(jpg|jpeg|png|pdf)$/ }),
+        ],
+        fileIsRequired: false,
+      }),
+    )
+    file?: Express.Multer.File,
+  ) {
     return this.disputesService.openDispute(
       req.user.sub,
       body.orderId,
       body.reason,
-      body.evidenceUrls,
+      file,
     );
   }
 }

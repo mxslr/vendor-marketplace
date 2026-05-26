@@ -21,7 +21,10 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @Post('login')
   async signIn(@Body() loginDto: LoginDto, @Req() req: ExpressRequest) {
-    const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ?? req.socket.remoteAddress ?? 'unknown';
+    const ip =
+      (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ??
+      req.socket.remoteAddress ??
+      'unknown';
     const result = await this.authService.signIn(loginDto, ip);
     return {
       status: 'success',
@@ -33,7 +36,10 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @Post('admin/login')
   async adminSignIn(@Body() loginDto: LoginDto, @Req() req: ExpressRequest) {
-    const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ?? req.socket.remoteAddress ?? 'unknown';
+    const ip =
+      (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ??
+      req.socket.remoteAddress ??
+      'unknown';
     const result = await this.authService.adminSignIn(loginDto, ip);
     return {
       status: 'success',

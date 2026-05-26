@@ -1,4 +1,9 @@
-import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  ForbiddenException,
+  Injectable,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Role } from '@prisma/client';
 import { ROLES_KEY } from './roles.decorator';
@@ -16,8 +21,10 @@ export class RolesGuard implements CanActivate {
     if (!requiredRoles || requiredRoles.length === 0) return true;
 
     const { user } = context.switchToHttp().getRequest();
-    if (!user || !requiredRoles.includes(user.role)) {
-      throw new ForbiddenException('Akses ditolak.');
+    const hasRole = requiredRoles.some((role) => user?.roles?.includes(role));
+
+    if (!hasRole) {
+      throw new ForbiddenException('Anda tidak memiliki akses ke halaman ini.');
     }
     return true;
   }

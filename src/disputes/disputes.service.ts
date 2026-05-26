@@ -2,20 +2,23 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
-  ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { OrderStatus, DisputeStatus, Role } from '@prisma/client';
+import { OrderStatus, DisputeStatus } from '@prisma/client';
+import { SupabaseService } from '../supabase/supabase.service';
 
 @Injectable()
 export class DisputesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private supabase: SupabaseService,
+  ) {}
 
   async openDispute(
     clientId: number,
     orderId: number,
     reason: string,
-    evidenceUrls?: string,
+    file?: Express.Multer.File,
   ) {
     const order = await this.prisma.order.findFirst({
       where: { id: orderId, clientId: clientId },
@@ -40,12 +43,17 @@ export class DisputesService {
     if (existingDispute)
       throw new BadRequestException('Sengketa untuk pesanan ini sudah dibuka.');
 
+    if (!file) {
+      throw new BadRequestException('Bukti sengketa wajib diunggah.');
+    }
+    const url = await this.supabase.uploadFile(file, 'merchant-assets');
+
     return this.prisma.$transaction(async (prisma) => {
       const dispute = await prisma.dispute.create({
         data: {
           orderId: order.id,
           reason: reason,
-          evidenceUrls: evidenceUrls,
+          evidenceUrls: url,
           status: DisputeStatus.OPEN,
         },
       });

@@ -22,6 +22,7 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { MidtransService } from '../midtrans/midtrans.service';
 import { SupabaseService } from '../supabase/supabase.service';
 import { SystemConfigService } from '../system-config/system-config.service';
+import { PostRevisionDto } from './dto/post-revision.dto';
 
 @Injectable()
 export class OrdersService {
@@ -139,52 +140,6 @@ export class OrdersService {
     });
   }
 
-  async payOrder(orderId: number, clientId: number, proofUrl?: string) {
-    const order = await this.prisma.order.findFirst({
-      where: { id: orderId, clientId: clientId },
-    });
-
-    if (!order) {
-      throw new NotFoundException('Pesanan tidak ditemukan.');
-    }
-    if (order.status !== OrderStatus.UNPAID) {
-      throw new BadRequestException('Pesanan ini sudah dibayar atau diproses.');
-    }
-
-    return this.prisma.$transaction(async (prisma) => {
-      const updatedOrder = await prisma.order.update({
-        where: { id: orderId },
-        data: { status: OrderStatus.PAID_PENDING_CONFIRMATION },
-      });
-
-      const newTransaction = await prisma.transaction.create({
-        data: {
-          orderId: order.id,
-          userId: clientId,
-          type: TransactionType.PAYMENT,
-          amount: order.totalAmount,
-          status: TransactionStatus.PENDING,
-          proofUrl: proofUrl ?? null,
-        },
-      });
-
-      // NOT-03: notify Finance Admins of new pending payment
-      await this.notifications.createForRole(
-        Role.ADMIN_FINANCE,
-        NotificationType.PAYMENT_PENDING,
-        'Pembayaran Manual Menunggu Konfirmasi',
-        `Pesanan #${order.id} menunggu verifikasi bukti transfer.`,
-        JSON.stringify({ orderId: order.id }),
-      );
-
-      return {
-        message: 'Pembayaran berhasil, menunggu konfirmasi Finance.',
-        order: updatedOrder,
-        transaction: newTransaction,
-      };
-    });
-  }
-
   async getIncomingOrders(userId: number) {
     const myMerchant = await this.prisma.merchant.findFirst({
       where: {
@@ -298,6 +253,52 @@ export class OrdersService {
     });
   }
 
+  async requestRevision(
+    orderId: number,
+    clientId: number,
+    revisionNote: string,
+  ) {
+    const order = await this.prisma.order.findFirst({
+      where: { id: orderId, clientId },
+    });
+
+    if (!order) {
+      throw new NotFoundException(
+        'Pesanan tidak ditemukan atau bukan milik Anda.',
+      );
+    }
+
+    if (order.status !== OrderStatus.DELIVERED) {
+      throw new BadRequestException(
+        'Revisi hanya bisa diajukan saat pesanan sudah dikirim oleh vendor.',
+      );
+    }
+
+    return this.prisma.$transaction(async (prisma) => {
+      const updatedOrder = await prisma.order.update({
+        where: { id: orderId },
+        data: { status: OrderStatus.IN_REVISION },
+      });
+
+      // Notify merchant about revision request
+      const merchant = await prisma.merchant.findUnique({
+        where: { id: order.merchantId },
+      });
+
+      if (merchant) {
+        await this.notifications.create(
+          merchant.userId,
+          NotificationType.REVISION_REQUESTED,
+          'Permintaan Revisi dari Client',
+          `Client mengajukan revisi untuk pesanan #${order.id}. Catatan: ${revisionNote}`,
+          JSON.stringify({ orderId: order.id, revisionNote }),
+        );
+      }
+
+      return updatedOrder;
+    });
+  }
+
   async declineOrder(orderId: number, userId: number) {
     const myMerchant = await this.prisma.merchant.findFirst({
       where: {
@@ -389,8 +390,41 @@ export class OrdersService {
       );
     }
 
-    const url = await this.supabase.uploadFile(file, 'payment-proofs');
-    return this.payOrder(orderId, clientId, url);
+    if (!file) throw new BadRequestException('Bukti transfer wajib diunggah.');
+    const url = await this.supabase.uploadFile(file, 'merchant-assets');
+
+    return this.prisma.$transaction(async (prisma) => {
+      const updatedOrder = await prisma.order.update({
+        where: { id: orderId },
+        data: { status: OrderStatus.PAID_PENDING_CONFIRMATION },
+      });
+
+      const newTransaction = await prisma.transaction.create({
+        data: {
+          orderId: order.id,
+          userId: clientId,
+          type: TransactionType.PAYMENT,
+          amount: order.totalAmount,
+          status: TransactionStatus.PENDING,
+          proofUrl: url,
+        },
+      });
+
+      // NOT-03: notify Finance Admins of new pending payment
+      await this.notifications.createForRole(
+        Role.ADMIN_FINANCE,
+        NotificationType.PAYMENT_PENDING,
+        'Pembayaran Manual Menunggu Konfirmasi',
+        `Pesanan #${order.id} menunggu verifikasi bukti transfer.`,
+        JSON.stringify({ orderId: order.id }),
+      );
+
+      return {
+        message: 'Pembayaran berhasil, menunggu konfirmasi Finance.',
+        order: updatedOrder,
+        transaction: newTransaction,
+      };
+    });
   }
 
   private async upgradeBadgeIfEligible(merchantId: number, tx: any) {

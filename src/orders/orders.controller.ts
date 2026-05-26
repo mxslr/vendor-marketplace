@@ -11,13 +11,16 @@ import {
   UseInterceptors,
   UploadedFile,
   Res,
+  ParseFilePipe,
+  MaxFileSizeValidator,
+  FileTypeValidator,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Response } from 'express';
 import { OrdersService } from './orders.service';
 import { InvoiceService } from './invoice.service';
 import { AuthGuard } from '../auth/auth.guard';
-import { PayOrderDto } from './dto/pay-order.dto';
+import { PostRevisionDto } from './dto/post-revision.dto';
 
 interface RequestWithUser extends Request {
   user: {
@@ -39,6 +42,7 @@ export class OrdersController {
     return this.ordersService.createOrder(req.user.sub, body.gigId);
   }
 
+  // Static GET routes MUST be before @Get(':id')
   @UseGuards(AuthGuard)
   @Get('my-orders')
   findMyOrders(@Request() req: RequestWithUser) {
@@ -58,16 +62,6 @@ export class OrdersController {
     @Param('id', ParseIntPipe) id: number,
   ) {
     return this.ordersService.getOrderDetail(id, req.user.sub);
-  }
-
-  @UseGuards(AuthGuard)
-  @Patch(':id/pay')
-  payOrder(
-    @Request() req: RequestWithUser,
-    @Param('id') id: string,
-    @Body() body: PayOrderDto,
-  ) {
-    return this.ordersService.payOrder(Number(id), req.user.sub, body.proofUrl);
   }
 
   @UseGuards(AuthGuard)
@@ -92,6 +86,20 @@ export class OrdersController {
   }
 
   @UseGuards(AuthGuard)
+  @Patch(':id/revision')
+  requestRevision(
+    @Request() req: RequestWithUser,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: PostRevisionDto,
+  ) {
+    return this.ordersService.requestRevision(
+      id,
+      req.user.sub,
+      body.revisionNote,
+    );
+  }
+
+  @UseGuards(AuthGuard)
   @Patch(':id/decline')
   declineOrder(@Request() req: RequestWithUser, @Param('id') id: string) {
     return this.ordersService.declineOrder(Number(id), req.user.sub);
@@ -112,7 +120,18 @@ export class OrdersController {
   uploadPaymentProof(
     @Request() req: RequestWithUser,
     @Param('id', ParseIntPipe) id: number,
-    @UploadedFile() file: any,
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({
+            maxSize: 1024 * 1024 * 5,
+            message: 'Ukuran file maksimal adalah 5MB',
+          }),
+          new FileTypeValidator({ fileType: /(jpg|jpeg|png|pdf)$/ }),
+        ],
+      }),
+    )
+    file: Express.Multer.File,
   ) {
     return this.ordersService.uploadPaymentProof(id, req.user.sub, file);
   }

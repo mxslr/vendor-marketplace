@@ -76,6 +76,16 @@ export class TransactionsService {
     });
   }
 
+  async getDetailTransaction(transactionId: number) {
+    return this.prisma.transaction.findUnique({
+      where: { id: transactionId },
+      include: {
+        user: { select: { fullName: true, email: true } },
+        order: { select: { status: true } },
+      },
+    });
+  }
+
   async verifyTransaction(
     adminId: number,
     transactionId: number,

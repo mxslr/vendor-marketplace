@@ -36,9 +36,13 @@ export class AuthService {
   ) {}
 
   private async checkIpBlock(ip: string): Promise<void> {
-    const record = await (this.prisma as any).loginAttempt.findUnique({ where: { ip } });
+    const record = await (this.prisma as any).loginAttempt.findUnique({
+      where: { ip },
+    });
     if (record?.blockedUntil && record.blockedUntil > new Date()) {
-      const minutesLeft = Math.ceil((record.blockedUntil.getTime() - Date.now()) / 60000);
+      const minutesLeft = Math.ceil(
+        (record.blockedUntil.getTime() - Date.now()) / 60000,
+      );
       throw new HttpException(
         `IP diblokir karena terlalu banyak percobaan login gagal. Coba lagi dalam ${minutesLeft} menit.`,
         429,
@@ -95,12 +99,22 @@ export class AuthService {
 
       await this.resetAttempts(ip);
 
-      const payload = { sub: user.id, email: user.email, fullName: user.fullName, role: user.role };
+      const payload = {
+        sub: user.id,
+        email: user.email,
+        fullName: user.fullName,
+        role: user.role,
+      };
       const token = await this.jwtService.signAsync(payload);
       return {
         access_token: token,
         token_type: 'Bearer',
-        user: { id: user.id, email: user.email, fullName: user.fullName, role: user.role },
+        user: {
+          id: user.id,
+          email: user.email,
+          fullName: user.fullName,
+          role: user.role,
+        },
       };
     } catch (error) {
       if (
@@ -111,7 +125,9 @@ export class AuthService {
         throw error;
       }
       console.error('Admin Login Error:', error);
-      throw new InternalServerErrorException('Terjadi kesalahan pada server saat login');
+      throw new InternalServerErrorException(
+        'Terjadi kesalahan pada server saat login',
+      );
     }
   }
 
@@ -149,18 +165,31 @@ export class AuthService {
         );
       }
 
+
       if (user.isSuspended) {
-        throw new ForbiddenException('Akun anda sedang ditangguhkan. silahkan hubungi admin.');
+        throw new ForbiddenException(
+          'Akun anda sedang ditangguhkan. silahkan hubungi admin.',
+        );
       }
 
       await this.resetAttempts(ip);
 
-      const payload = { sub: user.id, email: user.email, fullName: user.fullName, role: user.role };
+      const payload = {
+        sub: user.id,
+        email: user.email,
+        fullName: user.fullName,
+        role: user.role,
+      };
       const token = await this.jwtService.signAsync(payload);
       return {
         access_token: token,
         token_type: 'Bearer',
-        user: { id: user.id, email: user.email, fullName: user.fullName, role: user.role },
+        user: {
+          id: user.id,
+          email: user.email,
+          fullName: user.fullName,
+          role: user.role,
+        },
       };
     } catch (error) {
       if (
@@ -172,7 +201,9 @@ export class AuthService {
         throw error;
       }
       console.error('Login Error:', error);
-      throw new InternalServerErrorException('Terjadi kesalahan pada server saat login');
+      throw new InternalServerErrorException(
+        'Terjadi kesalahan pada server saat login',
+      );
     }
   }
 }

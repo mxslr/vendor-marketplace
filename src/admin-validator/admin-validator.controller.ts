@@ -10,10 +10,15 @@ import {
   ForbiddenException,
   ParseIntPipe,
 } from '@nestjs/common';
-import { AdminValidatorService, ExecutiveDecisionType } from './admin-validator.service';
+import {
+  AdminValidatorService,
+  ExecutiveDecisionType,
+} from './admin-validator.service';
 import { AuthGuard } from '../auth/auth.guard';
-import { MerchantStatus } from '@prisma/client';
+import { MerchantStatus, Role } from '@prisma/client';
 import { ResolveDisputeDto } from './dto/resolve-disputes.dto';
+import { RolesGuard } from 'src/auth/roles.guard';
+import { Roles } from 'src/auth/roles.decorator';
 
 interface RequestWithUser extends Request {
   user: { sub: number; role: string };
@@ -31,7 +36,8 @@ export class AdminValidatorController {
     }
   }
 
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(Role.ADMIN_VALIDATOR)
   @Get('merchants/pending')
   async getPendingMerchants(@Request() req: RequestWithUser) {
     await this.checkValidatorRole(req.user.role);
@@ -129,9 +135,15 @@ export class AdminValidatorController {
     @Body() body: { decision: ExecutiveDecisionType },
   ) {
     if (req.user.role !== 'SUPER_ADMIN') {
-      throw new ForbiddenException('Hanya Super Admin yang bisa membuat Executive Decision.');
+      throw new ForbiddenException(
+        'Hanya Super Admin yang bisa membuat Executive Decision.',
+      );
     }
-    return this.adminValidatorService.executiveDecision(req.user.sub, id, body.decision);
+    return this.adminValidatorService.executiveDecision(
+      req.user.sub,
+      id,
+      body.decision,
+    );
   }
 
   @UseGuards(AuthGuard)
@@ -142,7 +154,11 @@ export class AdminValidatorController {
     @Body() body: ResolveDisputeDto,
   ) {
     await this.checkValidatorRole(req.user.role);
-    return this.adminValidatorService.submitVerdict(req.user.sub, id, body.decision);
+    return this.adminValidatorService.submitVerdict(
+      req.user.sub,
+      id,
+      body.decision,
+    );
   }
 
   @UseGuards(AuthGuard)

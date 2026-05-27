@@ -20,18 +20,45 @@ export class FeaturedPlacementService {
   // 🟢 MERCHANT
   // =========================
 
-  async createPromote(userId: number, gigId: number, payWithWallet = false) {
+  calculateDurationPrice(durationDays: number): number {
     const basePrice = 50000;
-    const durationDays = 3;
+    const minDurationDays = 3;
+    const extraDaysPrice = 17000;
+
+    if (durationDays < minDurationDays) {
+      throw new BadRequestException(
+        `Durasi minimal untuk featured placement adalah ${minDurationDays} hari.`,
+      );
+    }
+
+    if (durationDays === minDurationDays) {
+      return basePrice;
+    }
+
+    const extraDays = durationDays - minDurationDays;
+    return basePrice + extraDays * extraDaysPrice;
+  }
+
+  async createPromote(
+    userId: number,
+    gigId: number,
+    durationDays: number,
+    payWithWallet = false,
+  ) {
+    const amount = this.calculateDurationPrice(durationDays);
 
     const merchant = await this.prisma.merchant.findUnique({
       where: { userId },
     });
 
     if (!merchant) {
-      const associate = await this.prisma.merchantAssociate.findFirst({ where: { userId } });
+      const associate = await this.prisma.merchantAssociate.findFirst({
+        where: { userId },
+      });
       if (associate) {
-        throw new ForbiddenException('Staf (Associate) tidak diizinkan untuk membeli Featured Placement.');
+        throw new ForbiddenException(
+          'Staf (Associate) tidak diizinkan untuk membeli Featured Placement.',
+        );
       }
       throw new NotFoundException('Toko tidak ditemukan');
     }
@@ -65,13 +92,15 @@ export class FeaturedPlacementService {
     });
 
     if (existing) {
-      throw new BadRequestException('Feature sudah aktif atau sedang berada di tahap verifikasi');
+      throw new BadRequestException(
+        'Feature sudah aktif atau sedang berada di tahap verifikasi',
+      );
     }
 
     if (payWithWallet) {
-      if (merchant.walletBalance.toNumber() < basePrice) {
+      if (merchant.walletBalance.toNumber() < amount) {
         throw new BadRequestException(
-          `Saldo wallet tidak mencukupi. Dibutuhkan Rp ${basePrice}, saldo Anda Rp ${merchant.walletBalance}.`,
+          `Saldo wallet tidak mencukupi. Dibutuhkan Rp ${amount}, saldo Anda Rp ${merchant.walletBalance}.`,
         );
       }
 
@@ -87,7 +116,7 @@ export class FeaturedPlacementService {
       return this.prisma.$transaction(async (prisma) => {
         await prisma.merchant.update({
           where: { id: merchant.id },
-          data: { walletBalance: { decrement: basePrice } },
+          data: { walletBalance: { decrement: amount } },
         });
 
         const placement = await prisma.featuredPlacement.create({
@@ -95,7 +124,7 @@ export class FeaturedPlacementService {
             merchantId: merchant.id,
             gigId,
             durationDays,
-            amount: basePrice,
+            amount,
             status: FeaturedPaymentStatus.ACTIVE,
             startDate: now,
             endDate,
@@ -110,7 +139,10 @@ export class FeaturedPlacementService {
           },
         });
 
-        return { message: 'Featured Placement aktif. Saldo wallet telah dipotong.', placement };
+        return {
+          message: 'Featured Placement aktif. Saldo wallet telah dipotong.',
+          placement,
+        };
       });
     }
 
@@ -119,20 +151,18 @@ export class FeaturedPlacementService {
         merchantId: merchant.id,
         gigId,
         durationDays,
-        amount: basePrice,
+        amount,
         status: FeaturedPaymentStatus.PENDING_VERIFICATION,
       },
     });
   }
 
-  async uploadProof(userId: number,featureId: number, proofUrl: string) {
-
+  async uploadProof(userId: number, featureId: number, proofUrl: string) {
     const merchant = await this.prisma.merchant.findUnique({
       where: { userId },
     });
 
     if (!merchant) throw new NotFoundException('Toko tidak ditemukan');
-
 
     const feature = await this.prisma.featuredPlacement.findUnique({
       where: { id: featureId },
@@ -155,7 +185,6 @@ export class FeaturedPlacementService {
   }
 
   async getMyPromotes(userId: number) {
-
     const merchant = await this.prisma.merchant.findUnique({
       where: { userId },
     });
@@ -163,7 +192,7 @@ export class FeaturedPlacementService {
     if (!merchant) throw new NotFoundException('Toko tidak ditemukan');
 
     return this.prisma.featuredPlacement.findMany({
-      where: { merchantId: merchant.id},
+      where: { merchantId: merchant.id },
       include: { gig: true },
       orderBy: { createdAt: 'desc' },
     });
@@ -181,7 +210,9 @@ export class FeaturedPlacementService {
     if (!feature) throw new NotFoundException('Feature tidak ditemukan');
 
     if (feature.status !== FeaturedPaymentStatus.PENDING_VERIFICATION) {
-      throw new BadRequestException('Feature tidak sedang berada di tahap verifikasi');
+      throw new BadRequestException(
+        'Feature tidak sedang berada di tahap verifikasi',
+      );
     }
 
     if (!feature.proofUrl) {
@@ -227,18 +258,19 @@ export class FeaturedPlacementService {
   }
 
   async rejectFeature(featureId: number) {
+    const feature = await this.prisma.featuredPlacement.findUnique({
+      where: { id: featureId },
+    });
 
-  const feature = await this.prisma.featuredPlacement.findUnique({
-    where: { id: featureId },
-  });
+    if (!feature) {
+      throw new NotFoundException('Feature tidak ditemukan');
+    }
 
-  if (!feature) {
-    throw new NotFoundException('Feature tidak ditemukan');
-  }
-
-  if (feature.status !== FeaturedPaymentStatus.PENDING_VERIFICATION) {
-    throw new BadRequestException('Tidak bisa menolak feature ini karena tidak sedang berada di tahap verifikasi');
-  }
+    if (feature.status !== FeaturedPaymentStatus.PENDING_VERIFICATION) {
+      throw new BadRequestException(
+        'Tidak bisa menolak feature ini karena tidak sedang berada di tahap verifikasi',
+      );
+    }
 
     return this.prisma.featuredPlacement.update({
       where: { id: featureId },
@@ -270,7 +302,7 @@ export class FeaturedPlacementService {
     const now = new Date();
 
     await this.prisma.$transaction([
-       this.prisma.featuredPlacement.updateMany({
+      this.prisma.featuredPlacement.updateMany({
         where: {
           status: FeaturedPaymentStatus.ACTIVE,
           endDate: { lt: now },

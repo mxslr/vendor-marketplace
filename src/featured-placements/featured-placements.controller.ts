@@ -7,7 +7,7 @@ import {
   Request,
   ParseIntPipe,
   UseGuards,
-  ForbiddenException
+  ForbiddenException,
 } from '@nestjs/common';
 import { FeaturedPlacementService } from './featured-placements.service';
 import { CreatePromoteDto, UploadProofDto } from './featured-placements.dto';
@@ -18,7 +18,7 @@ interface RequestWithUsers extends Request {
   user: {
     sub: number;
     role: string;
-  }
+  };
 }
 
 @UseGuards(AuthGuard)
@@ -26,27 +26,37 @@ interface RequestWithUsers extends Request {
 export class FeaturedPlacementController {
   constructor(private readonly service: FeaturedPlacementService) {}
 
-    private checkAdminFinance(role: string) {
-          if (role !== Role.ADMIN_FINANCE ) {
-              throw new ForbiddenException('Hanya admin finance yang memiliki akses');
-          }
-      }
-  
-    private checkMerchant(role: string) {
-          if (role !== Role.MERCHANT_OWNER ) {
-              throw new ForbiddenException('Hanya toko aktif dengan jasa aktif yang boleh melakukan boosting');
-          }
-      }
+  private checkAdminFinance(role: string) {
+    if (role !== Role.ADMIN_FINANCE) {
+      throw new ForbiddenException('Hanya admin finance yang memiliki akses');
+    }
+  }
+
+  private checkMerchant(role: string) {
+    if (role !== Role.MERCHANT_OWNER) {
+      throw new ForbiddenException(
+        'Hanya toko aktif dengan jasa aktif yang boleh melakukan boosting',
+      );
+    }
+  }
 
   @Post('promote')
-  async createPromote(@Request() req: RequestWithUsers, @Body() dto: CreatePromoteDto) {
+  async createPromote(
+    @Request() req: RequestWithUsers,
+    @Body() dto: CreatePromoteDto,
+  ) {
     const userId = req.user.sub;
     await this.checkMerchant(req.user.role);
-    return this.service.createPromote(userId, dto.gigId, dto.payWithWallet ?? false);
+    return this.service.createPromote(
+      userId,
+      dto.gigId,
+      dto.durationDays,
+      dto.payWithWallet ?? false,
+    );
   }
 
   @Post('upload-proof/:id')
- async uploadProof(
+  async uploadProof(
     @Request() req: RequestWithUsers,
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UploadProofDto,
@@ -64,18 +74,23 @@ export class FeaturedPlacementController {
   }
 
   @Post('admin/approve/:id')
-  async approveFeature(@Request() req: RequestWithUsers, @Param('id', ParseIntPipe) id: number) {
+  async approveFeature(
+    @Request() req: RequestWithUsers,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
     await this.checkAdminFinance(req.user.role);
     return this.service.approveFeature(id);
   }
 
   @Post('admin/reject/:id')
-  async rejectFeature(@Request() req: RequestWithUsers, @Param('id', ParseIntPipe) id: number) {
-   await this.checkAdminFinance(req.user.role);
+  async rejectFeature(
+    @Request() req: RequestWithUsers,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    await this.checkAdminFinance(req.user.role);
     return this.service.rejectFeature(id);
   }
 
- 
   @Get('admin/pending')
   async getPendingFeatures(@Request() req: RequestWithUsers) {
     await this.checkAdminFinance(req.user.role);

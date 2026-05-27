@@ -1,7 +1,4 @@
-import {
-  Injectable,
-  InternalServerErrorException,
-} from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'crypto';
@@ -13,13 +10,12 @@ export class SupabaseService {
 
   constructor(private configService: ConfigService) {
     const url = this.configService.get<string>('SUPABASE_URL');
-    const key =
-      this.configService.get<string>('SUPABASE_SERVICE_KEY') ??
-      this.configService.get<string>('SUPABASE_KEY') ??
-      this.configService.get<string>('SUPABASE_ANON_KEY');
-
+    const key = this.configService.get<string>('SUPABASE_ANON_KEY');
+    this.configService.get<string>('SUPABASE_SERVICE_ROLE_KEY');
     if (!url || !key) {
-      throw new Error('SUPABASE_URL and one of SUPABASE_SERVICE_KEY / SUPABASE_ANON_KEY are required in .env');
+      throw new Error(
+        'SUPABASE_URL and one of SUPABASE_SERVICE_ROLE_KEY / SUPABASE_ANON_KEY are required in .env',
+      );
     }
 
     this.supabase = createClient(url, key);

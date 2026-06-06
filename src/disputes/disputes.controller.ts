@@ -45,7 +45,6 @@ export class DisputesController {
           }),
           new FileTypeValidator({ fileType: /(jpg|jpeg|png|pdf)$/ }),
         ],
-        fileIsRequired: false,
       }),
     )
     file?: Express.Multer.File,

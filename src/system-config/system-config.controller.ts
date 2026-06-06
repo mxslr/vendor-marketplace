@@ -64,6 +64,11 @@ export class SystemConfigController {
     return this.systemConfigService.isMaintenanceMode(req.user.sub);
   }
 
+  @Get('dashboard-overview')
+  async getDashboardOverview(@Request() req: RequestWithUser) {
+    return this.systemConfigService.getDashboardOverview(req.user.sub);
+  }
+
   @Get(':key')
   get(@Param('key') key: string) {
     return this.systemConfigService.get(key);

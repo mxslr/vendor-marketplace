@@ -1058,6 +1058,114 @@ Authorization: Bearer <token_super_admin>
 
 **Expected:** Log semua perubahan config: siapa, kapan, nilai lama, nilai baru.
 
+#### L6. Dashboard Overview
+
+```
+GET /system-config/dashboard-overview
+Authorization: Bearer <token_super_admin>
+```
+
+**Expected response:**
+Informasi performa server, status payment gateway lain, performa admin validator/finance, dan jumlah active sessions secara dinamis.
+```json
+{
+  "serverPerformance": {
+    "platform": "linux",
+    "release": "6.8.0-1008-aws",
+    "arch": "x64",
+    "uptime": {
+      "process": 124.5,
+      "os": 86400
+    },
+    "cpu": {
+      "model": "Intel(R) Xeon(R) Platinum 8259CL CPU @ 2.50GHz",
+      "cores": 4,
+      "speed": 2500,
+      "loadAverage": [0.15, 0.08, 0.05]
+    },
+    "memory": {
+      "totalBytes": 16723484672,
+      "freeBytes": 8345239552,
+      "usedBytes": 8378245120,
+      "usagePercentage": 50.1,
+      "processRssBytes": 68234856,
+      "processHeapTotalBytes": 34567840,
+      "processHeapUsedBytes": 18234856
+    }
+  },
+  "paymentGateways": [
+    {
+      "name": "Midtrans",
+      "status": "UP",
+      "type": "Payment Gateway (Automatic)",
+      "latencyMs": 142,
+      "isConfigured": true
+    },
+    {
+      "name": "Xendit",
+      "status": "DISABLED",
+      "type": "Payment Gateway (Alternative)",
+      "latencyMs": null,
+      "isConfigured": false
+    },
+    {
+      "name": "Stripe",
+      "status": "DISABLED",
+      "type": "Payment Gateway (Global)",
+      "latencyMs": null,
+      "isConfigured": false
+    },
+    {
+      "name": "Manual Transfer",
+      "status": "UP",
+      "type": "Manual Bank Verification",
+      "latencyMs": 0,
+      "isConfigured": true
+    }
+  ],
+  "adminPerformance": [
+    {
+      "id": 2,
+      "email": "validator@test.com",
+      "fullName": "Admin Validator",
+      "role": "ADMIN_VALIDATOR",
+      "isSuspended": false,
+      "createdAt": "2026-05-18T00:00:00.000Z",
+      "metrics": {
+        "disputesResolved": 4,
+        "appealsResolved": 2,
+        "totalTasks": 6
+      }
+    },
+    {
+      "id": 3,
+      "email": "finance@test.com",
+      "fullName": "Finance Admin",
+      "role": "ADMIN_FINANCE",
+      "isSuspended": false,
+      "createdAt": "2026-05-18T00:00:00.000Z",
+      "metrics": {
+        "withdrawalsProcessed": 8,
+        "transactionsVerified": 12,
+        "totalTasks": 20
+      }
+    }
+  ],
+  "activeSessions": {
+    "total": 35,
+    "actualActiveIPs": 1,
+    "breakdown": {
+      "guest": 15,
+      "client": 12,
+      "merchant": 5,
+      "adminValidator": 2,
+      "adminFinance": 1,
+      "superAdmin": 1
+    }
+  }
+}
+```
+
 ---
 
 ### FLOW M — Laporan Keuangan Bulanan
@@ -1476,6 +1584,7 @@ Semua endpoint menggunakan prefix `/api/v1`.
 | GET | `/system-config/midtrans/health` | Ya (Super Admin) | Health check koneksi Midtrans |
 | GET | `/system-config/analytics` | Ya (Super Admin) | Analitik transaksi: GMV, revenue, order per status. Query: `?period=day\|week\|month` |
 | GET | `/system-config/maintenance` | Ya (Super Admin) | Cek status maintenance mode |
+| GET | `/system-config/dashboard-overview` | Ya (Super Admin) | Aggregation data performa server, payment gateway status, active sessions, dan admin validator/finance performance |
 | GET | `/system-config/:key` | Ya (Super Admin) | Nilai konfigurasi by key |
 | PUT | `/system-config/:key` | Ya (Super Admin) | Update konfigurasi (wajib `confirmPassword`) |
 | POST | `/system-config/create-admin` | Ya (Super Admin) | Buat akun Admin Validator atau Admin Finance |

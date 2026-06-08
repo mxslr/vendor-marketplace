@@ -27,6 +27,7 @@ import { AppealsModule } from './appeals/appeals.module';
 import { SystemConfigModule } from './system-config/system-config.module';
 import { MidtransModule } from './midtrans/midtrans.module';
 import { PaymentsModule } from './payments/payments.module';
+import { FinanceModule } from './finance/finance.module';
 @Module({
   imports: [
     PrismaModule,
@@ -43,6 +44,7 @@ import { PaymentsModule } from './payments/payments.module';
     CustomOffersModule,
     CategoriesModule,
     WithdrawalsModule,
+    FinanceModule,
     FeaturedPlacementModule,
     MonthlyReportModule,
     TransactionsModule,

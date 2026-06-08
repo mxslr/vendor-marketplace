@@ -18,7 +18,7 @@ RESTful API dan Sistem Database untuk platform marketplace penyedia jasa kampus 
 2. [Akun Testing (Seed Data)](#2-akun-testing-seed-data)
 3. [Base URL dan Format Request](#3-base-url-dan-format-request)
 4. [Referensi Status Order](#4-referensi-status-order)
-5. [Alur Testing Lengkap (Flow A–N)](#5-alur-testing-lengkap-flow-an)
+5. [Alur Testing Lengkap (Flow A–O)](#5-alur-testing-lengkap-flow-a-o)
 6. [Testing Webhook Midtrans](#6-testing-webhook-midtrans)
 7. [Referensi Endpoint Lengkap](#7-referensi-endpoint-lengkap)
 8. [Troubleshooting Umum](#8-troubleshooting-umum)
@@ -167,7 +167,7 @@ Untuk endpoint upload file, gunakan `Content-Type: multipart/form-data`. Di Post
 
 ---
 
-## 5. Alur Testing Lengkap (Flow A–N)
+## 5. Alur Testing Lengkap (Flow A–O)
 
 Ikuti urutan flow dari A karena flow berikutnya bergantung pada data yang dibuat sebelumnya. Gunakan Postman dan simpan token setiap role ke variable environment Postman untuk kemudahan.
 
@@ -1290,7 +1290,79 @@ Authorization: Bearer <token_merchant>
 | `NEWCOMER` | KYB di-approve |
 | `RISING_STAR` | 5+ order `COMPLETED` |
 | `STAR_VENDOR` | 10+ order `COMPLETED` + rata-rata rating ≥ 4.0 |
-| `SIGNATURE_PARTNER` | 25+ order `COMPLETED` + rata-rata rating ≥ 4.5 |
+| `SIGNATURE_PARTNER` | 25+ order `COMPLETED` | rata-rata rating ≥ 4.5 |
+
+---
+
+### FLOW O — Profil Finance Admin
+
+#### O1. Lihat Profil (Dengan Data Lengkap)
+
+```
+GET /auth/profile
+Authorization: Bearer <token_finance>
+```
+
+**Expected response:**
+```json
+{
+  "sub": 3,
+  "id": 3,
+  "email": "finance@test.com",
+  "fullName": "Finance Admin",
+  "role": "ADMIN_FINANCE",
+  "isSuspended": false,
+  "createdAt": "2026-06-08T00:00:00.000Z"
+}
+```
+
+#### O2. Lihat Riwayat Aktivitas Profil
+
+```
+GET /finance/profile/activity-log
+Authorization: Bearer <token_finance>
+```
+
+**Expected response:**
+```json
+[
+  {
+    "id": 1,
+    "action": "VERIFY_PAYMENT",
+    "key": "transaction_id",
+    "newValue": "PAY-99201",
+    "createdAt": "2026-03-24T07:00:00.000Z"
+  }
+]
+```
+
+#### O3. Edit Profil Finance Admin (Opsional)
+
+```
+PATCH /finance/profile
+Authorization: Bearer <token_finance>
+Content-Type: application/json
+```
+
+```json
+{
+  "fullName": "Finance Admin Baru",
+  "email": "finance_baru@test.com"
+}
+```
+
+**Expected response:**
+```json
+{
+  "sub": 3,
+  "id": 3,
+  "email": "finance_baru@test.com",
+  "fullName": "Finance Admin Baru",
+  "role": "ADMIN_FINANCE",
+  "isSuspended": false,
+  "createdAt": "2026-06-08T00:00:00.000Z"
+}
+```
 
 ---
 
@@ -1603,6 +1675,13 @@ Semua endpoint menggunakan prefix `/api/v1`.
 | POST | `/monthly-reports/:id/upload-proof` | Ya (Finance) | Upload bukti transfer dividen (hanya `LOCKED`) |
 | GET | `/monthly-reports` | Ya (Finance) | Semua laporan |
 | GET | `/monthly-reports/:id` | Ya (Finance) | Detail laporan |
+
+### Finance Admin Profile
+
+| Method | Endpoint | Auth | Keterangan |
+|---|---|---|---|
+| GET | `/finance/profile/activity-log` | Ya (Finance) | Mengambil riwayat aktivitas (AuditLog) milik Finance Admin |
+| PATCH | `/finance/profile` | Ya (Finance) | Memperbarui profil (fullName, email) Finance Admin |
 
 ### Notifications
 

@@ -21,15 +21,15 @@ describe('FeaturedPlacementController', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [FeaturedPlacementController],
-      providers: [
-        { provide: FeaturedPlacementService, useValue: service },
-      ],
+      providers: [{ provide: FeaturedPlacementService, useValue: service }],
     })
-    .overrideGuard(AuthGuard)
-    .useValue({ canActivate: jest.fn(() => true) })
-    .compile();
+      .overrideGuard(AuthGuard)
+      .useValue({ canActivate: jest.fn(() => true) })
+      .compile();
 
-    controller = module.get<FeaturedPlacementController>(FeaturedPlacementController);
+    controller = module.get<FeaturedPlacementController>(
+      FeaturedPlacementController,
+    );
   });
 
   it('should be defined', () => {
@@ -37,20 +37,25 @@ describe('FeaturedPlacementController', () => {
   });
 
   const mockAdminReq = { user: { sub: 1, role: Role.ADMIN_FINANCE } } as any;
-  const mockMerchantReq = { user: { sub: 2, role: Role.MERCHANT_OWNER } } as any;
+  const mockMerchantReq = {
+    user: { sub: 2, role: Role.MERCHANT_OWNER },
+  } as any;
   const mockUserReq = { user: { sub: 3, role: Role.USER } } as any;
 
   describe('createPromote', () => {
     it('should call service for valid merchant', async () => {
       service.createPromote.mockResolvedValue({ id: 1 } as any);
-      const res = await controller.createPromote(mockMerchantReq, { gigId: 10 });
+      const res = await controller.createPromote(mockMerchantReq, {
+        gigId: 10,
+      });
       expect(service.createPromote).toHaveBeenCalledWith(2, 10);
       expect(res).toEqual({ id: 1 });
     });
 
     it('should throw Forbidden for non-merchant', async () => {
-      await expect(controller.createPromote(mockUserReq, { gigId: 10 }))
-        .rejects.toThrow(ForbiddenException);
+      await expect(
+        controller.createPromote(mockUserReq, { gigId: 10 }),
+      ).rejects.toThrow(ForbiddenException);
     });
   });
 
@@ -86,12 +91,15 @@ describe('FeaturedPlacementController', () => {
     });
 
     it('should throw Forbidden for non-admin', async () => {
-      await expect(controller.approveFeature(mockMerchantReq, 1))
-        .rejects.toThrow(ForbiddenException);
-      await expect(controller.rejectFeature(mockMerchantReq, 1))
-        .rejects.toThrow(ForbiddenException);
-      await expect(controller.getPendingFeatures(mockMerchantReq))
-        .rejects.toThrow(ForbiddenException);
+      await expect(
+        controller.approveFeature(mockMerchantReq, 1),
+      ).rejects.toThrow(ForbiddenException);
+      await expect(
+        controller.rejectFeature(mockMerchantReq, 1),
+      ).rejects.toThrow(ForbiddenException);
+      await expect(
+        controller.getPendingFeatures(mockMerchantReq),
+      ).rejects.toThrow(ForbiddenException);
     });
   });
 });

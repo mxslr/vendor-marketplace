@@ -1,4 +1,15 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, ParseIntPipe, Request } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+  ParseIntPipe,
+  Request,
+} from '@nestjs/common';
 import { CategoriesService } from './categories.service';
 import { AuthGuard } from '../auth/auth.guard';
 
@@ -15,7 +26,10 @@ export class CategoriesController {
 
   @Post()
   @UseGuards(AuthGuard)
-  async create(@Request() req: RequestWithUsers, @Body() body: { name: string; commissionRate: number }) {
+  async create(
+    @Request() req: RequestWithUsers,
+    @Body() body: { name: string; commissionRate: number },
+  ) {
     return this.categoriesService.create(req.user.sub, body);
   }
 
@@ -41,7 +55,10 @@ export class CategoriesController {
 
   @Delete(':id')
   @UseGuards(AuthGuard)
-  async remove(@Request() req: RequestWithUsers, @Param('id', ParseIntPipe) id: number) {
+  async remove(
+    @Request() req: RequestWithUsers,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
     return this.categoriesService.remove(req.user.sub, id);
   }
 }

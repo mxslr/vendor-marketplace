@@ -8,7 +8,12 @@ import { SupabaseModule } from '../supabase/supabase.module';
 import { SystemConfigModule } from '../system-config/system-config.module';
 
 @Module({
-  imports: [AuthModule, NotificationsModule, SupabaseModule, SystemConfigModule],
+  imports: [
+    AuthModule,
+    NotificationsModule,
+    SupabaseModule,
+    SystemConfigModule,
+  ],
   providers: [OrdersService, InvoiceService],
   controllers: [OrdersController],
 })

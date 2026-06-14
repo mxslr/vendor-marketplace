@@ -4,7 +4,11 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { NotificationType, OrderStatus, AssociatePermission } from '@prisma/client';
+import {
+  NotificationType,
+  OrderStatus,
+  AssociatePermission,
+} from '@prisma/client';
 import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()

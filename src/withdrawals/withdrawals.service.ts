@@ -6,7 +6,12 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
-import { NotificationType, OrderStatus, Role, WithdrawalStatus } from '@prisma/client';
+import {
+  NotificationType,
+  OrderStatus,
+  Role,
+  WithdrawalStatus,
+} from '@prisma/client';
 import { CreateWithdrawalDto, CompleteWithdrawalDto } from './withdrawals.dto';
 import { NotificationsService } from '../notifications/notifications.service';
 
@@ -20,11 +25,17 @@ export class WithdrawalsService {
   ) {}
 
   private async getMerchant(userId: number) {
-    const merchant = await this.prisma.merchant.findUnique({ where: { userId } });
+    const merchant = await this.prisma.merchant.findUnique({
+      where: { userId },
+    });
     if (!merchant) {
-      const associate = await this.prisma.merchantAssociate.findFirst({ where: { userId } });
+      const associate = await this.prisma.merchantAssociate.findFirst({
+        where: { userId },
+      });
       if (associate) {
-        throw new ForbiddenException('Staf (Associate) tidak diizinkan untuk melakukan penarikan dana.');
+        throw new ForbiddenException(
+          'Staf (Associate) tidak diizinkan untuk melakukan penarikan dana.',
+        );
       }
       throw new ForbiddenException(
         'Akses ditolak. Hanya pemilik merchant yang dapat melakukan penarikan.',
@@ -37,7 +48,9 @@ export class WithdrawalsService {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     const allowedRoles = [Role.SUPER_ADMIN, Role.ADMIN_FINANCE] as const;
     if (!user || !allowedRoles.includes(user.role as any)) {
-      throw new ForbiddenException('Akses ditolak. Hanya Finance Admin yang dapat mengakses ini.');
+      throw new ForbiddenException(
+        'Akses ditolak. Hanya Finance Admin yang dapat mengakses ini.',
+      );
     }
     return user;
   }
@@ -51,7 +64,9 @@ export class WithdrawalsService {
     });
 
     if (!bankAccount || bankAccount.merchantId !== merchantId) {
-      throw new NotFoundException('Rekening bank tidak ditemukan atau bukan milik Anda.');
+      throw new NotFoundException(
+        'Rekening bank tidak ditemukan atau bukan milik Anda.',
+      );
     }
 
     const activeDispute = await this.prisma.order.findFirst({
@@ -67,7 +82,9 @@ export class WithdrawalsService {
     }
 
     if (!merchant.withdrawalPin) {
-      throw new BadRequestException('PIN penarikan belum diatur. Silakan set PIN terlebih dahulu di profil merchant.');
+      throw new BadRequestException(
+        'PIN penarikan belum diatur. Silakan set PIN terlebih dahulu di profil merchant.',
+      );
     }
 
     const pinValid = await bcrypt.compare(dto.pin, merchant.withdrawalPin);
@@ -76,11 +93,15 @@ export class WithdrawalsService {
     }
 
     if (dto.amount < MIN_WITHDRAWAL_AMOUNT) {
-      throw new BadRequestException(`Jumlah penarikan minimal adalah Rp ${MIN_WITHDRAWAL_AMOUNT}.`);
+      throw new BadRequestException(
+        `Jumlah penarikan minimal adalah Rp ${MIN_WITHDRAWAL_AMOUNT}.`,
+      );
     }
 
     if (merchant.walletBalance.toNumber() < dto.amount) {
-      throw new BadRequestException('Saldo wallet tidak mencukupi untuk penarikan ini.');
+      throw new BadRequestException(
+        'Saldo wallet tidak mencukupi untuk penarikan ini.',
+      );
     }
 
     return this.prisma.$transaction(async (prisma) => {
@@ -126,7 +147,11 @@ export class WithdrawalsService {
     });
   }
 
-  async completeWithdrawal(adminId: number, withdrawalId: number, dto: CompleteWithdrawalDto) {
+  async completeWithdrawal(
+    adminId: number,
+    withdrawalId: number,
+    dto: CompleteWithdrawalDto,
+  ) {
     await this.checkAdminRole(adminId);
 
     const withdrawal = await this.prisma.withdrawal.findUnique({
@@ -137,7 +162,9 @@ export class WithdrawalsService {
       throw new NotFoundException('Permintaan penarikan tidak ditemukan.');
     }
     if (withdrawal.status !== WithdrawalStatus.PENDING) {
-      throw new BadRequestException('Hanya permintaan dengan status PENDING yang dapat diproses.');
+      throw new BadRequestException(
+        'Hanya permintaan dengan status PENDING yang dapat diproses.',
+      );
     }
 
     return this.prisma.$transaction(async (prisma) => {
@@ -187,7 +214,9 @@ export class WithdrawalsService {
       throw new NotFoundException('Permintaan penarikan tidak ditemukan.');
     }
     if (withdrawal.status !== WithdrawalStatus.PENDING) {
-      throw new BadRequestException('Hanya permintaan dengan status PENDING yang dapat ditolak.');
+      throw new BadRequestException(
+        'Hanya permintaan dengan status PENDING yang dapat ditolak.',
+      );
     }
 
     return this.prisma.$transaction(async (prisma) => {

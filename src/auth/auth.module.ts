@@ -10,7 +10,9 @@ import { PrismaModule } from '../prisma/prisma.module';
 
 @Module({
   imports: [
-    UsersModule, ConfigModule, PrismaModule,
+    UsersModule,
+    ConfigModule,
+    PrismaModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -23,6 +25,6 @@ import { PrismaModule } from '../prisma/prisma.module';
   ],
   controllers: [AuthController],
   providers: [AuthService, AuthGuard, RolesGuard],
-  exports: [AuthService, JwtModule, RolesGuard]
+  exports: [AuthService, JwtModule, RolesGuard],
 })
 export class AuthModule {}

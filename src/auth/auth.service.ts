@@ -94,7 +94,9 @@ export class AuthService {
         user.role !== Role.ADMIN_FINANCE
       ) {
         await this.recordFailedAttempt(ip);
-        throw new ForbiddenException('Akses ditolak. Endpoint ini hanya untuk Admin.');
+        throw new ForbiddenException(
+          'Akses ditolak. Endpoint ini hanya untuk Admin.',
+        );
       }
 
       await this.resetAttempts(ip);
@@ -159,12 +161,14 @@ export class AuthService {
       const maintenanceConfig = await this.prisma.systemConfig.findUnique({
         where: { key: 'maintenance_mode' },
       });
-      if (maintenanceConfig?.value === 'true' && (user.role as any) !== Role.SUPER_ADMIN) {
+      if (
+        maintenanceConfig?.value === 'true' &&
+        (user.role as any) !== Role.SUPER_ADMIN
+      ) {
         throw new ServiceUnavailableException(
           'Sistem sedang dalam pemeliharaan. Silakan coba lagi nanti.',
         );
       }
-
 
       if (user.isSuspended) {
         throw new ForbiddenException(

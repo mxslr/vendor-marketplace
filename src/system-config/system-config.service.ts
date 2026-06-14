@@ -231,7 +231,7 @@ export class SystemConfigService {
     try {
       const response = await axios.get(
         'https://api.midtrans.com/v2/status/transaction/123',
-        { timeout: 3000 }
+        { timeout: 3000 },
       );
       return response.data;
     } catch (error) {
@@ -300,9 +300,9 @@ export class SystemConfigService {
       startDate,
       endDate: now,
       revenue: {
-        gmv: totalGmv,                          // Total omzet kotor
-        platformRevenue: totalAdminFee,          // Pendapatan platform (komisi)
-        merchantPayout: totalNetPayout,          // Total yang dibayar ke merchant
+        gmv: totalGmv, // Total omzet kotor
+        platformRevenue: totalAdminFee, // Pendapatan platform (komisi)
+        merchantPayout: totalNetPayout, // Total yang dibayar ke merchant
         completedOrderCount: completedOrders.length,
       },
       ordersByStatus: orderCountByStatus.map((g) => ({
@@ -333,7 +333,8 @@ export class SystemConfigService {
     const totalmem = os.totalmem();
     const freemem = os.freemem();
     const usedmem = totalmem - freemem;
-    const memUsagePercentage = totalmem > 0 ? ((usedmem / totalmem) * 100).toFixed(2) : '0';
+    const memUsagePercentage =
+      totalmem > 0 ? ((usedmem / totalmem) * 100).toFixed(2) : '0';
     const processUptime = process.uptime();
     const osUptime = os.uptime();
     const memoryUsage = process.memoryUsage();
@@ -431,7 +432,10 @@ export class SystemConfigService {
             where: { validatorId: admin.id, status: DisputeStatus.RESOLVED },
           });
           const appealsResolved = await this.prisma.appeal.count({
-            where: { resolvedBy: admin.id, status: { in: ['APPROVED', 'REJECTED'] } },
+            where: {
+              resolvedBy: admin.id,
+              status: { in: ['APPROVED', 'REJECTED'] },
+            },
           });
           metrics = {
             disputesResolved,
@@ -440,10 +444,16 @@ export class SystemConfigService {
           };
         } else if (admin.role === Role.ADMIN_FINANCE) {
           const withdrawalsProcessed = await this.prisma.withdrawal.count({
-            where: { processedBy: admin.id, status: { in: ['COMPLETED', 'REJECTED'] } },
+            where: {
+              processedBy: admin.id,
+              status: { in: ['COMPLETED', 'REJECTED'] },
+            },
           });
           const transactionsVerified = await this.prisma.transaction.count({
-            where: { verifiedBy: admin.id, status: { in: ['VERIFIED', 'REJECTED'] } },
+            where: {
+              verifiedBy: admin.id,
+              status: { in: ['VERIFIED', 'REJECTED'] },
+            },
           });
           metrics = {
             withdrawalsProcessed,

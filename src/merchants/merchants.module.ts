@@ -7,7 +7,12 @@ import { NotificationsModule } from '../notifications/notifications.module';
 import { MerchantAssociatesModule } from '../merchant-associates/merchant-associates.module';
 
 @Module({
-  imports: [AuthModule, SupabaseModule, NotificationsModule, MerchantAssociatesModule],
+  imports: [
+    AuthModule,
+    SupabaseModule,
+    NotificationsModule,
+    MerchantAssociatesModule,
+  ],
   providers: [MerchantsService],
   controllers: [MerchantsController],
 })

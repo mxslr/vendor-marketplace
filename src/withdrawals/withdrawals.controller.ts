@@ -30,19 +30,22 @@ export class WithdrawalsController {
     @Request() req: RequestWithUser,
     @Body() body: CreateWithdrawalDto,
   ) {
-    return this.withdrawalsService.requestWithdrawal(Number(req.user.sub), body);
+    return this.withdrawalsService.requestWithdrawal(
+      Number(req.user.sub),
+      body,
+    );
   }
 
   @Get()
   async findMyWithdrawals(@Request() req: RequestWithUser) {
     return this.withdrawalsService.findMyWithdrawals(Number(req.user.sub));
   }
-  
+
   @Get('pending')
   async findPendingWithdrawals(@Request() req: RequestWithUser) {
     return this.withdrawalsService.findPendingWithdrawals(Number(req.user.sub));
   }
-  
+
   @Get(':id')
   async findWithdrawalById(
     @Request() req: RequestWithUser,
@@ -51,14 +54,17 @@ export class WithdrawalsController {
     return this.withdrawalsService.findWithdrawalById(Number(req.user.sub), id);
   }
 
-
   @Patch(':id/complete')
   async completeWithdrawal(
     @Request() req: RequestWithUser,
     @Param('id', ParseIntPipe) id: number,
     @Body() body: CompleteWithdrawalDto,
   ) {
-    return this.withdrawalsService.completeWithdrawal(Number(req.user.sub), id, body);
+    return this.withdrawalsService.completeWithdrawal(
+      Number(req.user.sub),
+      id,
+      body,
+    );
   }
 
   @Patch(':id/reject')

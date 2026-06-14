@@ -7,6 +7,6 @@ import { AuthModule } from 'src/auth/auth.module';
   imports: [AuthModule],
   providers: [GigsService],
   controllers: [GigsController],
-  exports: [GigsService]
+  exports: [GigsService],
 })
 export class GigsModule {}

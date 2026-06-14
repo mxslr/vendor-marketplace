@@ -7,7 +7,11 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
-import { OrderStatus, FeaturedPaymentStatus, MonthlyReportStatus } from '@prisma/client';
+import {
+  OrderStatus,
+  FeaturedPaymentStatus,
+  MonthlyReportStatus,
+} from '@prisma/client';
 import {
   GenerateReportDto,
   UpdateOperationalCostDto,
@@ -27,7 +31,9 @@ export class MonthlyReportService {
     private config: ConfigService,
   ) {}
 
-  async generateReport(dto: GenerateReportDto): Promise<MonthlyReportResponseDto> {
+  async generateReport(
+    dto: GenerateReportDto,
+  ): Promise<MonthlyReportResponseDto> {
     const { period } = dto;
 
     // Validate period format
@@ -72,7 +78,9 @@ export class MonthlyReportService {
     const adResult = await this.prisma.featuredPlacement.aggregate({
       _sum: { amount: true },
       where: {
-        status: { in: [FeaturedPaymentStatus.ACTIVE, FeaturedPaymentStatus.EXPIRED] },
+        status: {
+          in: [FeaturedPaymentStatus.ACTIVE, FeaturedPaymentStatus.EXPIRED],
+        },
         createdAt: { gte: startDate, lt: endDate },
       },
     });
@@ -108,7 +116,10 @@ export class MonthlyReportService {
     return this.mapToResponse(report);
   }
 
-  async updateOperationalCost(id: number, dto: UpdateOperationalCostDto): Promise<MonthlyReportResponseDto> {
+  async updateOperationalCost(
+    id: number,
+    dto: UpdateOperationalCostDto,
+  ): Promise<MonthlyReportResponseDto> {
     const report = await this.prisma.monthlyReport.findUnique({
       where: { id },
     });
@@ -116,7 +127,9 @@ export class MonthlyReportService {
       throw new NotFoundException('Report not found');
     }
     if (report.status !== MonthlyReportStatus.DRAFT) {
-      throw new BadRequestException('Can only update operational cost for DRAFT reports');
+      throw new BadRequestException(
+        'Can only update operational cost for DRAFT reports',
+      );
     }
 
     const { operationalCost } = dto;
@@ -137,7 +150,10 @@ export class MonthlyReportService {
     return this.mapToResponse(updated);
   }
 
-  async processDividend(id: number, dto: ProcessDividendDto): Promise<MonthlyReportResponseDto> {
+  async processDividend(
+    id: number,
+    dto: ProcessDividendDto,
+  ): Promise<MonthlyReportResponseDto> {
     const report = await this.prisma.monthlyReport.findUnique({
       where: { id },
     });
@@ -145,12 +161,16 @@ export class MonthlyReportService {
       throw new NotFoundException('Report not found');
     }
     if (report.status !== MonthlyReportStatus.DRAFT) {
-      throw new BadRequestException('Can only process dividend for DRAFT reports');
+      throw new BadRequestException(
+        'Can only process dividend for DRAFT reports',
+      );
     }
 
     const { cscPercentage = 60, cciPercentage = 40 } = dto;
     if (cscPercentage + cciPercentage !== 100) {
-      throw new BadRequestException('CSC and CCI percentages must add up to 100');
+      throw new BadRequestException(
+        'CSC and CCI percentages must add up to 100',
+      );
     }
 
     const netProfit = report.netProfit.toNumber();
@@ -170,7 +190,9 @@ export class MonthlyReportService {
   }
 
   async lockReport(id: number): Promise<MonthlyReportResponseDto> {
-    const report = await this.prisma.monthlyReport.findUnique({ where: { id } });
+    const report = await this.prisma.monthlyReport.findUnique({
+      where: { id },
+    });
     if (!report) throw new NotFoundException('Report not found');
     if (report.status !== MonthlyReportStatus.PROCESSED) {
       throw new BadRequestException('Can only lock PROCESSED reports');
@@ -182,9 +204,11 @@ export class MonthlyReportService {
     });
 
     // FIN-05: send dividend PDF report to CSC and CCI heads
-    setImmediate(() => this.sendDividendReport(updated).catch((e) =>
-      this.logger.error('Failed to send dividend email', e),
-    ));
+    setImmediate(() =>
+      this.sendDividendReport(updated).catch((e) =>
+        this.logger.error('Failed to send dividend email', e),
+      ),
+    );
 
     return this.mapToResponse(updated);
   }
@@ -194,7 +218,9 @@ export class MonthlyReportService {
     const cciEmail = this.config.get<string>('CCI_EMAIL');
     const recipients = [cscEmail, cciEmail].filter(Boolean) as string[];
     if (recipients.length === 0) {
-      this.logger.warn('CSC_EMAIL and CCI_EMAIL not configured — dividend email skipped.');
+      this.logger.warn(
+        'CSC_EMAIL and CCI_EMAIL not configured — dividend email skipped.',
+      );
       return;
     }
 
@@ -224,7 +250,9 @@ export class MonthlyReportService {
         <p style="margin-top:16px">Laporan lengkap terlampir dalam format PDF.</p>
         <p style="color:#999;font-size:12px">Dikirim otomatis oleh sistem Vendor Marketplace</p>
       `,
-      attachments: [{ filename, content: pdfBuffer, contentType: 'application/pdf' }],
+      attachments: [
+        { filename, content: pdfBuffer, contentType: 'application/pdf' },
+      ],
     });
   }
 
@@ -247,14 +275,23 @@ export class MonthlyReportService {
         ['Dividen CCI', fmt(Number(report.cciShare))],
       ];
 
-      doc.fontSize(20).font('Helvetica-Bold').text('LAPORAN DIVIDEN', { align: 'center' });
-      doc.fontSize(13).font('Helvetica').text(`Periode: ${report.period}`, { align: 'center' });
+      doc
+        .fontSize(20)
+        .font('Helvetica-Bold')
+        .text('LAPORAN DIVIDEN', { align: 'center' });
+      doc
+        .fontSize(13)
+        .font('Helvetica')
+        .text(`Periode: ${report.period}`, { align: 'center' });
       doc.moveDown();
       doc.moveTo(50, doc.y).lineTo(545, doc.y).strokeColor('#ccc').stroke();
       doc.moveDown(0.5);
 
       rows.forEach(([label, value]) => {
-        doc.fontSize(11).font('Helvetica-Bold').text(label, 50, doc.y, { continued: true, width: 300 });
+        doc
+          .fontSize(11)
+          .font('Helvetica-Bold')
+          .text(label, 50, doc.y, { continued: true, width: 300 });
         doc.font('Helvetica').text(value, { align: 'right' });
         doc.moveDown(0.3);
       });
@@ -262,15 +299,26 @@ export class MonthlyReportService {
       doc.moveDown();
       doc.moveTo(50, doc.y).lineTo(545, doc.y).strokeColor('#ccc').stroke();
       doc.moveDown(0.5);
-      doc.fontSize(9).font('Helvetica').fillColor('#999')
-        .text(`Dokumen ini dikunci pada ${new Date(report.lockedAt).toLocaleDateString('id-ID', { dateStyle: 'long' })}.`, { align: 'center' })
-        .text('Diterbitkan otomatis oleh sistem Vendor Marketplace.', { align: 'center' });
+      doc
+        .fontSize(9)
+        .font('Helvetica')
+        .fillColor('#999')
+        .text(
+          `Dokumen ini dikunci pada ${new Date(report.lockedAt).toLocaleDateString('id-ID', { dateStyle: 'long' })}.`,
+          { align: 'center' },
+        )
+        .text('Diterbitkan otomatis oleh sistem Vendor Marketplace.', {
+          align: 'center',
+        });
 
       doc.end();
     });
   }
 
-  async uploadProof(id: number, dto: UploadProofDto): Promise<MonthlyReportResponseDto> {
+  async uploadProof(
+    id: number,
+    dto: UploadProofDto,
+  ): Promise<MonthlyReportResponseDto> {
     const report = await this.prisma.monthlyReport.findUnique({
       where: { id },
     });
@@ -278,7 +326,9 @@ export class MonthlyReportService {
       throw new NotFoundException('Report not found');
     }
     if (report.status !== MonthlyReportStatus.LOCKED) {
-      throw new BadRequestException('Bukti transfer hanya bisa diupload setelah laporan dikunci (LOCKED).');
+      throw new BadRequestException(
+        'Bukti transfer hanya bisa diupload setelah laporan dikunci (LOCKED).',
+      );
     }
 
     const updated = await this.prisma.monthlyReport.update({

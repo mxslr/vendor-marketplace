@@ -16,6 +16,7 @@ import {
 } from '@prisma/client';
 import { DisputeDecision } from './enum/dispute.enum';
 import { NotificationsService } from '../notifications/notifications.service';
+import { GetMerchantsFilterDto } from './dto/get-merchants.dto';
 
 export enum ExecutiveDecisionType {
   FORCE_REFUND = 'FORCE_REFUND',
@@ -43,18 +44,36 @@ export class AdminValidatorService {
     });
   }
 
-  async submitVerdict(adminId: number, disputeId: number, decision: DisputeDecision) {
+  async submitVerdict(
+    adminId: number,
+    disputeId: number,
+    decision: DisputeDecision,
+  ) {
     const admin = await this.prisma.user.findUnique({ where: { id: adminId } });
-    if (!admin || (admin.role !== Role.ADMIN_VALIDATOR && admin.role !== Role.SUPER_ADMIN)) {
+    if (
+      !admin ||
+      (admin.role !== Role.ADMIN_VALIDATOR && admin.role !== Role.SUPER_ADMIN)
+    ) {
       throw new ForbiddenException('Akses ditolak.');
     }
 
-    const dispute = await this.prisma.dispute.findUnique({ where: { id: disputeId } });
-    if (!dispute) throw new NotFoundException('Tiket sengketa tidak ditemukan.');
-    if (dispute.status !== DisputeStatus.OPEN && dispute.status !== DisputeStatus.UNDER_REVIEW) {
-      throw new BadRequestException('Sengketa ini sudah ditutup atau diputuskan.');
+    const dispute = await this.prisma.dispute.findUnique({
+      where: { id: disputeId },
+    });
+    if (!dispute)
+      throw new NotFoundException('Tiket sengketa tidak ditemukan.');
+    if (
+      dispute.status !== DisputeStatus.OPEN &&
+      dispute.status !== DisputeStatus.UNDER_REVIEW
+    ) {
+      throw new BadRequestException(
+        'Sengketa ini sudah ditutup atau diputuskan.',
+      );
     }
-    if (decision !== DisputeDecision.APPROVE_REFUND && decision !== DisputeDecision.REJECT_COMPLAINT) {
+    if (
+      decision !== DisputeDecision.APPROVE_REFUND &&
+      decision !== DisputeDecision.REJECT_COMPLAINT
+    ) {
       throw new BadRequestException('Keputusan tidak valid.');
     }
 
@@ -68,7 +87,8 @@ export class AdminValidatorService {
     });
 
     return {
-      message: 'Verdict telah disiapkan. Panggil confirm-verdict untuk mengeksekusi.',
+      message:
+        'Verdict telah disiapkan. Panggil confirm-verdict untuk mengeksekusi.',
       disputeId,
       pendingVerdict: decision,
     };
@@ -76,7 +96,10 @@ export class AdminValidatorService {
 
   async confirmVerdict(adminId: number, disputeId: number) {
     const admin = await this.prisma.user.findUnique({ where: { id: adminId } });
-    if (!admin || (admin.role !== Role.ADMIN_VALIDATOR && admin.role !== Role.SUPER_ADMIN)) {
+    if (
+      !admin ||
+      (admin.role !== Role.ADMIN_VALIDATOR && admin.role !== Role.SUPER_ADMIN)
+    ) {
       throw new ForbiddenException('Akses ditolak.');
     }
 
@@ -84,15 +107,19 @@ export class AdminValidatorService {
       where: { id: disputeId },
       include: { order: true },
     });
-    if (!dispute) throw new NotFoundException('Tiket sengketa tidak ditemukan.');
+    if (!dispute)
+      throw new NotFoundException('Tiket sengketa tidak ditemukan.');
     if (dispute.status !== DisputeStatus.UNDER_REVIEW) {
       throw new BadRequestException(
         'Sengketa tidak dalam status UNDER_REVIEW. Panggil submit-verdict terlebih dahulu.',
       );
     }
-    const pendingVerdict: string | null = (dispute as any).pendingVerdict ?? null;
+    const pendingVerdict: string | null =
+      (dispute as any).pendingVerdict ?? null;
     if (!pendingVerdict) {
-      throw new BadRequestException('Tidak ada verdict yang menunggu konfirmasi.');
+      throw new BadRequestException(
+        'Tidak ada verdict yang menunggu konfirmasi.',
+      );
     }
 
     const decision = pendingVerdict as DisputeDecision;
@@ -202,6 +229,43 @@ export class AdminValidatorService {
     });
   }
 
+  async getMerchants(query: GetMerchantsFilterDto) {
+    const page = query.page ? Number(query.page) : 1;
+    const limit = query.limit ? Number(query.limit) : 10;
+    const status = query.status || 'ALL';
+
+    const skip = (page - 1) * limit;
+    const take = limit;
+
+    const whereClause: any = {};
+    if (status && status !== 'ALL') {
+      whereClause.status = status as MerchantStatus;
+    }
+
+    const [data, total] = await this.prisma.$transaction([
+      this.prisma.merchant.findMany({
+        where: whereClause,
+        skip,
+        take,
+        include: { user: { select: { fullName: true, email: true } } },
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.merchant.count({ where: whereClause }),
+    ]);
+
+    const lastPage = Math.ceil(total / limit);
+
+    return {
+      data,
+      meta: {
+        total,
+        page,
+        lastPage,
+        limit,
+      },
+    };
+  }
+
   async verifyMerchant(
     merchantId: number,
     isApproved: boolean,
@@ -284,10 +348,14 @@ export class AdminValidatorService {
   ) {
     const admin = await this.prisma.user.findUnique({ where: { id: adminId } });
     if (!admin || admin.role !== Role.SUPER_ADMIN) {
-      throw new ForbiddenException('Hanya Super Admin yang bisa membuat Executive Decision.');
+      throw new ForbiddenException(
+        'Hanya Super Admin yang bisa membuat Executive Decision.',
+      );
     }
 
-    const order = await this.prisma.order.findUnique({ where: { id: orderId } });
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+    });
     if (!order) throw new NotFoundException('Pesanan tidak ditemukan.');
     if (order.status !== OrderStatus.DISPUTE_IN_PROGRESS) {
       throw new BadRequestException(
@@ -370,7 +438,9 @@ export class AdminValidatorService {
       const updatedMerchant = await prisma.merchant.update({
         where: { id: merchantId },
         data: {
-          status: isSuspended ? MerchantStatus.SUSPENDED : MerchantStatus.ACTIVE,
+          status: isSuspended
+            ? MerchantStatus.SUSPENDED
+            : MerchantStatus.ACTIVE,
           rejectionReason: isSuspended ? reason : null,
           suspendedUntil: suspendedUntil,
         },

@@ -5,7 +5,12 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { AppealStatus, NotificationType, OrderStatus, Role } from '@prisma/client';
+import {
+  AppealStatus,
+  NotificationType,
+  OrderStatus,
+  Role,
+} from '@prisma/client';
 import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
@@ -16,7 +21,9 @@ export class AppealsService {
   ) {}
 
   async createAppeal(requesterId: number, orderId: number, reason: string) {
-    const order = await this.prisma.order.findUnique({ where: { id: orderId } });
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+    });
     if (!order) throw new NotFoundException('Pesanan tidak ditemukan.');
 
     const isClient = order.clientId === requesterId;
@@ -45,7 +52,9 @@ export class AppealsService {
       where: { orderId, requesterId },
     });
     if (existing) {
-      throw new BadRequestException('Anda sudah mengajukan banding untuk pesanan ini.');
+      throw new BadRequestException(
+        'Anda sudah mengajukan banding untuk pesanan ini.',
+      );
     }
 
     const appeal = await this.prisma.appeal.create({
@@ -67,7 +76,9 @@ export class AppealsService {
   async getAppeals(adminId: number) {
     const admin = await this.prisma.user.findUnique({ where: { id: adminId } });
     if (!admin || admin.role !== Role.SUPER_ADMIN) {
-      throw new ForbiddenException('Hanya Super Admin yang dapat melihat semua banding.');
+      throw new ForbiddenException(
+        'Hanya Super Admin yang dapat melihat semua banding.',
+      );
     }
 
     return this.prisma.appeal.findMany({
@@ -87,12 +98,19 @@ export class AppealsService {
   ) {
     const admin = await this.prisma.user.findUnique({ where: { id: adminId } });
     if (!admin || admin.role !== Role.SUPER_ADMIN) {
-      throw new ForbiddenException('Hanya Super Admin yang dapat memutuskan banding.');
+      throw new ForbiddenException(
+        'Hanya Super Admin yang dapat memutuskan banding.',
+      );
     }
 
-    const appeal = await this.prisma.appeal.findUnique({ where: { id: appealId } });
+    const appeal = await this.prisma.appeal.findUnique({
+      where: { id: appealId },
+    });
     if (!appeal) throw new NotFoundException('Banding tidak ditemukan.');
-    if (appeal.status !== AppealStatus.PENDING && appeal.status !== AppealStatus.UNDER_REVIEW) {
+    if (
+      appeal.status !== AppealStatus.PENDING &&
+      appeal.status !== AppealStatus.UNDER_REVIEW
+    ) {
       throw new BadRequestException('Banding ini sudah diselesaikan.');
     }
 

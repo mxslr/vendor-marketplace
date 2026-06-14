@@ -35,7 +35,9 @@ export class MonthlyReportController {
 
   private checkAdminFinance(role: string) {
     if (role !== Role.ADMIN_FINANCE) {
-      throw new ForbiddenException('Only Finance Admin can access this resource');
+      throw new ForbiddenException(
+        'Only Finance Admin can access this resource',
+      );
     }
   }
 
@@ -88,7 +90,9 @@ export class MonthlyReportController {
   }
 
   @Get()
-  async getReports(@Request() req: RequestWithUser): Promise<MonthlyReportResponseDto[]> {
+  async getReports(
+    @Request() req: RequestWithUser,
+  ): Promise<MonthlyReportResponseDto[]> {
     this.checkAdminFinance(req.user.role);
     return this.service.getReports();
   }

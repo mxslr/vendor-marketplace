@@ -1,4 +1,4 @@
-import { IsEnum, IsNotEmpty, IsString } from 'class-validator';
+import { IsEnum, IsNotEmpty } from 'class-validator';
 import { DisputeDecision } from '../enum/dispute.enum';
 
 export class ResolveDisputeDto {

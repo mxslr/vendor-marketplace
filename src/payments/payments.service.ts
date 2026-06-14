@@ -28,8 +28,13 @@ export class PaymentsService {
     private notifications: NotificationsService,
   ) {}
 
-  async handleMidtransWebhook(payload: MidtransNotificationPayload): Promise<void> {
-    console.log('[Webhook] ▶ Incoming Midtrans payload:', JSON.stringify(payload, null, 2));
+  async handleMidtransWebhook(
+    payload: MidtransNotificationPayload,
+  ): Promise<void> {
+    console.log(
+      '[Webhook] ▶ Incoming Midtrans payload:',
+      JSON.stringify(payload, null, 2),
+    );
 
     // Step 1: Validate signature
     // gross_amount must be a string for correct SHA-512 — coerce in case JSON parser returns a number
@@ -49,7 +54,9 @@ export class PaymentsService {
       );
       return;
     }
-    console.log(`[Webhook] ✓ Signature valid for order_id="${payload.order_id}"`);
+    console.log(
+      `[Webhook] ✓ Signature valid for order_id="${payload.order_id}"`,
+    );
 
     // Step 2: Parse internal order ID from "order-{id}-{timestamp}" format
     const orderIdMatch = payload.order_id.match(/^order-(\d+)/);
@@ -73,7 +80,9 @@ export class PaymentsService {
       console.error(`[Webhook] ✗ Order not found in DB: id=${internalOrderId}`);
       return;
     }
-    console.log(`[Webhook] ✓ Found order id=${order.id} status="${order.status}" midtransTransactionId="${order.midtransTransactionId}"`);
+    console.log(
+      `[Webhook] ✓ Found order id=${order.id} status="${order.status}" midtransTransactionId="${order.midtransTransactionId}"`,
+    );
 
     // Step 4: Idempotency — skip if this transaction_id was already processed
     if (order.midtransTransactionId === payload.transaction_id) {
@@ -111,7 +120,9 @@ export class PaymentsService {
     order: any,
     payload: MidtransNotificationPayload,
   ): Promise<void> {
-    console.log(`[Webhook] processSuccessfulPayment ▶ order ${order.id} status="${order.status}"`);
+    console.log(
+      `[Webhook] processSuccessfulPayment ▶ order ${order.id} status="${order.status}"`,
+    );
 
     if (order.status !== OrderStatus.UNPAID) {
       console.error(
@@ -202,6 +213,8 @@ export class PaymentsService {
       },
     });
 
-    console.log(`[Webhook] ✓ Order ${order.id} → CANCELLED (${payload.transaction_status})`);
+    console.log(
+      `[Webhook] ✓ Order ${order.id} → CANCELLED (${payload.transaction_status})`,
+    );
   }
 }

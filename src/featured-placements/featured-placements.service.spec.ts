@@ -1,7 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { FeaturedPlacementService } from './featured-placements.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import {
+  NotFoundException,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
 import { FeaturedPaymentStatus, FeaturedStatus } from '@prisma/client';
 
 describe('FeaturedPlacementService', () => {
@@ -50,9 +54,14 @@ describe('FeaturedPlacementService', () => {
   describe('createPromote', () => {
     it('should create a promotion successfully', async () => {
       (prisma.merchant.findUnique as jest.Mock).mockResolvedValue({ id: 1 });
-      (prisma.gig.findUnique as jest.Mock).mockResolvedValue({ id: 10, merchantId: 1 });
+      (prisma.gig.findUnique as jest.Mock).mockResolvedValue({
+        id: 10,
+        merchantId: 1,
+      });
       (prisma.featuredPlacement.findFirst as jest.Mock).mockResolvedValue(null);
-      (prisma.featuredPlacement.create as jest.Mock).mockResolvedValue({ id: 100 });
+      (prisma.featuredPlacement.create as jest.Mock).mockResolvedValue({
+        id: 100,
+      });
 
       const res = await service.createPromote(1, 10);
       expect(res).toEqual({ id: 100 });
@@ -69,15 +78,24 @@ describe('FeaturedPlacementService', () => {
 
     it('should throw NotFoundException if merchant not found', async () => {
       (prisma.merchant.findUnique as jest.Mock).mockResolvedValue(null);
-      await expect(service.createPromote(1, 10)).rejects.toThrow(NotFoundException);
+      await expect(service.createPromote(1, 10)).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('should throw BadRequestException if feature already active', async () => {
       (prisma.merchant.findUnique as jest.Mock).mockResolvedValue({ id: 1 });
-      (prisma.gig.findUnique as jest.Mock).mockResolvedValue({ id: 10, merchantId: 1 });
-      (prisma.featuredPlacement.findFirst as jest.Mock).mockResolvedValue({ id: 100 });
+      (prisma.gig.findUnique as jest.Mock).mockResolvedValue({
+        id: 10,
+        merchantId: 1,
+      });
+      (prisma.featuredPlacement.findFirst as jest.Mock).mockResolvedValue({
+        id: 100,
+      });
 
-      await expect(service.createPromote(1, 10)).rejects.toThrow(BadRequestException);
+      await expect(service.createPromote(1, 10)).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 
@@ -85,9 +103,14 @@ describe('FeaturedPlacementService', () => {
     it('should update proofUrl', async () => {
       (prisma.merchant.findUnique as jest.Mock).mockResolvedValue({ id: 1 });
       (prisma.featuredPlacement.findUnique as jest.Mock).mockResolvedValue({
-        id: 100, merchantId: 1, status: FeaturedPaymentStatus.PENDING_VERIFICATION
+        id: 100,
+        merchantId: 1,
+        status: FeaturedPaymentStatus.PENDING_VERIFICATION,
       });
-      (prisma.featuredPlacement.update as jest.Mock).mockResolvedValue({ id: 100, proofUrl: 'url' });
+      (prisma.featuredPlacement.update as jest.Mock).mockResolvedValue({
+        id: 100,
+        proofUrl: 'url',
+      });
 
       const res = await service.uploadProof(1, 100, 'url');
       expect(res).toEqual({ id: 100, proofUrl: 'url' });
@@ -97,7 +120,11 @@ describe('FeaturedPlacementService', () => {
   describe('approveFeature', () => {
     it('should approve feature and update gig', async () => {
       (prisma.featuredPlacement.findUnique as jest.Mock).mockResolvedValue({
-        id: 100, status: FeaturedPaymentStatus.PENDING_VERIFICATION, proofUrl: 'url', gigId: 10, durationDays: 3
+        id: 100,
+        status: FeaturedPaymentStatus.PENDING_VERIFICATION,
+        proofUrl: 'url',
+        gigId: 10,
+        durationDays: 3,
       });
       (prisma.gig.findUnique as jest.Mock).mockResolvedValue({ id: 10 });
 
@@ -110,9 +137,13 @@ describe('FeaturedPlacementService', () => {
   describe('rejectFeature', () => {
     it('should reject feature', async () => {
       (prisma.featuredPlacement.findUnique as jest.Mock).mockResolvedValue({
-        id: 100, status: FeaturedPaymentStatus.PENDING_VERIFICATION
+        id: 100,
+        status: FeaturedPaymentStatus.PENDING_VERIFICATION,
       });
-      (prisma.featuredPlacement.update as jest.Mock).mockResolvedValue({ id: 100, status: FeaturedPaymentStatus.REJECTED });
+      (prisma.featuredPlacement.update as jest.Mock).mockResolvedValue({
+        id: 100,
+        status: FeaturedPaymentStatus.REJECTED,
+      });
 
       const res = await service.rejectFeature(100);
       expect(res).toEqual({ id: 100, status: FeaturedPaymentStatus.REJECTED });

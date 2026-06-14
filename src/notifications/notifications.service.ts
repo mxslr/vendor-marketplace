@@ -6,13 +6,25 @@ import { NotificationType, Role } from '@prisma/client';
 export class NotificationsService {
   constructor(private prisma: PrismaService) {}
 
-  async create(userId: number, type: NotificationType, title: string, message: string, metadata?: string) {
+  async create(
+    userId: number,
+    type: NotificationType,
+    title: string,
+    message: string,
+    metadata?: string,
+  ) {
     return this.prisma.notification.create({
       data: { userId, type, title, message, metadata },
     });
   }
 
-  async createForRole(role: Role, type: NotificationType, title: string, message: string, metadata?: string) {
+  async createForRole(
+    role: Role,
+    type: NotificationType,
+    title: string,
+    message: string,
+    metadata?: string,
+  ) {
     const users = await this.prisma.user.findMany({ where: { role } });
     await Promise.all(
       users.map((u) => this.create(u.id, type, title, message, metadata)),

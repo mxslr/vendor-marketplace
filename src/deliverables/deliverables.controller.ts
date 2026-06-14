@@ -16,10 +16,7 @@ export class DeliverablesController {
 
   @UseGuards(AuthGuard)
   @Post()
-  submit(
-    @Request() req: RequestWithUser,
-    @Body() body: SubmitDeliverableDto,
-  ) {
+  submit(@Request() req: RequestWithUser, @Body() body: SubmitDeliverableDto) {
     return this.deliverablesService.submitDeliverable(
       req.user.sub,
       body.orderId,

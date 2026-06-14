@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Role } from '@prisma/client';
 
@@ -27,7 +31,7 @@ export class CategoriesService {
 
   async findAll() {
     return this.prisma.category.findMany({
-      orderBy: { name: 'asc' }, 
+      orderBy: { name: 'asc' },
     });
   }
 
@@ -36,10 +40,15 @@ export class CategoriesService {
       where: { id },
       include: {
         gigs: {
-          where: { status: 'ACTIVE' }, 
-          select: { id: true, title: true, price: true, merchant: { select: { shopName: true } } }
-        }
-      }
+          where: { status: 'ACTIVE' },
+          select: {
+            id: true,
+            title: true,
+            price: true,
+            merchant: { select: { shopName: true } },
+          },
+        },
+      },
     });
 
     if (!category) {
@@ -48,9 +57,13 @@ export class CategoriesService {
     return category;
   }
 
-  async update(userId: number, id: number, data: { name?: string; commissionRate?: number }) {
+  async update(
+    userId: number,
+    id: number,
+    data: { name?: string; commissionRate?: number },
+  ) {
     await this.checkAdminRole(userId, [Role.SUPER_ADMIN]);
-    await this.findOne(id); 
+    await this.findOne(id);
     return this.prisma.category.update({
       where: { id },
       data,

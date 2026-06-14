@@ -27,13 +27,19 @@ export class AppealsController {
     @Request() req: RequestWithUser,
     @Body() body: { orderId: number; reason: string },
   ) {
-    return this.appealsService.createAppeal(req.user.sub, body.orderId, body.reason);
+    return this.appealsService.createAppeal(
+      req.user.sub,
+      body.orderId,
+      body.reason,
+    );
   }
 
   @Get()
   getAppeals(@Request() req: RequestWithUser) {
     if (req.user.role !== 'SUPER_ADMIN') {
-      throw new ForbiddenException('Hanya Super Admin yang dapat melihat semua banding.');
+      throw new ForbiddenException(
+        'Hanya Super Admin yang dapat melihat semua banding.',
+      );
     }
     return this.appealsService.getAppeals(req.user.sub);
   }
@@ -45,8 +51,15 @@ export class AppealsController {
     @Body() body: { resolution: string; isApproved: boolean },
   ) {
     if (req.user.role !== 'SUPER_ADMIN') {
-      throw new ForbiddenException('Hanya Super Admin yang dapat memutuskan banding.');
+      throw new ForbiddenException(
+        'Hanya Super Admin yang dapat memutuskan banding.',
+      );
     }
-    return this.appealsService.resolveAppeal(req.user.sub, id, body.resolution, body.isApproved);
+    return this.appealsService.resolveAppeal(
+      req.user.sub,
+      id,
+      body.resolution,
+      body.isApproved,
+    );
   }
 }

@@ -1,8 +1,19 @@
-import { IsString, IsNumber, IsOptional, IsNotEmpty, IsUrl, Min, Max, Matches } from 'class-validator';
+import {
+  IsString,
+  IsNumber,
+  IsOptional,
+  IsNotEmpty,
+  IsUrl,
+  Min,
+  Max,
+  Matches,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class GenerateReportDto {
-  @IsString()  @Matches(/^\d{4}-\d{2}$/, { message: 'Period must be in format YYYY-MM' })  period!: string; // Format: "YYYY-MM"
+  @IsString()
+  @Matches(/^\d{4}-\d{2}$/, { message: 'Period must be in format YYYY-MM' })
+  period!: string; // Format: "YYYY-MM"
 }
 
 export class UpdateOperationalCostDto {

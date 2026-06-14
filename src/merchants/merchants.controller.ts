@@ -89,10 +89,11 @@ export class MerchantsController {
   @Patch('vacation-mode')
   toggleVacationMode(
     @Request() req: RequestWithUser,
-    @Body('isOnVacation') isOnVacation: boolean,) {
+    @Body('isOnVacation') isOnVacation: boolean,
+  ) {
     return this.merchantsService.toggleVacationMode(req.user.sub, isOnVacation);
-    }
-  
+  }
+
   @UseGuards(AuthGuard)
   @Patch('closed')
   closeMerchant(@Request() req: RequestWithUser) {
@@ -108,6 +109,10 @@ export class MerchantsController {
     @Param('id', ParseIntPipe) _merchantId: number,
     @Body() dto: AddAssociateDto,
   ) {
-    return this.associatesService.addAssociate(req.user.sub, dto.email, dto.permission);
+    return this.associatesService.addAssociate(
+      req.user.sub,
+      dto.email,
+      dto.permission,
+    );
   }
 }

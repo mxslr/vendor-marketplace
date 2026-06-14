@@ -167,7 +167,9 @@ export class MerchantsService {
 
   async findAllMerchants() {
     return this.prisma.merchant.findMany({
-      where: { status: { in: [MerchantStatus.ACTIVE, MerchantStatus.VACATION] } },
+      where: {
+        status: { in: [MerchantStatus.ACTIVE, MerchantStatus.VACATION] },
+      },
       select: {
         id: true,
         userId: true,
@@ -266,7 +268,10 @@ export class MerchantsService {
   // Untuk profil publik (lewat URL param)
   async findMerchantById(merchantId: number) {
     const merchant = await this.prisma.merchant.findFirst({
-      where: { id: merchantId, status: { in: [MerchantStatus.ACTIVE, MerchantStatus.VACATION] } },
+      where: {
+        id: merchantId,
+        status: { in: [MerchantStatus.ACTIVE, MerchantStatus.VACATION] },
+      },
       select: {
         id: true,
         userId: true,
@@ -331,25 +336,29 @@ export class MerchantsService {
   async getLeaderboard() {
     const [mostBooked, bestRating, fastestResponse] = await Promise.all([
       // most_booked: top 10 merchants by COMPLETED order count
-      this.prisma.order.groupBy({
-        by: ['merchantId'],
-        where: { status: 'COMPLETED' },
-        _count: { id: true },
-        orderBy: { _count: { id: 'desc' } },
-        take: 10,
-      }).then(async (rows) => {
-        const merchants = await this.prisma.merchant.findMany({
-          where: { id: { in: rows.map((r) => r.merchantId) } },
-          select: { id: true, shopName: true, logoUrl: true, badge: true },
-        });
-        return rows.map((r) => ({
-          merchant: merchants.find((m) => m.id === r.merchantId),
-          completedOrders: r._count.id,
-        }));
-      }),
+      this.prisma.order
+        .groupBy({
+          by: ['merchantId'],
+          where: { status: 'COMPLETED' },
+          _count: { id: true },
+          orderBy: { _count: { id: 'desc' } },
+          take: 10,
+        })
+        .then(async (rows) => {
+          const merchants = await this.prisma.merchant.findMany({
+            where: { id: { in: rows.map((r) => r.merchantId) } },
+            select: { id: true, shopName: true, logoUrl: true, badge: true },
+          });
+          return rows.map((r) => ({
+            merchant: merchants.find((m) => m.id === r.merchantId),
+            completedOrders: r._count.id,
+          }));
+        }),
 
       // best_rating: top 10 merchants by average review rating (min 1 review)
-      this.prisma.$queryRaw<{ merchantId: number; avgRating: number; reviewCount: number }[]>`
+      this.prisma.$queryRaw<
+        { merchantId: number; avgRating: number; reviewCount: number }[]
+      >`
         SELECT o."merchantId"::int, AVG(r.rating)::float AS "avgRating", COUNT(r.id)::int AS "reviewCount"
         FROM "Review" r
         JOIN "Order" o ON r."orderId" = o.id
@@ -370,7 +379,9 @@ export class MerchantsService {
       }),
 
       // fastest_response: top 10 merchants by avg time (order created → first deliverable)
-      this.prisma.$queryRaw<{ merchantId: number; avgResponseSeconds: number }[]>`
+      this.prisma.$queryRaw<
+        { merchantId: number; avgResponseSeconds: number }[]
+      >`
         SELECT o."merchantId"::int,
                AVG(EXTRACT(EPOCH FROM (d."minCreatedAt" - o."createdAt")))::float AS "avgResponseSeconds"
         FROM "Order" o

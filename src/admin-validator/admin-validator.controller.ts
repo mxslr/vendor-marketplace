@@ -9,6 +9,7 @@ import {
   Req,
   ForbiddenException,
   ParseIntPipe,
+  Query,
 } from '@nestjs/common';
 import {
   AdminValidatorService,
@@ -19,6 +20,7 @@ import { MerchantStatus, Role } from '@prisma/client';
 import { ResolveDisputeDto } from './dto/resolve-disputes.dto';
 import { RolesGuard } from 'src/auth/roles.guard';
 import { Roles } from 'src/auth/roles.decorator';
+import { GetMerchantsFilterDto } from './dto/get-merchants.dto';
 
 interface RequestWithUser extends Request {
   user: { sub: number; role: string };
@@ -34,6 +36,17 @@ export class AdminValidatorController {
         'Akses ditolak. Area khusus Admin Validator.',
       );
     }
+  }
+
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(Role.ADMIN_VALIDATOR, Role.SUPER_ADMIN)
+  @Get('merchants')
+  async getMerchants(
+    @Request() req: RequestWithUser,
+    @Query() query: GetMerchantsFilterDto,
+  ) {
+    await this.checkValidatorRole(req.user.role);
+    return this.adminValidatorService.getMerchants(query);
   }
 
   @UseGuards(AuthGuard, RolesGuard)

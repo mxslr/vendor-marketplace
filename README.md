@@ -287,9 +287,11 @@ Content-Type: application/json
 #### B3. Validator Lihat Antrian Verifikasi
 
 ```
-GET /admin/validator/merchants/pending
+GET /admin/validator/merchants?status=PENDING_VERIFICATION&page=1&limit=10
 Authorization: Bearer <token_validator>
 ```
+
+*(Catatan: Endpoint legacy `GET /admin/validator/merchants/pending` tetap tersedia)*
 
 #### B4a. Validator Approve KYB
 
@@ -1611,7 +1613,8 @@ Semua endpoint menggunakan prefix `/api/v1`.
 
 | Method | Endpoint | Auth | Keterangan |
 |---|---|---|---|
-| GET | `/admin/validator/merchants/pending` | Ya (Validator/SA) | Antrian verifikasi merchant |
+| GET | `/admin/validator/merchants` | Ya (Validator/SA) | Daftar merchant. Query: `?status=PENDING_VERIFICATION\|ACTIVE\|REJECTED\|ALL&page=1&limit=10` |
+| GET | `/admin/validator/merchants/pending` | Ya (Validator/SA) | Antrian verifikasi merchant (legacy/fallback) |
 | GET | `/admin/validator/gigs/pending` | Ya (Validator/SA) | Antrian verifikasi gig |
 | PATCH | `/admin/validator/merchants/:id/verify` | Ya (Validator) | Approve/reject KYB |
 | PATCH | `/admin/validator/gigs/:id/verify` | Ya (Validator) | Approve/reject gig |

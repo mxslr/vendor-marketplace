@@ -13,6 +13,7 @@ describe('StreamService', () => {
   const mockServerClient = {
     createToken: jest.fn(),
     upsertUser: jest.fn(),
+    upsertUsers: jest.fn(),
     channel: jest.fn(),
     getMessage: jest.fn(),
     updateMessage: jest.fn(),
@@ -73,6 +74,19 @@ describe('StreamService', () => {
         name: 'Test Name',
         role_type: 'USER',
       });
+    });
+  });
+
+  describe('upsertStreamUsers', () => {
+    it('should upsert multiple users', async () => {
+      await service.upsertStreamUsers([
+        { id: '1', name: 'Test 1', role: 'USER' },
+        { id: '2', name: 'Test 2' },
+      ]);
+      expect(mockServerClient.upsertUsers).toHaveBeenCalledWith([
+        { id: '1', name: 'Test 1', role_type: 'USER' },
+        { id: '2', name: 'Test 2' },
+      ]);
     });
   });
 
@@ -157,7 +171,6 @@ describe('StreamService', () => {
       const result = await service.createProductChannel(
         'client-1',
         'assoc-1',
-        'merch-1',
         gig,
       );
 
@@ -165,7 +178,7 @@ describe('StreamService', () => {
         'messaging',
         'chat-gig-1-user-client-1',
         {
-          members: ['client-1', 'assoc-1', 'merch-1'],
+          members: ['client-1', 'assoc-1'],
           created_by_id: 'client-1',
           product_info: {
             id: '1',

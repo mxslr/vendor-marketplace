@@ -36,7 +36,7 @@ describe('MonthlyReportController', () => {
   });
 
   const mockAdminReq = { user: { sub: 1, role: Role.ADMIN_FINANCE } } as any;
-  const mockUserReq = { user: { sub: 2, role: Role.USER } } as any;
+  const mockUserReq = { user: { sub: 2, role: Role.CLIENT } } as any;
 
   describe('generateReport', () => {
     it('should call service for admin', async () => {

@@ -6,7 +6,7 @@ import { MerchantStatus } from '@prisma/client';
 
 describe('AdminValidatorService', () => {
   let service: AdminValidatorService;
-  let prisma: jest.Mocked<Partial<PrismaService>>;
+  let prisma: any;
 
   beforeEach(async () => {
     prisma = {

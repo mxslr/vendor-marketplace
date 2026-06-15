@@ -6,16 +6,19 @@ import {
   ForbiddenException,
   BadRequestException,
 } from '@nestjs/common';
-import { FeaturedPaymentStatus, FeaturedStatus } from '@prisma/client';
+import { FeaturedPaymentStatus, FeaturedStatus, GigStatus } from '@prisma/client';
 
 describe('FeaturedPlacementService', () => {
   let service: FeaturedPlacementService;
-  let prisma: jest.Mocked<Partial<PrismaService>>;
+  let prisma: any;
 
   beforeEach(async () => {
     prisma = {
       merchant: {
         findUnique: jest.fn(),
+      } as any,
+      merchantAssociate: {
+        findFirst: jest.fn(),
       } as any,
       gig: {
         findUnique: jest.fn(),
@@ -57,13 +60,14 @@ describe('FeaturedPlacementService', () => {
       (prisma.gig.findUnique as jest.Mock).mockResolvedValue({
         id: 10,
         merchantId: 1,
+        status: GigStatus.ACTIVE,
       });
       (prisma.featuredPlacement.findFirst as jest.Mock).mockResolvedValue(null);
       (prisma.featuredPlacement.create as jest.Mock).mockResolvedValue({
         id: 100,
       });
 
-      const res = await service.createPromote(1, 10);
+      const res = await service.createPromote(1, 10, 3);
       expect(res).toEqual({ id: 100 });
       expect(prisma.featuredPlacement.create).toHaveBeenCalledWith({
         data: {
@@ -78,7 +82,8 @@ describe('FeaturedPlacementService', () => {
 
     it('should throw NotFoundException if merchant not found', async () => {
       (prisma.merchant.findUnique as jest.Mock).mockResolvedValue(null);
-      await expect(service.createPromote(1, 10)).rejects.toThrow(
+      (prisma.merchantAssociate.findFirst as jest.Mock).mockResolvedValue(null);
+      await expect(service.createPromote(1, 10, 3)).rejects.toThrow(
         NotFoundException,
       );
     });
@@ -88,12 +93,13 @@ describe('FeaturedPlacementService', () => {
       (prisma.gig.findUnique as jest.Mock).mockResolvedValue({
         id: 10,
         merchantId: 1,
+        status: GigStatus.ACTIVE,
       });
       (prisma.featuredPlacement.findFirst as jest.Mock).mockResolvedValue({
         id: 100,
       });
 
-      await expect(service.createPromote(1, 10)).rejects.toThrow(
+      await expect(service.createPromote(1, 10, 3)).rejects.toThrow(
         BadRequestException,
       );
     });

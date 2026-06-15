@@ -266,6 +266,15 @@ export class AdminValidatorService {
     };
   }
 
+  async getMerchantById(merchantId: number) {
+    const merchant = await this.prisma.merchant.findUnique({
+      where: { id: merchantId },
+      include: { user: { select: { fullName: true, email: true } } },
+    });
+    if (!merchant) throw new NotFoundException('Toko tidak ditemukan.');
+    return merchant;
+  }
+
   async verifyMerchant(
     merchantId: number,
     isApproved: boolean,

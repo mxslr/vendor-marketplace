@@ -56,6 +56,18 @@ export class AdminValidatorController {
     await this.checkValidatorRole(req.user.role);
     return this.adminValidatorService.getPendingMerchants();
   }
+
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(Role.ADMIN_VALIDATOR, Role.SUPER_ADMIN)
+  @Get('merchants/:id')
+  async getMerchantById(
+    @Request() req: RequestWithUser,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    await this.checkValidatorRole(req.user.role);
+    return this.adminValidatorService.getMerchantById(id);
+  }
+
   @UseGuards(AuthGuard)
   @Get('gigs/pending')
   async getPendingGigs(@Request() req: RequestWithUser) {

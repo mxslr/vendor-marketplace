@@ -182,7 +182,8 @@ export class AdminValidatorController {
     return this.adminValidatorService.submitVerdict(
       req.user.sub,
       id,
-      body.decision,
+      body.verdict,
+      body.notes,
     );
   }
 
@@ -208,7 +209,7 @@ export class AdminValidatorController {
     return this.adminValidatorService.resolveDispute(
       req.user.sub,
       parseInt(id, 10),
-      body.decision,
+      body.verdict,
     );
   }
 }

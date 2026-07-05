@@ -48,6 +48,7 @@ export class AdminValidatorService {
     adminId: number,
     disputeId: number,
     decision: DisputeDecision,
+    notes?: string,
   ) {
     const admin = await this.prisma.user.findUnique({ where: { id: adminId } });
     if (
@@ -83,6 +84,7 @@ export class AdminValidatorService {
         pendingVerdict: decision,
         status: DisputeStatus.UNDER_REVIEW,
         validatorId: adminId,
+        verdictNote: notes ?? null,
       },
     });
 

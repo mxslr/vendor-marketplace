@@ -4,10 +4,12 @@ import { PrismaService } from '../prisma/prisma.service';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { MonthlyReportStatus } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/client';
+import { ConfigService } from '@nestjs/config';
+import { EmailService } from '../email/email.service';
 
 describe('MonthlyReportService', () => {
   let service: MonthlyReportService;
-  let prisma: jest.Mocked<Partial<PrismaService>>;
+  let prisma: any;
 
   beforeEach(async () => {
     prisma = {
@@ -25,10 +27,24 @@ describe('MonthlyReportService', () => {
       } as any,
     };
 
+    const email = {
+      sendWithAttachment: jest.fn().mockResolvedValue(undefined),
+    };
+
+    const config = {
+      get: jest.fn((key: string) => {
+        if (key === 'CSC_EMAIL') return 'csc@test.com';
+        if (key === 'CCI_EMAIL') return 'cci@test.com';
+        return null;
+      }),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         MonthlyReportService,
         { provide: PrismaService, useValue: prisma },
+        { provide: EmailService, useValue: email },
+        { provide: ConfigService, useValue: config },
       ],
     }).compile();
 

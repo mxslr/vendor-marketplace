@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { WithdrawalsService } from './withdrawals.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import {
   NotFoundException,
   ForbiddenException,
@@ -8,16 +9,21 @@ import {
 } from '@nestjs/common';
 import { Role, WithdrawalStatus } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/client';
+import * as bcrypt from 'bcrypt';
 
 describe('WithdrawalsService', () => {
   let service: WithdrawalsService;
-  let prisma: jest.Mocked<Partial<PrismaService>>;
+  let prisma: any;
+  let notifications: jest.Mocked<Partial<NotificationsService>>;
 
   beforeEach(async () => {
     prisma = {
       merchant: {
         findUnique: jest.fn(),
         update: jest.fn(),
+      } as any,
+      merchantAssociate: {
+        findFirst: jest.fn(),
       } as any,
       user: {
         findUnique: jest.fn(),
@@ -31,13 +37,22 @@ describe('WithdrawalsService', () => {
         findUnique: jest.fn(),
         update: jest.fn(),
       } as any,
+      order: {
+        findFirst: jest.fn(),
+      } as any,
       $transaction: jest.fn((cb) => cb(prisma)) as any,
+    };
+
+    notifications = {
+      create: jest.fn().mockResolvedValue({} as any),
+      createForRole: jest.fn().mockResolvedValue({} as any),
     };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         WithdrawalsService,
         { provide: PrismaService, useValue: prisma },
+        { provide: NotificationsService, useValue: notifications },
       ],
     }).compile();
 
@@ -53,8 +68,11 @@ describe('WithdrawalsService', () => {
   });
 
   describe('requestWithdrawal', () => {
+    const hashedPin = bcrypt.hashSync('1234', 10);
+
     it('should throw if merchant not found', async () => {
       (prisma.merchant.findUnique as jest.Mock).mockResolvedValue(null);
+      (prisma.merchantAssociate.findFirst as jest.Mock).mockResolvedValue(null);
       await expect(
         service.requestWithdrawal(1, {
           bankAccountId: 1,
@@ -96,7 +114,7 @@ describe('WithdrawalsService', () => {
     it('should throw if pin is invalid', async () => {
       (prisma.merchant.findUnique as jest.Mock).mockResolvedValue({
         id: 10,
-        withdrawalPin: '0000',
+        withdrawalPin: bcrypt.hashSync('0000', 10),
       });
       (prisma.bankAccount.findUnique as jest.Mock).mockResolvedValue({
         merchantId: 10,
@@ -113,7 +131,7 @@ describe('WithdrawalsService', () => {
     it('should throw if amount is less than 50000', async () => {
       (prisma.merchant.findUnique as jest.Mock).mockResolvedValue({
         id: 10,
-        withdrawalPin: '1234',
+        withdrawalPin: hashedPin,
       });
       (prisma.bankAccount.findUnique as jest.Mock).mockResolvedValue({
         merchantId: 10,
@@ -130,7 +148,7 @@ describe('WithdrawalsService', () => {
     it('should throw if balance is insufficient', async () => {
       (prisma.merchant.findUnique as jest.Mock).mockResolvedValue({
         id: 10,
-        withdrawalPin: '1234',
+        withdrawalPin: hashedPin,
         walletBalance: new Decimal(10000),
       });
       (prisma.bankAccount.findUnique as jest.Mock).mockResolvedValue({
@@ -148,7 +166,7 @@ describe('WithdrawalsService', () => {
     it('should create withdrawal request', async () => {
       (prisma.merchant.findUnique as jest.Mock).mockResolvedValue({
         id: 10,
-        withdrawalPin: '1234',
+        withdrawalPin: hashedPin,
         walletBalance: new Decimal(100000),
       });
       (prisma.bankAccount.findUnique as jest.Mock).mockResolvedValue({
@@ -181,7 +199,7 @@ describe('WithdrawalsService', () => {
 
     it('should throw for non-admin', async () => {
       (prisma.user.findUnique as jest.Mock).mockResolvedValue({
-        role: Role.USER,
+        role: Role.CLIENT,
       });
       await expect(service.findPendingWithdrawals(1)).rejects.toThrow(
         ForbiddenException,

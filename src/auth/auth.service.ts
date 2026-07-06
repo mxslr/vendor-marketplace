@@ -21,6 +21,7 @@ export interface LoginResponse {
     email: string;
     fullName: string;
     role: string;
+    avatarUrl?: string | null;
   };
 }
 
@@ -106,6 +107,7 @@ export class AuthService {
         email: user.email,
         fullName: user.fullName,
         role: user.role,
+        avatarUrl: user.avatarUrl,
       };
       const token = await this.jwtService.signAsync(payload);
       return {
@@ -116,6 +118,7 @@ export class AuthService {
           email: user.email,
           fullName: user.fullName,
           role: user.role,
+          avatarUrl: user.avatarUrl,
         },
       };
     } catch (error) {
@@ -183,6 +186,7 @@ export class AuthService {
         email: user.email,
         fullName: user.fullName,
         role: user.role,
+        avatarUrl: user.avatarUrl,
       };
       const token = await this.jwtService.signAsync(payload);
       return {
@@ -193,6 +197,7 @@ export class AuthService {
           email: user.email,
           fullName: user.fullName,
           role: user.role,
+          avatarUrl: user.avatarUrl,
         },
       };
     } catch (error) {
@@ -219,6 +224,7 @@ export class AuthService {
         email: true,
         fullName: true,
         role: true,
+        avatarUrl: true,
         isSuspended: true,
         createdAt: true,
       },
@@ -229,6 +235,38 @@ export class AuthService {
     return {
       sub: user.id,
       ...user,
+    };
+  }
+
+  async updateProfile(
+    userId: number,
+    dto: { fullName?: string; avatarUrl?: string },
+  ) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new UnauthorizedException('User tidak ditemukan');
+    }
+
+    const updatedUser = await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        fullName: dto.fullName !== undefined ? dto.fullName : undefined,
+        avatarUrl: dto.avatarUrl !== undefined ? dto.avatarUrl : undefined,
+      },
+      select: {
+        id: true,
+        email: true,
+        fullName: true,
+        role: true,
+        avatarUrl: true,
+        isSuspended: true,
+        createdAt: true,
+      },
+    });
+
+    return {
+      sub: updatedUser.id,
+      ...updatedUser,
     };
   }
 }

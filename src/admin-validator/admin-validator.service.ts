@@ -48,6 +48,7 @@ export class AdminValidatorService {
     adminId: number,
     disputeId: number,
     decision: DisputeDecision,
+    notes?: string,
   ) {
     const admin = await this.prisma.user.findUnique({ where: { id: adminId } });
     if (
@@ -83,6 +84,7 @@ export class AdminValidatorService {
         pendingVerdict: decision,
         status: DisputeStatus.UNDER_REVIEW,
         validatorId: adminId,
+        verdictNote: notes ?? null,
       },
     });
 
@@ -264,6 +266,15 @@ export class AdminValidatorService {
         limit,
       },
     };
+  }
+
+  async getMerchantById(merchantId: number) {
+    const merchant = await this.prisma.merchant.findUnique({
+      where: { id: merchantId },
+      include: { user: { select: { fullName: true, email: true } } },
+    });
+    if (!merchant) throw new NotFoundException('Toko tidak ditemukan.');
+    return merchant;
   }
 
   async verifyMerchant(

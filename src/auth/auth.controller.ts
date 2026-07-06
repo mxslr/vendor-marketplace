@@ -5,6 +5,7 @@ import {
   HttpCode,
   HttpStatus,
   Get,
+  Patch,
   UseGuards,
   Request,
   Req,
@@ -52,5 +53,14 @@ export class AuthController {
   @Get('profile')
   async getProfile(@Request() req: any) {
     return this.authService.getProfile(req.user.sub);
+  }
+
+  @UseGuards(AuthGuard)
+  @Patch('profile')
+  async updateProfile(
+    @Request() req: any,
+    @Body() body: { fullName?: string; avatarUrl?: string },
+  ) {
+    return this.authService.updateProfile(req.user.sub, body);
   }
 }

@@ -162,6 +162,7 @@ model User {
   fullName     String
   role         Role     @default(CLIENT)
   isSuspended  Boolean  @default(false)
+  avatarUrl    String?
   createdAt    DateTime @default(now())
 
   // Relations

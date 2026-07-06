@@ -120,7 +120,7 @@ export class GigsService {
   }
 
   // Endpoint untuk Melihat detail gigs di masing masing merchant
-  async detailGigs(gigId: number) {
+  async detailGigs(gigId: number, userPayload?: any) {
     const gig = await this.prisma.gig.findUnique({
       where: { id: gigId },
       include: {
@@ -138,13 +138,33 @@ export class GigsService {
         },
       },
     });
+
     if (!gig) {
       throw new NotFoundException('Jasa tidak ditemukan.');
     }
-    if (gig.status !== GigStatus.ACTIVE) {
-      throw new NotFoundException('Jasa tidak ditemukan atau belum aktif');
+
+    if (gig.status === GigStatus.ACTIVE || gig.status === GigStatus.FEATURED) {
+      return gig;
     }
-    return gig;
+
+    if (userPayload) {
+      const userId = Number(userPayload.sub);
+      if (gig.merchant && gig.merchant.userId === userId) {
+        return gig;
+      }
+
+      const associate = await this.prisma.merchantAssociate.findFirst({
+        where: {
+          userId: userId,
+          merchantId: gig.merchantId,
+        },
+      });
+      if (associate) {
+        return gig;
+      }
+    }
+
+    throw new NotFoundException('Jasa tidak ditemukan atau belum aktif');
   }
 
   async removeGigs(gigId: number) {

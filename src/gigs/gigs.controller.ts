@@ -12,6 +12,8 @@ import {
 import { GigsService } from './gigs.service';
 import { AuthGuard } from '../auth/auth.guard';
 import { CreateGigDto } from './gigs.dto';
+import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 
 interface RequestWithUsers extends Request {
   user: {
@@ -22,7 +24,11 @@ interface RequestWithUsers extends Request {
 
 @Controller('gigs')
 export class GigsController {
-  constructor(private gigsService: GigsService) {}
+  constructor(
+    private gigsService: GigsService,
+    private jwtService: JwtService,
+    private configService: ConfigService,
+  ) {}
 
   @UseGuards(AuthGuard)
   @Post()
@@ -42,8 +48,22 @@ export class GigsController {
   }
 
   @Get('details/:id')
-  findGigDetails(@Param('id', ParseIntPipe) id: number) {
-    return this.gigsService.detailGigs(id);
+  async findGigDetails(@Param('id', ParseIntPipe) id: number, @Request() req: any) {
+    const authHeader = req.headers.authorization;
+    let userPayload: any = null;
+    if (authHeader) {
+      const [type, token] = authHeader.split(' ') ?? [];
+      if (type === 'Bearer' && token) {
+        try {
+          userPayload = await this.jwtService.verifyAsync(token, {
+            secret: this.configService.get<string>('JWT_SECRET'),
+          });
+        } catch (e) {
+          // ignore invalid token for optional auth
+        }
+      }
+    }
+    return this.gigsService.detailGigs(id, userPayload);
   }
 
   @UseGuards(AuthGuard)
@@ -52,3 +72,4 @@ export class GigsController {
     return this.gigsService.removeGigs(Number(id));
   }
 }
+

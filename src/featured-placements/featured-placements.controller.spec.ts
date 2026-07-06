@@ -7,7 +7,7 @@ import { AuthGuard } from '../auth/auth.guard';
 
 describe('FeaturedPlacementController', () => {
   let controller: FeaturedPlacementController;
-  let service: jest.Mocked<Partial<FeaturedPlacementService>>;
+  let service: any;
 
   beforeEach(async () => {
     service = {
@@ -40,21 +40,22 @@ describe('FeaturedPlacementController', () => {
   const mockMerchantReq = {
     user: { sub: 2, role: Role.MERCHANT_OWNER },
   } as any;
-  const mockUserReq = { user: { sub: 3, role: Role.USER } } as any;
+  const mockUserReq = { user: { sub: 3, role: Role.CLIENT } } as any;
 
   describe('createPromote', () => {
     it('should call service for valid merchant', async () => {
       service.createPromote.mockResolvedValue({ id: 1 } as any);
       const res = await controller.createPromote(mockMerchantReq, {
         gigId: 10,
+        durationDays: 3,
       });
-      expect(service.createPromote).toHaveBeenCalledWith(2, 10);
+      expect(service.createPromote).toHaveBeenCalledWith(2, 10, 3, false);
       expect(res).toEqual({ id: 1 });
     });
 
     it('should throw Forbidden for non-merchant', async () => {
       await expect(
-        controller.createPromote(mockUserReq, { gigId: 10 }),
+        controller.createPromote(mockUserReq, { gigId: 10, durationDays: 3 }),
       ).rejects.toThrow(ForbiddenException);
     });
   });

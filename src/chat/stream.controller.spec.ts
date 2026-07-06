@@ -12,6 +12,7 @@ describe('StreamController', () => {
   beforeEach(async () => {
     streamService = {
       upsertStreamUser: jest.fn(),
+      upsertStreamUsers: jest.fn(),
       generateToken: jest.fn().mockReturnValue('mock-token'),
       createProductChannel: jest
         .fn()
@@ -47,7 +48,7 @@ describe('StreamController', () => {
   describe('getToken', () => {
     it('should upsert user and return a token', async () => {
       const mockReq = {
-        user: { sub: 1, name: 'Test User', role: 'USER' },
+        user: { sub: 1, fullName: 'Test User', role: 'USER' },
       } as any;
 
       const result = await controller.getToken(mockReq);
@@ -72,16 +73,10 @@ describe('StreamController', () => {
       const result = await controller.createChannel(mockReq, mockBody);
 
       expect(gigsService.detailGigs).toHaveBeenCalledWith(1);
-      expect(streamService.upsertStreamUser).toHaveBeenCalledWith(
-        '1',
-        'Client',
-        'USER',
-      );
-      expect(streamService.upsertStreamUser).toHaveBeenCalledWith(
-        '3',
-        'Shop',
-        'MERCHANT_OWNER',
-      );
+      expect(streamService.upsertStreamUsers).toHaveBeenCalledWith([
+        { id: '1', name: 'Client', role: 'USER' },
+        { id: '3', name: 'Shop', role: 'MERCHANT_OWNER' },
+      ]);
       expect(streamService.createProductChannel).toHaveBeenCalled();
       expect(result).toEqual({
         channelId: 'mock-channel-id',

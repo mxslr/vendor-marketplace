@@ -5,13 +5,13 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { OrderStatus, DisputeStatus } from '@prisma/client';
-import { SupabaseService } from '../supabase/supabase.service';
+import { StorageService } from '../storage/storage.service';
 
 @Injectable()
 export class DisputesService {
   constructor(
     private prisma: PrismaService,
-    private supabase: SupabaseService,
+    private storage: StorageService,
   ) {}
 
   async openDispute(
@@ -46,7 +46,7 @@ export class DisputesService {
     if (!file) {
       throw new BadRequestException('Bukti sengketa wajib diunggah.');
     }
-    const url = await this.supabase.uploadFile(file, 'merchant-assets');
+    const url = await this.storage.uploadFile(file, 'merchant-assets');
 
     return this.prisma.$transaction(async (prisma) => {
       const dispute = await prisma.dispute.create({

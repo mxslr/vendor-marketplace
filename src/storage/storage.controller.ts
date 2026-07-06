@@ -7,11 +7,11 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { SupabaseService } from './supabase.service';
+import { StorageService } from './storage.service';
 
 @Controller('upload')
-export class SupabaseController {
-  constructor(private readonly supabaseService: SupabaseService) {}
+export class StorageController {
+  constructor(private readonly storageService: StorageService) {}
 
   @Post('image')
   @UseInterceptors(FileInterceptor('file'))
@@ -24,7 +24,7 @@ export class SupabaseController {
     }
 
     const targetBucket = bucket || 'merchant-assets';
-    const url = await this.supabaseService.uploadFile(file, targetBucket);
+    const url = await this.storageService.uploadFile(file, targetBucket);
 
     return { success: true, url };
   }

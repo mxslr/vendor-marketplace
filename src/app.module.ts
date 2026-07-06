@@ -21,7 +21,7 @@ import { MonthlyReportModule } from './monthly-report/monthly-report.module';
 import { ConfigModule } from '@nestjs/config';
 import { StreamModule } from './chat/stream.module';
 import { TransactionsModule } from './transactions/transactions.module';
-import { SupabaseModule } from './supabase/supabase.module';
+import { StorageModule } from './storage/storage.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { AppealsModule } from './appeals/appeals.module';
 import { SystemConfigModule } from './system-config/system-config.module';
@@ -58,7 +58,7 @@ import { FinanceModule } from './finance/finance.module';
       isGlobal: true,
     }),
     ScheduleModule.forRoot(),
-    SupabaseModule,
+    StorageModule,
   ],
   controllers: [AppController],
   providers: [AppService],

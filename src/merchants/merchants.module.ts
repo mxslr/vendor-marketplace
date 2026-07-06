@@ -2,14 +2,14 @@ import { Module } from '@nestjs/common';
 import { MerchantsService } from './merchants.service';
 import { MerchantsController } from './merchants.controller';
 import { AuthModule } from 'src/auth/auth.module';
-import { SupabaseModule } from '../supabase/supabase.module';
+import { StorageModule } from '../storage/storage.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { MerchantAssociatesModule } from '../merchant-associates/merchant-associates.module';
 
 @Module({
   imports: [
     AuthModule,
-    SupabaseModule,
+    StorageModule,
     NotificationsModule,
     MerchantAssociatesModule,
   ],

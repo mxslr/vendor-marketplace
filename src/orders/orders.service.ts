@@ -20,7 +20,7 @@ import {
 } from '@prisma/client';
 import { NotificationsService } from '../notifications/notifications.service';
 import { MidtransService } from '../midtrans/midtrans.service';
-import { SupabaseService } from '../supabase/supabase.service';
+import { StorageService } from '../storage/storage.service';
 import { SystemConfigService } from '../system-config/system-config.service';
 import { PostRevisionDto } from './dto/post-revision.dto';
 
@@ -31,7 +31,7 @@ export class OrdersService {
     private notifications: NotificationsService,
     private midtrans: MidtransService,
     private config: ConfigService,
-    private supabase: SupabaseService,
+    private storage: StorageService,
     private systemConfig: SystemConfigService,
   ) {}
 
@@ -391,7 +391,7 @@ export class OrdersService {
     }
 
     if (!file) throw new BadRequestException('Bukti transfer wajib diunggah.');
-    const url = await this.supabase.uploadFile(file, 'merchant-assets');
+    const url = await this.storage.uploadFile(file, 'merchant-assets');
 
     return this.prisma.$transaction(async (prisma) => {
       const updatedOrder = await prisma.order.update({

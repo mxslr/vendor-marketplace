@@ -12,6 +12,7 @@ services:
       - DATABASE_URL=${DATABASE_URL}
     depends_on:
       - postgres-db
+      - minio
     restart: unless-stopped
 
   postgres-db:
@@ -26,5 +27,20 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
 
+  minio:
+    image: minio/minio:latest
+    container_name: csc-minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadminpassword
+    volumes:
+      - miniodata:/data
+    command: server /data --console-address ":9001"
+    restart: unless-stopped
+
 volumes:
   pgdata:
+  miniodata:

@@ -4,14 +4,14 @@ import { OrdersController } from './orders.controller';
 import { InvoiceService } from './invoice.service';
 import { AuthModule } from 'src/auth/auth.module';
 import { NotificationsModule } from '../notifications/notifications.module';
-import { SupabaseModule } from '../supabase/supabase.module';
+import { StorageModule } from '../storage/storage.module';
 import { SystemConfigModule } from '../system-config/system-config.module';
 
 @Module({
   imports: [
     AuthModule,
     NotificationsModule,
-    SupabaseModule,
+    StorageModule,
     SystemConfigModule,
   ],
   providers: [OrdersService, InvoiceService],

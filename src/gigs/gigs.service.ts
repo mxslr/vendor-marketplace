@@ -67,8 +67,8 @@ export class GigsService {
         description: dto.description,
         plan: dto.plan,
         price: dto.price,
-        mediaUrls: dto.mediaUrls,
-        status: GigStatus.PENDING_APPROVAL,
+        mediaUrls: dto.mediaUrls || '',
+        status: dto.status === GigStatus.DRAFT ? GigStatus.DRAFT : GigStatus.PENDING_APPROVAL,
       },
     });
   }

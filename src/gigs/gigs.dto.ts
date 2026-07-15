@@ -6,6 +6,7 @@ import {
   IsOptional,
   IsEnum,
   IsUrl,
+  ValidateIf,
 } from 'class-validator';
 
 export class CreateGigDto {
@@ -30,8 +31,15 @@ export class CreateGigDto {
   @IsNotEmpty()
   price!: number;
 
-  @IsUrl(undefined, { message: 'Link MediaTidak Valid!' })
-  mediaUrls!: string; // Menyimpan link foto/video portofolio (bisa bentuk JSON string kalau lebih dari satu)
+  @ValidateIf((o) => o.mediaUrls !== undefined && o.mediaUrls !== '')
+  @IsUrl(undefined, { message: 'Link Media Tidak Valid!' })
+  @IsOptional()
+  mediaUrls?: string;
+
+  @IsString()
+  @IsOptional()
+  @IsEnum(GigStatus)
+  status?: GigStatus;
 }
 
 export class UpdateGigDto {

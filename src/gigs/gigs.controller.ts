@@ -2,6 +2,7 @@ import {
   Controller,
   Post,
   Get,
+  Patch,
   Body,
   UseGuards,
   Request,
@@ -11,7 +12,7 @@ import {
 } from '@nestjs/common';
 import { GigsService } from './gigs.service';
 import { AuthGuard } from '../auth/auth.guard';
-import { CreateGigDto } from './gigs.dto';
+import { CreateGigDto, UpdateGigDto } from './gigs.dto';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 
@@ -64,6 +65,16 @@ export class GigsController {
       }
     }
     return this.gigsService.detailGigs(id, userPayload);
+  }
+
+  @UseGuards(AuthGuard)
+  @Patch(':id')
+  updateGig(
+    @Request() req: RequestWithUsers,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateGigDto,
+  ) {
+    return this.gigsService.updateGig(req.user.sub, id, dto);
   }
 
   @UseGuards(AuthGuard)

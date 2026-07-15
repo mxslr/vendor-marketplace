@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { randomUUID } from 'crypto';
 import * as path from 'path';
+import * as fs from 'fs';
 
 @Injectable()
 export class StorageService {
@@ -55,9 +56,22 @@ export class StorageService {
 
       return this.getPublicUrl(targetBucket, filename);
     } catch (error) {
-      throw new InternalServerErrorException(
-        `File upload to MinIO/S3 failed: ${error.message || error}`,
-      );
+      console.warn('MinIO/S3 connection failed. Falling back to local disk storage:', error.message || error);
+      try {
+        const uploadsDir = path.join(process.cwd(), 'uploads');
+        if (!fs.existsSync(uploadsDir)) {
+          fs.mkdirSync(uploadsDir, { recursive: true });
+        }
+        const filePath = path.join(uploadsDir, filename);
+        fs.writeFileSync(filePath, file.buffer);
+        
+        const port = process.env.PORT || 4000;
+        return `http://localhost:${port}/uploads/${filename}`;
+      } catch (localError) {
+        throw new InternalServerErrorException(
+          `File upload failed: S3 failed (${error.message}) and local storage failed (${localError.message})`,
+        );
+      }
     }
   }
 

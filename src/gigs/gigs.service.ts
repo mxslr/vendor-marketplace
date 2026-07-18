@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateGigDto } from './gigs.dto';
+import { CreateGigDto, UpdateGigDto } from './gigs.dto';
 import { AssociatePermission, GigStatus, MerchantStatus } from '@prisma/client';
 
 @Injectable()
@@ -67,8 +67,8 @@ export class GigsService {
         description: dto.description,
         plan: dto.plan,
         price: dto.price,
-        mediaUrls: dto.mediaUrls,
-        status: GigStatus.PENDING_APPROVAL,
+        mediaUrls: dto.mediaUrls || '',
+        status: dto.status === GigStatus.DRAFT ? GigStatus.DRAFT : GigStatus.PENDING_APPROVAL,
       },
     });
   }
@@ -165,6 +165,61 @@ export class GigsService {
     }
 
     throw new NotFoundException('Jasa tidak ditemukan atau belum aktif');
+  }
+
+  async updateGig(userId: number, gigId: number, dto: UpdateGigDto) {
+    const gig = await this.prisma.gig.findUnique({
+      where: { id: gigId },
+      include: { merchant: true },
+    });
+
+    if (!gig) {
+      throw new NotFoundException('Gig tidak ditemukan.');
+    }
+
+    // Verify ownership: owner or associate with permission
+    const isOwner = gig.merchant.userId === userId;
+    if (!isOwner) {
+      const associate = await this.prisma.merchantAssociate.findFirst({
+        where: {
+          userId,
+          merchantId: gig.merchantId,
+          permission: {
+            in: [
+              AssociatePermission.MANAGE_GIGS,
+              AssociatePermission.FULL_ACCESS,
+            ],
+          },
+        },
+      });
+      if (!associate) {
+        throw new ForbiddenException(
+          'Akses ditolak. Kamu tidak memiliki izin untuk mengubah jasa ini.',
+        );
+      }
+    }
+
+    // Determine final status
+    let finalStatus = gig.status;
+    if (dto.status === GigStatus.DRAFT) {
+      finalStatus = GigStatus.DRAFT;
+    } else if (dto.title || dto.description || dto.price !== undefined || dto.mediaUrls) {
+      // Content changed → re-approve needed
+      finalStatus = GigStatus.PENDING_APPROVAL;
+    }
+
+    return this.prisma.gig.update({
+      where: { id: gigId },
+      data: {
+        ...(dto.title !== undefined && { title: dto.title }),
+        ...(dto.description !== undefined && { description: dto.description }),
+        ...(dto.price !== undefined && { price: dto.price }),
+        ...(dto.mediaUrls !== undefined && { mediaUrls: dto.mediaUrls }),
+        ...(dto.plan !== undefined && { plan: dto.plan }),
+        ...(dto.categoryId !== undefined && { categoryId: dto.categoryId }),
+        status: finalStatus,
+      },
+    });
   }
 
   async removeGigs(gigId: number) {

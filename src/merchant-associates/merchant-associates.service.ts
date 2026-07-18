@@ -75,7 +75,7 @@ export class MerchantAssociatesService {
     return this.prisma.merchantAssociate.findMany({
       where: { merchantId: merchant.id },
       include: {
-        user: { select: { fullName: true, email: true } },
+        user: { select: { fullName: true, email: true, createdAt: true } },
       },
     });
   }

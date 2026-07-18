@@ -74,11 +74,23 @@ export class OrdersService {
   async initiateMidtransPayment(
     orderId: number,
     clientId: number,
+    bank?: string,
   ): Promise<{
     snapToken: string;
     clientKey: string;
     midtransOrderId: string;
   }> {
+    const enabledPaymentMap: Record<string, string> = {
+      bca: 'bca_va',
+      bni: 'bni_va',
+      bri: 'bri_va',
+      mandiri: 'echannel',
+    };
+
+    const enabledPayments =
+      bank && enabledPaymentMap[bank.toLowerCase()]
+        ? [enabledPaymentMap[bank.toLowerCase()]]
+        : undefined;
     const order = await this.prisma.order.findFirst({
       where: { id: orderId, clientId },
       include: {
@@ -104,9 +116,13 @@ export class OrdersService {
       `[Midtrans] Use this order_id in manual webhook simulation: "${midtransOrderId}"`,
     );
 
+    const subtotal = Number(order.totalAmount);
+    const serviceFee = 25000;
+    const grossAmount = serviceFee + subtotal;
+
     const snapToken = await this.midtrans.createSnapToken({
       orderId: midtransOrderId,
-      amount: Number(order.totalAmount),
+      amount: grossAmount,
       customerDetails: {
         firstName: order.client.fullName,
         email: order.client.email,
@@ -118,7 +134,14 @@ export class OrdersService {
           quantity: 1,
           name: gigTitle,
         },
+        {
+          id: 'service-fee',
+          price: Number(serviceFee),
+          quantity: 1,
+          name: 'Service Fee',
+        },
       ],
+      enabledPayments,
     });
 
     await this.prisma.order.update({

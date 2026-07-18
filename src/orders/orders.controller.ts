@@ -69,8 +69,13 @@ export class OrdersController {
   initiateMidtransPayment(
     @Request() req: RequestWithUser,
     @Param('id', ParseIntPipe) id: number,
+    @Body() body: { bank?: string },
   ) {
-    return this.ordersService.initiateMidtransPayment(id, req.user.sub);
+    return this.ordersService.initiateMidtransPayment(
+      id,
+      req.user.sub,
+      body.bank,
+    );
   }
 
   @UseGuards(AuthGuard)

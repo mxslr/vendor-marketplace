@@ -9,6 +9,7 @@ export interface SnapTransactionParams {
   amount: number;
   customerDetails: { firstName: string; email: string };
   itemDetails: { id: string; price: number; quantity: number; name: string }[];
+  enabledPayments?: string[];
 }
 
 @Injectable()
@@ -46,6 +47,7 @@ export class MidtransService {
         email: params.customerDetails.email,
       },
       item_details: params.itemDetails,
+      enabled_payments: params.enabledPayments,
     });
     return response.token as string;
   }

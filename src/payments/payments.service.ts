@@ -142,8 +142,8 @@ export class PaymentsService {
     );
 
     await this.prisma.$transaction(async (prisma) => {
-      await prisma.order.update({
-        where: { id: order.id },
+      const updateResults = await prisma.order.updateMany({
+        where: { id: order.id, status: OrderStatus.UNPAID },
         data: {
           status: OrderStatus.IN_PROGRESS,
           paymentMethod: payload.payment_type ?? 'midtrans',
@@ -152,6 +152,10 @@ export class PaymentsService {
           deadline,
         },
       });
+
+      if (updateResults.count === 0) {
+        throw new Error('Order sudah diproses oleh transaksi lain.');
+      }
 
       await prisma.transaction.create({
         data: {

@@ -1,6 +1,6 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, CreateBucketCommand, HeadBucketCommand } from '@aws-sdk/client-s3';
 import { randomUUID } from 'crypto';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -45,6 +45,15 @@ export class StorageService {
     const filename = `${randomUUID()}${ext}`;
 
     try {
+      // Pastikan bucket sudah ada, jika belum ada maka buat bucket baru secara otomatis
+      try {
+        await this.s3Client.send(new HeadBucketCommand({ Bucket: targetBucket }));
+      } catch (headError) {
+        console.log(`Bucket '${targetBucket}' tidak ditemukan. Mencoba membuat bucket baru...`);
+        await this.s3Client.send(new CreateBucketCommand({ Bucket: targetBucket }));
+        console.log(`Bucket '${targetBucket}' berhasil dibuat secara otomatis.`);
+      }
+
       const command = new PutObjectCommand({
         Bucket: targetBucket,
         Key: filename,

@@ -9,7 +9,11 @@ import {
   ParseIntPipe,
   UseGuards,
   ForbiddenException,
+  UseInterceptors,
+  UploadedFile,
+  BadRequestException,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { MonthlyReportService } from './monthly-report.service';
 import {
   GenerateReportDto,
@@ -20,6 +24,7 @@ import {
 } from './monthly-report.dto';
 import { AuthGuard } from '../auth/auth.guard';
 import { Role } from '@prisma/client';
+import { StorageService } from '../storage/storage.service';
 
 interface RequestWithUser extends Request {
   user: {
@@ -31,7 +36,10 @@ interface RequestWithUser extends Request {
 @UseGuards(AuthGuard)
 @Controller('monthly-reports')
 export class MonthlyReportController {
-  constructor(private readonly service: MonthlyReportService) {}
+  constructor(
+    private readonly service: MonthlyReportService,
+    private readonly storageService: StorageService,
+  ) {}
 
   private checkAdminFinance(role: string) {
     if (role !== Role.ADMIN_FINANCE) {
@@ -80,12 +88,27 @@ export class MonthlyReportController {
   }
 
   @Post(':id/upload-proof')
+  @UseInterceptors(FileInterceptor('proof'))
   async uploadProof(
     @Request() req: RequestWithUser,
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UploadProofDto,
+    @UploadedFile() proofFile?: Express.Multer.File,
   ): Promise<MonthlyReportResponseDto> {
     this.checkAdminFinance(req.user.role);
+
+    if (!proofFile) {
+      throw new BadRequestException('File bukti transfer (proof) tidak boleh kosong!');
+    }
+    if (proofFile.size > 5 * 1024 * 1024) {
+      throw new BadRequestException('Ukuran file bukti transfer maksimal 5MB');
+    }
+    if (!/(jpg|jpeg|png|webp|pdf)$/i.test(proofFile.originalname) && !/(jpg|jpeg|png|webp|pdf)$/i.test(proofFile.mimetype)) {
+      throw new BadRequestException('Format file bukti transfer tidak valid (harus jpg/jpeg/png/webp/pdf)');
+    }
+
+    dto.proofUrl = await this.storageService.uploadFile(proofFile, 'monthly-report-proofs');
+
     return this.service.uploadProof(id, dto);
   }
 

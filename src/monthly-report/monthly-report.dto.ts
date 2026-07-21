@@ -40,9 +40,9 @@ export class ProcessDividendDto {
 }
 
 export class UploadProofDto {
-  @IsNotEmpty({ message: 'proofUrl tidak boleh kosong' })
+  @IsOptional()
   @IsUrl({}, { message: 'proofUrl harus berupa URL yang valid' })
-  proofUrl!: string;
+  proofUrl?: string;
 }
 
 export class MonthlyReportResponseDto {

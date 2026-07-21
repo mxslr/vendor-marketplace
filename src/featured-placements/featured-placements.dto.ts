@@ -24,7 +24,7 @@ export class CreatePromoteDto {
 
 export class UploadProofDto {
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   @IsUrl()
-  proofUrl!: string;
+  proofUrl?: string;
 }

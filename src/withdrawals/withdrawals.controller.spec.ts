@@ -3,10 +3,12 @@ import { WithdrawalsController } from './withdrawals.controller';
 import { WithdrawalsService } from './withdrawals.service';
 import { AuthGuard } from '../auth/auth.guard';
 import { CreateWithdrawalDto, CompleteWithdrawalDto } from './withdrawals.dto';
+import { StorageService } from '../storage/storage.service';
 
 describe('WithdrawalsController', () => {
   let controller: WithdrawalsController;
   let service: jest.Mocked<Partial<WithdrawalsService>>;
+  let module: TestingModule;
 
   beforeEach(async () => {
     service = {
@@ -18,9 +20,12 @@ describe('WithdrawalsController', () => {
       rejectWithdrawal: jest.fn(),
     };
 
-    const module: TestingModule = await Test.createTestingModule({
+    module = await Test.createTestingModule({
       controllers: [WithdrawalsController],
-      providers: [{ provide: WithdrawalsService, useValue: service }],
+      providers: [
+        { provide: WithdrawalsService, useValue: service },
+        { provide: StorageService, useValue: { uploadFile: jest.fn() } },
+      ],
     })
       .overrideGuard(AuthGuard)
       .useValue({ canActivate: jest.fn(() => true) })
@@ -70,9 +75,19 @@ describe('WithdrawalsController', () => {
 
   describe('completeWithdrawal', () => {
     it('should call service', async () => {
-      const dto: CompleteWithdrawalDto = { proofUrl: 'url' };
-      await controller.completeWithdrawal(mockReq, 10, dto);
-      expect(service.completeWithdrawal).toHaveBeenCalledWith(1, 10, dto);
+      const dto: CompleteWithdrawalDto = { proofUrl: '' };
+      const mockFile = {
+        originalname: 'test.jpg',
+        mimetype: 'image/jpeg',
+        size: 1000,
+        buffer: Buffer.from('test'),
+      } as Express.Multer.File;
+
+      const storageService = module.get<StorageService>(StorageService);
+      jest.spyOn(storageService, 'uploadFile').mockResolvedValue('url');
+
+      await controller.completeWithdrawal(mockReq, 10, dto, mockFile);
+      expect(service.completeWithdrawal).toHaveBeenCalledWith(1, 10, { proofUrl: 'url' });
     });
   });
 

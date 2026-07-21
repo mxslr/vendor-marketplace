@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsNumber, IsString, IsUrl } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsString, IsUrl, IsOptional } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class SubmitDeliverableDto {
@@ -6,9 +6,9 @@ export class SubmitDeliverableDto {
   @Type(() => Number)
   orderId: number;
 
-  @IsNotEmpty({ message: 'fileUrl tidak boleh kosong' })
+  @IsOptional()
   @IsUrl({}, { message: 'fileUrl harus berupa URL yang valid' })
-  fileUrl: string;
+  fileUrl?: string;
 
   @IsString()
   @IsNotEmpty({ message: 'message tidak boleh kosong' })

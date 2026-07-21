@@ -4,10 +4,12 @@ import { FeaturedPlacementService } from './featured-placements.service';
 import { ForbiddenException } from '@nestjs/common';
 import { Role } from '@prisma/client';
 import { AuthGuard } from '../auth/auth.guard';
+import { StorageService } from '../storage/storage.service';
 
 describe('FeaturedPlacementController', () => {
   let controller: FeaturedPlacementController;
   let service: any;
+  let module: TestingModule;
 
   beforeEach(async () => {
     service = {
@@ -19,9 +21,12 @@ describe('FeaturedPlacementController', () => {
       getPendingFeatures: jest.fn(),
     };
 
-    const module: TestingModule = await Test.createTestingModule({
+    module = await Test.createTestingModule({
       controllers: [FeaturedPlacementController],
-      providers: [{ provide: FeaturedPlacementService, useValue: service }],
+      providers: [
+        { provide: FeaturedPlacementService, useValue: service },
+        { provide: StorageService, useValue: { uploadFile: jest.fn() } },
+      ],
     })
       .overrideGuard(AuthGuard)
       .useValue({ canActivate: jest.fn(() => true) })
@@ -63,7 +68,17 @@ describe('FeaturedPlacementController', () => {
   describe('uploadProof', () => {
     it('should call service for valid merchant', async () => {
       service.uploadProof.mockResolvedValue({ id: 1 } as any);
-      await controller.uploadProof(mockMerchantReq, 1, { proofUrl: 'url' });
+      const mockFile = {
+        originalname: 'test.jpg',
+        mimetype: 'image/jpeg',
+        size: 1000,
+        buffer: Buffer.from('test'),
+      } as Express.Multer.File;
+
+      const storageService = module.get<StorageService>(StorageService);
+      jest.spyOn(storageService, 'uploadFile').mockResolvedValue('url');
+
+      await controller.uploadProof(mockMerchantReq, 1, { proofUrl: '' }, mockFile);
       expect(service.uploadProof).toHaveBeenCalledWith(2, 1, 'url');
     });
   });

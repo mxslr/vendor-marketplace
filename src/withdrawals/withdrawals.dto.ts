@@ -23,7 +23,7 @@ export class CreateWithdrawalDto {
 }
 
 export class CompleteWithdrawalDto {
-  @IsNotEmpty({ message: 'Bukti tidak boleh kosong!' })
+  @IsOptional()
   @IsUrl({}, { message: 'Bukti harus berupa URL!' })
-  proofUrl!: string;
+  proofUrl?: string;
 }

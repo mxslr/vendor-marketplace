@@ -29,12 +29,12 @@ export class RegisterMerchantUserDto {
   description!: string;
 
   @IsUrl({}, { message: 'Format URL logo tidak valid' })
-  @IsNotEmpty()
-  logoUrl!: Base64URLString;
+  @IsOptional()
+  logoUrl?: Base64URLString;
 
   @IsUrl({}, { message: 'Format URL banner tidak valid' })
-  @IsNotEmpty()
-  bannerUrl!: Base64URLString;
+  @IsOptional()
+  bannerUrl?: Base64URLString;
 
   @IsString()
   @Matches(/^[a-zA-Z ]+$/, {
@@ -58,12 +58,12 @@ export class RegisterMerchantUserDto {
 // Wajib upload dokumen identitas dan portofolio untuk verifikasi KYB
 export class SubmitKybDto {
   @IsUrl()
-  @IsNotEmpty()
-  kybDocumentUrl!: Base64URLString;
+  @IsOptional()
+  kybDocumentUrl?: Base64URLString;
 
   @IsUrl()
-  @IsNotEmpty()
-  portfolioUrl!: Base64URLString;
+  @IsOptional()
+  portfolioUrl?: Base64URLString;
 }
 
 export class UpdateProfileDto {

@@ -31,8 +31,7 @@ export class CreateGigDto {
   @IsNotEmpty()
   price!: number;
 
-  @ValidateIf((o) => o.mediaUrls !== undefined && o.mediaUrls !== '')
-  @IsUrl(undefined, { message: 'Link Media Tidak Valid!' })
+  @IsString()
   @IsOptional()
   mediaUrls?: string;
 

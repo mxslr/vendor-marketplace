@@ -4,10 +4,12 @@ import { MonthlyReportService } from './monthly-report.service';
 import { AuthGuard } from '../auth/auth.guard';
 import { ForbiddenException } from '@nestjs/common';
 import { Role } from '@prisma/client';
+import { StorageService } from '../storage/storage.service';
 
 describe('MonthlyReportController', () => {
   let controller: MonthlyReportController;
   let service: jest.Mocked<Partial<MonthlyReportService>>;
+  let module: TestingModule;
 
   beforeEach(async () => {
     service = {
@@ -20,9 +22,12 @@ describe('MonthlyReportController', () => {
       getReportById: jest.fn(),
     };
 
-    const module: TestingModule = await Test.createTestingModule({
+    module = await Test.createTestingModule({
       controllers: [MonthlyReportController],
-      providers: [{ provide: MonthlyReportService, useValue: service }],
+      providers: [
+        { provide: MonthlyReportService, useValue: service },
+        { provide: StorageService, useValue: { uploadFile: jest.fn() } },
+      ],
     })
       .overrideGuard(AuthGuard)
       .useValue({ canActivate: jest.fn(() => true) })
@@ -85,7 +90,17 @@ describe('MonthlyReportController', () => {
 
   describe('uploadProof', () => {
     it('should call service for admin', async () => {
-      await controller.uploadProof(mockAdminReq, 1, { proofUrl: 'url' });
+      const mockFile = {
+        originalname: 'test.jpg',
+        mimetype: 'image/jpeg',
+        size: 1000,
+        buffer: Buffer.from('test'),
+      } as Express.Multer.File;
+
+      const storageService = module.get<StorageService>(StorageService);
+      jest.spyOn(storageService, 'uploadFile').mockResolvedValue('url');
+
+      await controller.uploadProof(mockAdminReq, 1, { proofUrl: '' }, mockFile);
       expect(service.uploadProof).toHaveBeenCalledWith(1, { proofUrl: 'url' });
     });
   });

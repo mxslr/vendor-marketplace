@@ -7,6 +7,7 @@ import {
   IsEmail,
   IsNumberString,
   Matches,
+  ValidateIf,
 } from 'class-validator';
 
 export class RegisterMerchantUserDto {
@@ -28,11 +29,11 @@ export class RegisterMerchantUserDto {
   @IsNotEmpty({ message: 'Deskripsi tidak boleh kosong' })
   description!: string;
 
-  @IsUrl({}, { message: 'Format URL logo tidak valid' })
+  @IsUrl({ require_tld: false }, { message: 'Format URL logo tidak valid' })
   @IsOptional()
   logoUrl?: Base64URLString;
 
-  @IsUrl({}, { message: 'Format URL banner tidak valid' })
+  @IsUrl({ require_tld: false }, { message: 'Format URL banner tidak valid' })
   @IsOptional()
   bannerUrl?: Base64URLString;
 
@@ -55,13 +56,14 @@ export class RegisterMerchantUserDto {
   accountHolderName!: string;
 }
 
-// Wajib upload dokumen identitas dan portofolio untuk verifikasi KYB
+// Wajib upload dokumen identitas dan portofolio (opsional) untuk verifikasi KYB
 export class SubmitKybDto {
-  @IsUrl()
+  @IsUrl({ require_tld: false }, { message: 'Format URL dokumen KYB tidak valid' })
   @IsOptional()
   kybDocumentUrl?: Base64URLString;
 
-  @IsUrl()
+  @ValidateIf((o) => o.portfolioUrl !== '' && o.portfolioUrl !== null && o.portfolioUrl !== undefined)
+  @IsUrl({ require_tld: false }, { message: 'Format URL portofolio tidak valid' })
   @IsOptional()
   portfolioUrl?: Base64URLString;
 }
@@ -73,10 +75,10 @@ export class UpdateProfileDto {
   @IsString()
   @IsOptional()
   description?: string;
-  @IsUrl()
+  @IsUrl({ require_tld: false })
   @IsOptional()
   logoUrl?: Base64URLString;
-  @IsUrl()
+  @IsUrl({ require_tld: false })
   @IsOptional()
   bannerUrl?: Base64URLString;
   @IsString()

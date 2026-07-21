@@ -7,7 +7,7 @@ export class SubmitDeliverableDto {
   orderId: number;
 
   @IsOptional()
-  @IsUrl({}, { message: 'fileUrl harus berupa URL yang valid' })
+  @IsUrl({ require_tld: false }, { message: 'fileUrl harus berupa URL yang valid' })
   fileUrl?: string;
 
   @IsString()

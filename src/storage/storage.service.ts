@@ -1,6 +1,12 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { S3Client, PutObjectCommand, CreateBucketCommand, HeadBucketCommand } from '@aws-sdk/client-s3';
+import {
+  S3Client,
+  PutObjectCommand,
+  CreateBucketCommand,
+  HeadBucketCommand,
+  PutBucketPolicyCommand,
+} from '@aws-sdk/client-s3';
 import { randomUUID } from 'crypto';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -52,6 +58,28 @@ export class StorageService {
         console.log(`Bucket '${targetBucket}' tidak ditemukan. Mencoba membuat bucket baru...`);
         await this.s3Client.send(new CreateBucketCommand({ Bucket: targetBucket }));
         console.log(`Bucket '${targetBucket}' berhasil dibuat secara otomatis.`);
+        try {
+          const policy = {
+            Version: '2012-10-17',
+            Statement: [
+              {
+                Sid: 'PublicRead',
+                Effect: 'Allow',
+                Principal: '*',
+                Action: ['s3:GetObject'],
+                Resource: [`arn:aws:s3:::${targetBucket}/*`],
+              },
+            ],
+          };
+          await this.s3Client.send(
+            new PutBucketPolicyCommand({
+              Bucket: targetBucket,
+              Policy: JSON.stringify(policy),
+            }),
+          );
+        } catch (policyErr) {
+          console.warn('Gagal mengatur policy publik bucket:', policyErr);
+        }
       }
 
       const command = new PutObjectCommand({
@@ -59,6 +87,7 @@ export class StorageService {
         Key: filename,
         Body: file.buffer,
         ContentType: file.mimetype,
+        ACL: 'public-read',
       });
 
       await this.s3Client.send(command);

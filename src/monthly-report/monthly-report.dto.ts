@@ -41,7 +41,7 @@ export class ProcessDividendDto {
 
 export class UploadProofDto {
   @IsOptional()
-  @IsUrl({}, { message: 'proofUrl harus berupa URL yang valid' })
+  @IsUrl({ require_tld: false }, { message: 'proofUrl harus berupa URL yang valid' })
   proofUrl?: string;
 }
 

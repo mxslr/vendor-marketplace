@@ -69,7 +69,7 @@ export class MerchantsController {
   async registerMerchant(
     @Body() dto: RegisterMerchantUserDto,
     @UploadedFiles()
-    files: {
+    files?: {
       logo?: Express.Multer.File[];
       banner?: Express.Multer.File[];
     },
@@ -77,20 +77,25 @@ export class MerchantsController {
     const logoFile = files?.logo?.[0];
     const bannerFile = files?.banner?.[0];
 
-    this.validateImage(logoFile, 'logo', /(jpg|jpeg|png|webp)$/i);
-    this.validateImage(bannerFile, 'banner', /(jpg|jpeg|png|webp)$/i);
+    if (logoFile) {
+      this.validateImage(logoFile, 'logo', /(jpg|jpeg|png|webp)$/i);
+      dto.logoUrl = await this.storageService.uploadFile(
+        logoFile,
+        'merchant-assets',
+      );
+    } else if (!dto.logoUrl) {
+      throw new BadRequestException('File logo tidak boleh kosong!');
+    }
 
-    const logoUrl = await this.storageService.uploadFile(
-      logoFile!,
-      'merchant-assets',
-    );
-    const bannerUrl = await this.storageService.uploadFile(
-      bannerFile!,
-      'merchant-assets',
-    );
-
-    dto.logoUrl = logoUrl;
-    dto.bannerUrl = bannerUrl;
+    if (bannerFile) {
+      this.validateImage(bannerFile, 'banner', /(jpg|jpeg|png|webp)$/i);
+      dto.bannerUrl = await this.storageService.uploadFile(
+        bannerFile,
+        'merchant-assets',
+      );
+    } else if (!dto.bannerUrl) {
+      throw new BadRequestException('File banner tidak boleh kosong!');
+    }
 
     return this.merchantsService.registerNewMerchant(dto);
   }
@@ -176,7 +181,7 @@ export class MerchantsController {
     @Request() req: RequestWithUser,
     @Body() dto: SubmitKybDto,
     @UploadedFiles()
-    files: {
+    files?: {
       kybDocument?: Express.Multer.File[];
       portfolio?: Express.Multer.File[];
     },
@@ -184,24 +189,23 @@ export class MerchantsController {
     const kybFile = files?.kybDocument?.[0];
     const portfolioFile = files?.portfolio?.[0];
 
-    this.validateImage(kybFile, 'kybDocument', /(jpg|jpeg|png|webp|pdf)$/i);
-    this.validateImage(
-      portfolioFile,
-      'portfolio',
-      /(jpg|jpeg|png|webp|pdf)$/i,
-    );
+    if (kybFile) {
+      this.validateImage(kybFile, 'kybDocument', /(jpg|jpeg|png|webp|pdf)$/i);
+      dto.kybDocumentUrl = await this.storageService.uploadFile(
+        kybFile,
+        'merchant-kyb',
+      );
+    } else if (!dto.kybDocumentUrl) {
+      throw new BadRequestException('Dokumen KYB (kybDocument) tidak boleh kosong!');
+    }
 
-    const kybDocumentUrl = await this.storageService.uploadFile(
-      kybFile!,
-      'merchant-kyb',
-    );
-    const portfolioUrl = await this.storageService.uploadFile(
-      portfolioFile!,
-      'merchant-portfolio',
-    );
-
-    dto.kybDocumentUrl = kybDocumentUrl;
-    dto.portfolioUrl = portfolioUrl;
+    if (portfolioFile) {
+      this.validateImage(portfolioFile, 'portfolio', /(jpg|jpeg|png|webp|pdf)$/i);
+      dto.portfolioUrl = await this.storageService.uploadFile(
+        portfolioFile,
+        'merchant-portfolio',
+      );
+    }
 
     return this.merchantsService.submitKyb(req.user.sub, dto);
   }

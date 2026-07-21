@@ -24,6 +24,6 @@ export class CreateWithdrawalDto {
 
 export class CompleteWithdrawalDto {
   @IsOptional()
-  @IsUrl({}, { message: 'Bukti harus berupa URL!' })
+  @IsUrl({ require_tld: false }, { message: 'Bukti harus berupa URL!' })
   proofUrl?: string;
 }

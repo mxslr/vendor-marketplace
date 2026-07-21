@@ -245,13 +245,9 @@ export class MerchantsService {
         'Kamu belum memiliki toko atau tidak berafiliasi dengan toko manapun.',
       );
 
-    const viewableStatuses: MerchantStatus[] = [
-      MerchantStatus.ACTIVE,
-      MerchantStatus.VACATION,
-    ];
-    if (!viewableStatuses.includes(merchant.status)) {
+    if (merchant.status === MerchantStatus.SUSPENDED) {
       throw new BadRequestException(
-        'Kamu tidak dapat mengakses profil toko selama masa suspend atau verifikasi.',
+        'Akun toko Anda sedang dalam masa penangguhan (suspend).',
       );
     }
 

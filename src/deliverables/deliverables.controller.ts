@@ -30,25 +30,34 @@ export class DeliverablesController {
 
   @UseGuards(AuthGuard)
   @Post()
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: { fileSize: 150 * 1024 * 1024 },
+    }),
+  )
   async submit(
     @Request() req: RequestWithUser,
     @Body() body: SubmitDeliverableDto,
     @UploadedFile() file?: Express.Multer.File,
   ) {
-    if (!file) {
-      throw new BadRequestException('File deliverable tidak boleh kosong!');
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      throw new BadRequestException('Ukuran file deliverable maksimal 5MB');
+    let finalFileUrl = body.fileUrl;
+
+    if (file) {
+      const maxSize = 150 * 1024 * 1024; // 150MB
+      if (file.size > maxSize) {
+        throw new BadRequestException('Ukuran file deliverable maksimal 150MB');
+      }
+      finalFileUrl = await this.storageService.uploadFile(file, 'deliverables');
     }
 
-    body.fileUrl = await this.storageService.uploadFile(file, 'deliverables');
+    if (!finalFileUrl) {
+      throw new BadRequestException('File deliverable tidak boleh kosong!');
+    }
 
     return this.deliverablesService.submitDeliverable(
       req.user.sub,
       body.orderId,
-      body.fileUrl,
+      finalFileUrl,
       body.message,
     );
   }

@@ -21,6 +21,9 @@ async function bootstrap(): Promise<void> {
     credentials: true,
   });
 
+  app.use(express.json({ limit: '150mb' }));
+  app.use(express.urlencoded({ limit: '150mb', extended: true }));
+
   // Serve uploads locally
   app.use('/uploads', express.static(join(process.cwd(), 'uploads')));
 

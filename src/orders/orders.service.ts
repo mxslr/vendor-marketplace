@@ -35,7 +35,7 @@ export class OrdersService {
     private systemConfig: SystemConfigService,
   ) {}
 
-  async createOrder(clientId: number, gigId: number) {
+  async createOrder(clientId: number, gigId: number, chosenPrice?: number) {
     const gig = await this.prisma.gig.findUnique({
       where: { id: gigId },
       include: { category: true },
@@ -58,14 +58,18 @@ export class OrdersService {
       // Key not in SystemConfig — use category default
     }
 
-    const adminFee = gig.price.mul(commissionRate).div(100);
+    const price =
+      chosenPrice && Number(chosenPrice) > 0
+        ? new Prisma.Decimal(chosenPrice)
+        : gig.price;
+    const adminFee = price.mul(commissionRate).div(100);
 
     return this.prisma.order.create({
       data: {
         clientId,
         merchantId: gig.merchantId,
         gigId: gig.id,
-        totalAmount: gig.price,
+        totalAmount: price,
         adminFee,
       },
     });
@@ -74,23 +78,55 @@ export class OrdersService {
   async initiateMidtransPayment(
     orderId: number,
     clientId: number,
-    bank?: string,
+    payloadInput?: { bank?: string; paymentMethod?: string; paymentType?: string } | string,
   ): Promise<{
     snapToken: string;
     clientKey: string;
     midtransOrderId: string;
   }> {
-    const enabledPaymentMap: Record<string, string> = {
-      bca: 'bca_va',
-      bni: 'bni_va',
-      bri: 'bri_va',
-      mandiri: 'echannel',
+    const inputObj = typeof payloadInput === 'object' && payloadInput !== null ? payloadInput : {};
+    const bank = inputObj.bank?.toLowerCase() || (typeof payloadInput === 'string' ? payloadInput.toLowerCase() : undefined);
+    const method = inputObj.paymentMethod?.toLowerCase() || inputObj.paymentType?.toLowerCase();
+
+    let key = bank || method || 'all';
+    if (method === 'qris') key = 'qris';
+
+    // Format clear paymentMethod value for database (e.g. va_bri, va_bca, qris, manual_bri)
+    let dbPaymentMethod = key;
+    if (method === 'manual') {
+      dbPaymentMethod = bank ? `manual_${bank}` : 'manual';
+    } else if (bank && ['bca', 'bri', 'bni', 'mandiri'].includes(bank)) {
+      dbPaymentMethod = `va_${bank}`;
+    }
+
+    const enabledPaymentMap: Record<string, string[]> = {
+      va: ['bca_va', 'bni_va', 'bri_va', 'echannel'],
+      bca: ['bca_va'],
+      va_bca: ['bca_va'],
+      bni: ['bni_va'],
+      va_bni: ['bni_va'],
+      bri: ['bri_va'],
+      va_bri: ['bri_va'],
+      mandiri: ['echannel'],
+      va_mandiri: ['echannel'],
+      qris: ['qris', 'gopay', 'shopeepay'],
+      gopay: ['gopay'],
+      shopeepay: ['shopeepay'],
     };
 
-    const enabledPayments =
-      bank && enabledPaymentMap[bank.toLowerCase()]
-        ? [enabledPaymentMap[bank.toLowerCase()]]
-        : undefined;
+    const defaultAllowedPayments = [
+      'bca_va',
+      'bni_va',
+      'bri_va',
+      'echannel',
+      'qris',
+      'gopay',
+      'shopeepay',
+    ];
+
+    const enabledPayments = key && enabledPaymentMap[key]
+      ? enabledPaymentMap[key]
+      : defaultAllowedPayments;
     const order = await this.prisma.order.findFirst({
       where: { id: orderId, clientId },
       include: {
@@ -104,6 +140,16 @@ export class OrdersService {
       throw new BadRequestException(
         'Pesanan ini sudah dibayar atau sedang diproses.',
       );
+    }
+
+    const requestedMethod = dbPaymentMethod;
+
+    if (order.snapToken && order.paymentMethod === requestedMethod) {
+      return {
+        snapToken: order.snapToken,
+        clientKey: this.config.get<string>('MIDTRANS_CLIENT_KEY') ?? '',
+        midtransOrderId: order.midtransTransactionId ?? `order-${order.id}`,
+      };
     }
 
     const midtransOrderId = `order-${order.id}-${Date.now()}`;
@@ -146,7 +192,11 @@ export class OrdersService {
 
     await this.prisma.order.update({
       where: { id: order.id },
-      data: { snapToken },
+      data: {
+        snapToken,
+        paymentMethod: requestedMethod,
+        midtransTransactionId: midtransOrderId,
+      },
     });
 
     return {

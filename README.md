@@ -1480,232 +1480,237 @@ Server menampilkan log setiap kali webhook masuk:
 
 ---
 
-## 7. Referensi Endpoint Lengkap
+## 7. Referensi Endpoint Lengkap (QA Testing & API Document)
 
-Semua endpoint menggunakan prefix `/api/v1`.
+Semua endpoint aplikasi menggunakan prefix `/api/v1`.
 
-### Authentication
-
-| Method | Endpoint | Auth | Keterangan |
-|---|---|---|---|
-| POST | `/auth/login` | Tidak | Login semua role kecuali Super Admin |
-| POST | `/auth/admin/login` | Tidak | Login khusus Super Admin |
-| GET | `/auth/profile` | Ya | Profil user yang sedang login |
-
-### Users
+### Authentication (`/api/v1/auth`)
 
 | Method | Endpoint | Auth | Keterangan |
 |---|---|---|---|
-| POST | `/users` | Tidak | Daftar akun baru (role selalu `CLIENT`) |
-| GET | `/users` | Ya | List semua user (Admin) |
+| POST | `/api/v1/auth/login` | Tidak | Login user (Client, Merchant Owner, Associate) |
+| POST | `/api/v1/auth/admin/login` | Tidak | Login khusus Admin (Validator, Finance, Super Admin) |
+| PATCH | `/api/v1/auth/profile` | Ya | Update profil user yang sedang login |
 
-### Categories
-
-| Method | Endpoint | Auth | Keterangan |
-|---|---|---|---|
-| POST | `/categories` | Ya (Super Admin) | Buat kategori baru |
-| GET | `/categories` | Tidak | List semua kategori |
-| GET | `/categories/:id` | Tidak | Detail kategori |
-| PATCH | `/categories/:id` | Ya (Super Admin) | Update kategori |
-| DELETE | `/categories/:id` | Ya (Super Admin) | Hapus kategori |
-
-### Merchants
+### Users (`/api/v1/users`)
 
 | Method | Endpoint | Auth | Keterangan |
 |---|---|---|---|
-| POST | `/merchants/register` | Tidak | Daftar merchant baru |
-| GET | `/merchants` | Tidak | List merchant (ACTIVE + VACATION) |
-| GET | `/merchants/leaderboard` | Tidak | Leaderboard publik (3 kategori) |
-| GET | `/merchants/profile` | Ya | Profil merchant milik sendiri |
-| GET | `/merchants/details/:id` | Tidak | Detail merchant by ID |
-| PATCH | `/merchants/:id/edit/profile` | Ya (Owner) | Update profil toko |
-| PATCH | `/merchants/submit-kyb` | Ya (Owner) | Submit dokumen KYB |
-| PATCH | `/merchants/kyb/acknowledge-rejection` | Ya (Owner) | Acknowledge rejection → kembali ke INCOMPLETE |
-| PATCH | `/merchants/vacation-mode` | Ya (Owner) | Toggle mode liburan |
-| PATCH | `/merchants/closed` | Ya (Owner) | Tutup toko |
-| POST | `/merchants/:id/associates` | Ya (Owner) | Tambah associate (alias RESTful) |
+| POST | `/api/v1/users` | Tidak | Registrasi akun user baru (role: `CLIENT`) |
+| GET | `/api/v1/users` | Ya (Admin) | List semua user |
 
-### Withdrawals
+### Categories (`/api/v1/categories`)
 
 | Method | Endpoint | Auth | Keterangan |
 |---|---|---|---|
-| POST | `/withdrawals` | Ya (Owner) | Request withdrawal (min Rp 50.000) |
-| GET | `/withdrawals` | Ya (Owner) | Riwayat withdrawal merchant |
-| GET | `/withdrawals/:id` | Ya (Owner) | Detail withdrawal |
-| GET | `/withdrawals/pending` | Ya (Finance) | Antrian withdrawal pending |
-| PATCH | `/withdrawals/:id/complete` | Ya (Finance) | Tandai selesai + upload bukti |
-| PATCH | `/withdrawals/:id/reject` | Ya (Finance) | Tolak request |
+| POST | `/api/v1/categories` | Ya (Super Admin) | Buat kategori baru |
+| GET | `/api/v1/categories` | Tidak | List semua kategori |
+| GET | `/api/v1/categories/:id` | Tidak | Detail kategori by ID |
+| PATCH | `/api/v1/categories/:id` | Ya (Super Admin) | Update kategori |
+| DELETE | `/api/v1/categories/:id` | Ya (Super Admin) | Hapus kategori |
 
-### Merchant Associates
-
-| Method | Endpoint | Auth | Keterangan |
-|---|---|---|---|
-| POST | `/merchant-associates` | Ya (Owner) | Tambah associate |
-| GET | `/merchant-associates` | Ya | List associate merchant |
-
-### Gigs
+### Merchants (`/api/v1/merchants`)
 
 | Method | Endpoint | Auth | Keterangan |
 |---|---|---|---|
-| POST | `/gigs` | Ya (Owner/Associate) | Buat gig baru (masuk `PENDING_APPROVAL`) |
-| GET | `/gigs` | Tidak | List gig ACTIVE publik |
-| GET | `/gigs/my-gigs` | Ya | Gig milik merchant |
-| GET | `/gigs/details/:id` | Tidak | Detail gig |
-| DELETE | `/gigs/:id` | Ya | Hapus gig |
+| POST | `/api/v1/merchants/register` | Tidak | Registrasi merchant/toko baru |
+| GET | `/api/v1/merchants` | Tidak | List merchant (ACTIVE + VACATION) |
+| GET | `/api/v1/merchants/leaderboard` | Tidak | Leaderboard publik merchant |
+| GET | `/api/v1/merchants/profile` | Ya | Profil merchant milik sendiri |
+| GET | `/api/v1/merchants/details/:id` | Tidak | Detail merchant by ID |
+| PATCH | `/api/v1/merchants/:id/edit/profile` | Ya (Owner) | Update profil toko (shopName, logo, banner, PIN) |
+| PATCH | `/api/v1/merchants/submit-kyb` | Ya (Owner) | Submit dokumen KYB (KTM / SK Organisasi) |
+| PATCH | `/api/v1/merchants/kyb/acknowledge-rejection` | Ya (Owner) | Acknowledge penolakan KYB → kembali ke `INCOMPLETE` |
+| PATCH | `/api/v1/merchants/vacation-mode` | Ya (Owner) | Toggle mode liburan toko |
+| PATCH | `/api/v1/merchants/closed` | Ya (Owner) | Tutup toko permanen |
+| POST | `/api/v1/merchants/:id/associates` | Ya (Owner) | Tambah associate staf toko |
 
-### Orders
-
-| Method | Endpoint | Auth | Keterangan |
-|---|---|---|---|
-| POST | `/orders` | Ya (Client) | Buat order dari gig |
-| GET | `/orders/my-orders` | Ya | Order milik client |
-| GET | `/orders/incoming` | Ya (Merchant/Associate) | Order masuk ke merchant |
-| GET | `/orders/:id` | Ya (Client/Owner/Associate) | Detail order — otorisasi: client pemesan, merchant owner, atau associate (`MANAGE_ORDERS`/`FULL_ACCESS`). Include `deliverables` dan `client` data |
-| POST | `/orders/:id/initiate-payment` | Ya (Client) | Inisiasi pembayaran Midtrans → dapat `snapToken` |
-| POST | `/orders/:id/upload-payment-proof` | Ya (Client) | Upload bukti transfer manual (multipart) |
-| PATCH | `/orders/:id/accept` | Ya (Merchant/Associate) | Merchant terima order |
-| PATCH | `/orders/:id/decline` | Ya (Merchant/Associate) | Merchant tolak order → `REFUNDED` |
-| PATCH | `/orders/:id/complete` | Ya (Client) | Client terima hasil → `COMPLETED` |
-| PATCH | `/orders/:id/cancel` | Ya (Client) | Batalkan order (hanya dari `UNPAID`) |
-| GET | `/orders/:id/invoice` | Ya (Client) | Download invoice PDF (hanya `COMPLETED`) |
-
-### Custom Offers
+### Merchant Associates (`/api/v1/merchant-associates`)
 
 | Method | Endpoint | Auth | Keterangan |
 |---|---|---|---|
-| POST | `/custom-offers/sent` | Ya (Merchant/Associate) | Buat penawaran custom. Associate harus memiliki izin `MANAGE_ORDERS` atau `FULL_ACCESS` |
-| GET | `/custom-offers/client` | Ya (Client) | Penawaran yang diterima client |
-| PATCH | `/custom-offers/:id/accept` | Ya (Client) | Terima → order otomatis terbuat |
-| PATCH | `/custom-offers/:id/reject` | Ya (Client) | Tolak penawaran |
+| POST | `/api/v1/merchant-associates` | Ya (Owner) | Tambah associate staf baru |
+| GET | `/api/v1/merchant-associates` | Ya | List associate milik merchant |
 
-### Deliverables
+### Gigs (`/api/v1/gigs`)
 
 | Method | Endpoint | Auth | Keterangan |
 |---|---|---|---|
-| POST | `/deliverables` | Ya (Merchant/Associate) | Submit hasil pekerjaan |
+| POST | `/api/v1/gigs` | Ya (Owner/Associate) | Buat gig/jasa baru (status `PENDING_APPROVAL`) |
+| GET | `/api/v1/gigs` | Tidak | List gig publik (`ACTIVE` & `FEATURED`) |
+| GET | `/api/v1/gigs/my-gigs` | Ya (Owner/Associate) | List gig milik merchant |
+| GET | `/api/v1/gigs/details/:id` | Tidak | Detail gig by ID |
+| PATCH | `/api/v1/gigs/:id` | Ya (Owner/Associate) | Update data gig by ID |
+| DELETE | `/api/v1/gigs/:id` | Ya (Owner/Associate) | Hapus gig by ID |
 
-### Reviews
-
-| Method | Endpoint | Auth | Keterangan |
-|---|---|---|---|
-| POST | `/reviews` | Ya (Client) | Beri ulasan setelah `COMPLETED` |
-
-### Transactions
-
-| Method | Endpoint | Auth | Keterangan |
-|---|---|---|---|
-| GET | `/transactions/my-history` | Ya | Riwayat transaksi sendiri |
-| GET | `/transactions/all` | Ya (Finance/Super Admin) | Semua transaksi (include `order.status` untuk kalkulasi escrow) |
-| GET | `/transactions/financial-summary` | Ya (Finance/Super Admin) | Ringkasan finansial: saldo escrow, GMV, platform revenue, pertumbuhan %. Query: `?period=day\|week\|month` |
-| PATCH | `/transactions/:id/verify` | Ya (Finance) | Verifikasi pembayaran manual |
-| GET | `/transactions/pending-refunds` | Ya (Finance) | Order menunggu refund |
-| GET | `/transactions/pending-releases` | Ya (Finance) | Order menunggu release dana |
-| PATCH | `/transactions/:id/refund` | Ya (Finance) | Eksekusi refund |
-| PATCH | `/transactions/:id/release` | Ya (Finance) | Release dana ke merchant |
-
-### Payments
+### Orders (`/api/v1/orders`)
 
 | Method | Endpoint | Auth | Keterangan |
 |---|---|---|---|
-| POST | `/payments/midtrans/webhook` | **Tidak** | Webhook Midtrans (publik, validasi signature) |
+| POST | `/api/v1/orders` | Ya (Client) | Buat pesanan baru (support `price` parameter) |
+| GET | `/api/v1/orders/my-orders` | Ya (Client) | List pesanan milik client |
+| GET | `/api/v1/orders/incoming` | Ya (Merchant/Associate) | List pesanan masuk ke merchant |
+| GET | `/api/v1/orders/:id` | Ya (Client/Merchant/Associate) | Detail pesanan, include `deliverables` dan `client` |
+| POST | `/api/v1/orders/:id/initiate-payment` | Ya (Client) | Inisiasi pembayaran Midtrans Snap (support bank filter) |
+| POST | `/api/v1/orders/:id/upload-payment-proof` | Ya (Client) | Upload bukti transfer manual (support JPG/PNG/PDF) |
+| PATCH | `/api/v1/orders/:id/accept` | Ya (Merchant/Associate) | Merchant terima pesanan |
+| PATCH | `/api/v1/orders/:id/decline` | Ya (Merchant/Associate) | Merchant tolak pesanan → status `REFUNDED` |
+| PATCH | `/api/v1/orders/:id/complete` | Ya (Client) | Client terima hasil pengerjaan → status `COMPLETED` |
+| PATCH | `/api/v1/orders/:id/revision` | Ya (Client) | Client ajukan revisi hasil pengerjaan |
+| PATCH | `/api/v1/orders/:id/cancel` | Ya (Client) | Batalkan pesanan (hanya status `UNPAID`) |
+| GET | `/api/v1/orders/:id/invoice` | Ya (Client) | Download invoice PDF pesanan (`COMPLETED`) |
 
-### Admin Validator
-
-| Method | Endpoint | Auth | Keterangan |
-|---|---|---|---|
-| GET | `/admin/validator/merchants` | Ya (Validator/SA) | Daftar merchant. Query: `?status=PENDING_VERIFICATION\|ACTIVE\|REJECTED\|ALL&page=1&limit=10` |
-| GET | `/admin/validator/merchants/pending` | Ya (Validator/SA) | Antrian verifikasi merchant (legacy/fallback) |
-| GET | `/admin/validator/gigs/pending` | Ya (Validator/SA) | Antrian verifikasi gig |
-| PATCH | `/admin/validator/merchants/:id/verify` | Ya (Validator) | Approve/reject KYB |
-| PATCH | `/admin/validator/gigs/:id/verify` | Ya (Validator) | Approve/reject gig |
-| PATCH | `/admin/validator/merchants/:id/suspend` | Ya (Validator: suspend; SA: unsuspend) | Suspend/unsuspend merchant |
-| PATCH | `/admin/validator/disputes/:id/submit-verdict` | Ya (Validator) | Simpan keputusan sengketa (tahap 1) |
-| PATCH | `/admin/validator/disputes/:id/confirm-verdict` | Ya (Validator) | Eksekusi keputusan (tahap 2) |
-| PATCH | `/admin/validator/disputes/:id/executive-decision` | Ya (Super Admin) | Override keputusan langsung |
-
-### Disputes
+### Custom Offers (`/api/v1/custom-offers`)
 
 | Method | Endpoint | Auth | Keterangan |
 |---|---|---|---|
-| POST | `/disputes` | Ya (Client) | Buka tiket sengketa dengan bukti (multipart) |
-| PATCH | `/disputes/:id/resolve` | Ya (Admin) | Resolve dispute (endpoint lama) |
+| POST | `/api/v1/custom-offers/sent` | Ya (Merchant/Associate) | Buat penawaran custom ke client (izin `MANAGE_ORDERS`/`FULL_ACCESS`) |
+| PATCH | `/api/v1/custom-offers/:id/accept` | Ya (Client) | Terima penawaran custom → pesanan otomatis dibuat |
+| PATCH | `/api/v1/custom-offers/:id/reject` | Ya (Client) | Tolak penawaran custom |
 
-### Appeals
-
-| Method | Endpoint | Auth | Keterangan |
-|---|---|---|---|
-| POST | `/appeals` | Ya (Client/Merchant) | Ajukan banding |
-| GET | `/appeals` | Ya (Super Admin) | Lihat semua banding |
-| PATCH | `/appeals/:id/resolve` | Ya (Super Admin) | Selesaikan banding |
-
-### Featured Placements
+### Deliverables (`/api/v1/deliverables`)
 
 | Method | Endpoint | Auth | Keterangan |
 |---|---|---|---|
-| POST | `/featured-placements/promote` | Ya (Owner) | Boost gig (via wallet atau transfer manual) |
-| POST | `/featured-placements/upload-proof/:id` | Ya (Owner) | Upload bukti bayar boost |
-| GET | `/featured-placements/my-promotes` | Ya (Merchant) | Daftar boost milik merchant |
-| POST | `/featured-placements/admin/approve/:id` | Ya (Finance) | Approve boost |
-| POST | `/featured-placements/admin/reject/:id` | Ya (Finance) | Reject boost |
-| GET | `/featured-placements/admin/pending` | Ya (Finance) | Boost pending approval |
+| POST | `/api/v1/deliverables` | Ya (Merchant/Associate) | Upload & kirim hasil pengerjaan proyek (bucket `'deliverables'` max 150MB) |
 
-### System Config
+### Reviews (`/api/v1/reviews`)
 
 | Method | Endpoint | Auth | Keterangan |
 |---|---|---|---|
-| GET | `/system-config` | Ya (Super Admin) | Semua konfigurasi sistem |
-| GET | `/system-config/audit-logs` | Ya (Super Admin) | Log semua perubahan konfigurasi |
-| GET | `/system-config/users` | Ya (Super Admin) | List user. Query: `?status=active\|suspended` |
-| GET | `/system-config/midtrans/health` | Ya (Super Admin) | Health check koneksi Midtrans |
-| GET | `/system-config/analytics` | Ya (Super Admin) | Analitik transaksi: GMV, revenue, order per status. Query: `?period=day\|week\|month` |
-| GET | `/system-config/maintenance` | Ya (Super Admin) | Cek status maintenance mode |
-| GET | `/system-config/dashboard-overview` | Ya (Super Admin) | Aggregation data performa server, payment gateway status, active sessions, dan admin validator/finance performance |
-| GET | `/system-config/:key` | Ya (Super Admin) | Nilai konfigurasi by key |
-| PUT | `/system-config/:key` | Ya (Super Admin) | Update konfigurasi (wajib `confirmPassword`) |
-| POST | `/system-config/create-admin` | Ya (Super Admin) | Buat akun Admin Validator atau Admin Finance |
-| POST | `/system-config/suspend-admin` | Ya (Super Admin) | Suspend admin (Validator/Finance) |
-| POST | `/system-config/unsuspend-admin` | Ya (Super Admin) | Unsuspend admin |
-| POST | `/system-config/delete-admin` | Ya (Super Admin) | Hapus akun admin (Validator/Finance) |
+| POST | `/api/v1/reviews` | Ya (Client) | Beri ulasan & rating bintang setelah pesanan `COMPLETED` |
 
-### Monthly Reports
+### Transactions (`/api/v1/transactions`)
 
 | Method | Endpoint | Auth | Keterangan |
 |---|---|---|---|
-| POST | `/monthly-reports/generate` | Ya (Finance) | Generate laporan bulanan |
-| PATCH | `/monthly-reports/:id/operational-cost` | Ya (Finance) | Input biaya operasional (hanya `DRAFT`) |
-| POST | `/monthly-reports/:id/process-dividend` | Ya (Finance) | Proses dividen → `PROCESSED` |
-| POST | `/monthly-reports/:id/lock` | Ya (Finance) | Kunci laporan → `LOCKED` + kirim email |
-| POST | `/monthly-reports/:id/upload-proof` | Ya (Finance) | Upload bukti transfer dividen (hanya `LOCKED`) |
-| GET | `/monthly-reports` | Ya (Finance) | Semua laporan |
-| GET | `/monthly-reports/:id` | Ya (Finance) | Detail laporan |
+| GET | `/api/v1/transactions/my-history` | Ya | Riwayat transaksi user sendiri |
+| GET | `/api/v1/transactions/all` | Ya (Finance/Super Admin) | Semua transaksi platform |
+| GET | `/api/v1/transactions/pending-refunds` | Ya (Finance) | Antrian pesanan menunggu refund |
+| GET | `/api/v1/transactions/pending-releases` | Ya (Finance) | Antrian pesanan menunggu pencairan dana |
+| GET | `/api/v1/transactions/financial-summary` | Ya (Finance/Super Admin) | Ringkasan finansial platform: escrow, GMV, revenue (`?period=day\|week\|month`) |
+| GET | `/api/v1/transactions/:id` | Ya | Detail transaksi by ID |
+| PATCH | `/api/v1/transactions/:id/verify` | Ya (Finance) | Verifikasi pembayaran manual |
+| PATCH | `/api/v1/transactions/:id/refund` | Ya (Finance) | Eksekusi refund transaksi |
+| PATCH | `/api/v1/transactions/:id/release` | Ya (Finance) | Release dana escrow ke wallet merchant |
 
-### Finance Admin Profile
-
-| Method | Endpoint | Auth | Keterangan |
-|---|---|---|---|
-| GET | `/finance/profile/activity-log` | Ya (Finance) | Mengambil riwayat aktivitas (AuditLog) milik Finance Admin |
-| PATCH | `/finance/profile` | Ya (Finance) | Memperbarui profil (fullName, email) Finance Admin |
-
-### Notifications
+### Payments (`/api/v1/payments`)
 
 | Method | Endpoint | Auth | Keterangan |
 |---|---|---|---|
-| GET | `/notifications` | Ya | Notifikasi milik sendiri |
-| PATCH | `/notifications/:id/read` | Ya | Tandai satu notifikasi sudah dibaca |
-| PATCH | `/notifications/read-all` | Ya | Tandai semua notifikasi sudah dibaca |
+| GET | `/api/v1/payments/methods` | Tidak | Daftar metode pembayaran yang tersedia |
+| POST | `/api/v1/payments/midtrans/webhook` | **Tidak** | Webhook notifikasi pembayaran dari Midtrans (Publik, SHA-512) |
 
-### Chat (Stream)
-
-| Method | Endpoint | Auth | Keterangan |
-|---|---|---|---|
-| GET | `/chat/token` | Ya | Dapatkan token Stream Chat |
-| POST | `/chat/create-channel` | Ya (Client) | Buat channel chat untuk gig |
-
-### Upload File
+### Withdrawals (`/api/v1/withdrawals`)
 
 | Method | Endpoint | Auth | Keterangan |
 |---|---|---|---|
-| POST | `/upload/image` | Tidak wajib | Upload file ke Supabase Storage |
+| POST | `/api/v1/withdrawals` | Ya (Owner) | Request penarikan saldo wallet merchant (min Rp 50.000) |
+| GET | `/api/v1/withdrawals` | Ya (Owner) | Riwayat penarikan saldo merchant |
+| GET | `/api/v1/withdrawals/pending` | Ya (Finance) | Antrian request penarikan pending |
+| GET | `/api/v1/withdrawals/:id` | Ya (Owner/Finance) | Detail request penarikan by ID |
+| PATCH | `/api/v1/withdrawals/:id/complete` | Ya (Finance) | Selesaikan penarikan + upload bukti transfer |
+| PATCH | `/api/v1/withdrawals/:id/reject` | Ya (Finance) | Tolak request penarikan saldo |
+
+### Featured Placements (`/api/v1/featured-placements`)
+
+| Method | Endpoint | Auth | Keterangan |
+|---|---|---|---|
+| POST | `/api/v1/featured-placements/promote` | Ya (Owner) | Boost gig (via potong saldo wallet atau manual) |
+| POST | `/api/v1/featured-placements/upload-proof/:id` | Ya (Owner) | Upload bukti transfer manual boost |
+| GET | `/api/v1/featured-placements/my-promotes` | Ya (Merchant) | Daftar boost gig milik merchant |
+| POST | `/api/v1/featured-placements/admin/approve/:id` | Ya (Finance) | Approve pengajuan boost gig |
+| POST | `/api/v1/featured-placements/admin/reject/:id` | Ya (Finance) | Reject pengajuan boost gig |
+| GET | `/api/v1/featured-placements/admin/pending` | Ya (Finance) | Antrian boost gig pending approval |
+
+### Admin Validator (`/api/v1/admin/validator`)
+
+| Method | Endpoint | Auth | Keterangan |
+|---|---|---|---|
+| GET | `/api/v1/admin/validator/merchants` | Ya (Validator/SA) | List verifikasi merchant (`?status=PENDING_VERIFICATION\|ACTIVE\|REJECTED\|ALL`) |
+| GET | `/api/v1/admin/validator/merchants/pending` | Ya (Validator/SA) | Antrian verifikasi merchant pending |
+| GET | `/api/v1/admin/validator/gigs/pending` | Ya (Validator/SA) | Antrian verifikasi gig pending |
+| PATCH | `/api/v1/admin/validator/merchants/:id/verify` | Ya (Validator) | Approve/reject KYB merchant |
+| PATCH | `/api/v1/admin/validator/gigs/:id/verify` | Ya (Validator) | Approve/reject gig vendor |
+| PATCH | `/api/v1/admin/validator/merchants/:id/suspend` | Ya (Validator/SA) | Suspend/unsuspend merchant |
+| PATCH | `/api/v1/admin/validator/users/:id/suspend` | Ya (Validator/SA) | Suspend/unsuspend user |
+| PATCH | `/api/v1/admin/validator/disputes/:id/submit-verdict` | Ya (Validator) | Simpan keputusan sengketa (Tahap 1) |
+| PATCH | `/api/v1/admin/validator/disputes/:id/confirm-verdict` | Ya (Validator) | Konfirmasi & eksekusi keputusan sengketa (Tahap 2) |
+| PATCH | `/api/v1/admin/validator/disputes/:id/executive-decision` | Ya (Super Admin) | Override keputusan sengketa langsung |
+| PATCH | `/api/v1/admin/validator/:id/resolve` | Ya (Validator) | Resolve dispute (legacy endpoint) |
+
+### Disputes (`/api/v1/disputes`)
+
+| Method | Endpoint | Auth | Keterangan |
+|---|---|---|---|
+| POST | `/api/v1/disputes` | Ya (Client) | Buka tiket sengketa pesanan dengan bukti (multipart) |
+| PATCH | `/api/v1/disputes/:id/resolve` | Ya (Admin) | Resolve dispute |
+
+### Appeals (`/api/v1/appeals`)
+
+| Method | Endpoint | Auth | Keterangan |
+|---|---|---|---|
+| POST | `/api/v1/appeals` | Ya (Client/Merchant) | Ajukan banding penolakan/suspensi |
+| GET | `/api/v1/appeals` | Ya (Super Admin) | List semua pengajuan banding |
+| PATCH | `/api/v1/appeals/:id/resolve` | Ya (Super Admin) | Selesaikan pengajuan banding |
+
+### System Config (`/api/v1/system-config`)
+
+| Method | Endpoint | Auth | Keterangan |
+|---|---|---|---|
+| GET | `/api/v1/system-config` | Ya (Super Admin) | Semua data konfigurasi sistem |
+| GET | `/api/v1/system-config/audit-logs` | Ya (Super Admin) | Log audit perubahan sistem |
+| GET | `/api/v1/system-config/users` | Ya (Super Admin) | List user sistem (`?status=active\|suspended`) |
+| GET | `/api/v1/system-config/midtrans/health` | Ya (Super Admin) | Health check koneksi Midtrans gateway |
+| GET | `/api/v1/system-config/analytics` | Ya (Super Admin) | Analitik transaksi platform: GMV, revenue (`?period=day\|week\|month`) |
+| GET | `/api/v1/system-config/maintenance` | Ya (Super Admin) | Status maintenance mode |
+| GET | `/api/v1/system-config/dashboard-overview` | Ya (Super Admin) | Aggregation performa server & active sessions |
+| GET | `/api/v1/system-config/:key` | Ya (Super Admin) | Nilai konfigurasi by key |
+| PUT | `/api/v1/system-config/:key` | Ya (Super Admin) | Update konfigurasi by key (wajib `confirmPassword`) |
+| POST | `/api/v1/system-config/create-admin` | Ya (Super Admin) | Buat akun Admin Validator atau Admin Finance |
+| POST | `/api/v1/system-config/suspend-admin` | Ya (Super Admin) | Suspend admin (Validator/Finance) |
+| POST | `/api/v1/system-config/unsuspend-admin` | Ya (Super Admin) | Unsuspend admin |
+| POST | `/api/v1/system-config/delete-admin` | Ya (Super Admin) | Hapus akun admin (Validator/Finance) |
+
+### Monthly Reports (`/api/v1/monthly-reports`)
+
+| Method | Endpoint | Auth | Keterangan |
+|---|---|---|---|
+| POST | `/api/v1/monthly-reports/generate` | Ya (Finance) | Generate laporan bulanan |
+| PATCH | `/api/v1/monthly-reports/:id/operational-cost` | Ya (Finance) | Input biaya operasional (hanya `DRAFT`) |
+| POST | `/api/v1/monthly-reports/:id/process-dividend` | Ya (Finance) | Proses dividen → `PROCESSED` |
+| POST | `/api/v1/monthly-reports/:id/lock` | Ya (Finance) | Kunci laporan → `LOCKED` + kirim email |
+| POST | `/api/v1/monthly-reports/:id/upload-proof` | Ya (Finance) | Upload bukti transfer dividen (hanya `LOCKED`) |
+| GET | `/api/v1/monthly-reports` | Ya (Finance) | Semua laporan bulanan |
+| GET | `/api/v1/monthly-reports/:id` | Ya (Finance) | Detail laporan bulanan by ID |
+
+### Finance Admin Profile (`/api/v1/finance`)
+
+| Method | Endpoint | Auth | Keterangan |
+|---|---|---|---|
+| GET | `/api/v1/finance/profile/activity-log` | Ya (Finance) | Riwayat aktivitas (AuditLog) milik Finance Admin |
+| PATCH | `/api/v1/finance/profile` | Ya (Finance) | Memperbarui profil Finance Admin |
+
+### Notifications (`/api/v1/notifications`)
+
+| Method | Endpoint | Auth | Keterangan |
+|---|---|---|---|
+| GET | `/api/v1/notifications` | Ya | Notifikasi milik sendiri |
+| PATCH | `/api/v1/notifications/:id/read` | Ya | Tandai satu notifikasi sudah dibaca |
+| PATCH | `/api/v1/notifications/read-all` | Ya | Tandai semua notifikasi sudah dibaca |
+
+### Chat Stream Integration (`/api/v1/chat`)
+
+| Method | Endpoint | Auth | Keterangan |
+|---|---|---|---|
+| GET | `/api/v1/chat/token` | Ya | Dapatkan token otentikasi Stream Chat |
+| POST | `/api/v1/chat/create-channel` | Ya (Client) | Buat channel percakapan pesanan |
+
+### Upload File (`/api/v1/upload`)
+
+| Method | Endpoint | Auth | Keterangan |
+|---|---|---|---|
+| POST | `/api/v1/upload/image` | Tidak wajib | Upload file ke Storage (bucket `'deliverables'` max 150MB, bucket lain max 5MB) |
 
 **Rekomendasi nama folder saat upload:**
 

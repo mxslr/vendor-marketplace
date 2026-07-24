@@ -28,6 +28,46 @@ export class PaymentsService {
     private notifications: NotificationsService,
   ) {}
 
+  getAvailablePaymentMethods() {
+    return [
+      {
+        id: 'va',
+        name: 'Virtual Account',
+        type: 'midtrans',
+        description:
+          'Pembayaran instan via Virtual Account Bank (BCA, BNI, BRI, Mandiri)',
+        banks: [
+          { code: 'bca', name: 'BCA Virtual Account', channel: 'bca_va' },
+          { code: 'bri', name: 'BRI Virtual Account', channel: 'bri_va' },
+          { code: 'bni', name: 'BNI Virtual Account', channel: 'bni_va' },
+          { code: 'mandiri', name: 'Mandiri Bill / VA', channel: 'echannel' },
+        ],
+        channels: ['bca_va', 'bri_va', 'bni_va', 'echannel'],
+      },
+      {
+        id: 'qris',
+        name: 'QRIS Bank & E-Wallet',
+        type: 'midtrans',
+        description:
+          'Pembayaran instan via scan QRIS menggunakan Mobile Banking Bank (BCA Mobile, BRImo, Wonder BNI, Livin Mandiri) maupun E-Wallet',
+        supportedBankApps: [
+          { bank: 'BCA', app: 'BCA Mobile / myBCA' },
+          { bank: 'BRI', app: 'BRImo' },
+          { bank: 'BNI', app: 'Wonder by BNI / BNI Mobile' },
+          { bank: 'Mandiri', app: "Livin' by Mandiri" },
+        ],
+        channels: ['qris', 'gopay', 'shopeepay'],
+      },
+      {
+        id: 'manual',
+        name: 'Pembayaran Manual',
+        type: 'manual',
+        description: 'Transfer bank manual dengan unggah bukti pembayaran',
+        instructions: 'Transfer ke rekening platform lalu unggah bukti transfer.',
+      },
+    ];
+  }
+
   async handleMidtransWebhook(
     payload: MidtransNotificationPayload,
   ): Promise<void> {
@@ -141,12 +181,26 @@ export class PaymentsService {
         `nettPayout=${nettPayout}, deadline=${deadline.toISOString()}`,
     );
 
+    // Preserve existing detailed paymentMethod (e.g. 'va_bca', 'va_bri', 'qris') if set,
+    // or construct from payload.va_numbers / payload.payment_type
+    let finalPaymentMethod = order.paymentMethod;
+    if (!finalPaymentMethod || finalPaymentMethod === 'all' || finalPaymentMethod === 'bank_transfer' || finalPaymentMethod === 'midtrans') {
+      const vaBank = (payload as any).va_numbers?.[0]?.bank;
+      if (vaBank) {
+        finalPaymentMethod = `va_${vaBank.toLowerCase()}`;
+      } else if (payload.payment_type) {
+        finalPaymentMethod = payload.payment_type;
+      } else {
+        finalPaymentMethod = 'midtrans';
+      }
+    }
+
     await this.prisma.$transaction(async (prisma) => {
       const updateResults = await prisma.order.updateMany({
         where: { id: order.id, status: OrderStatus.UNPAID },
         data: {
           status: OrderStatus.IN_PROGRESS,
-          paymentMethod: payload.payment_type ?? 'midtrans',
+          paymentMethod: finalPaymentMethod,
           midtransTransactionId: payload.transaction_id,
           snapToken: null,
           deadline,

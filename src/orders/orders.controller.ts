@@ -34,12 +34,15 @@ export class OrdersController {
   constructor(
     private ordersService: OrdersService,
     private invoiceService: InvoiceService,
-  ) {}
+  ) { }
 
   @UseGuards(AuthGuard)
   @Post()
-  create(@Request() req: RequestWithUser, @Body() body: { gigId: number }) {
-    return this.ordersService.createOrder(req.user.sub, body.gigId);
+  create(
+    @Request() req: RequestWithUser,
+    @Body() body: { gigId: number; price?: number },
+  ) {
+    return this.ordersService.createOrder(req.user.sub, body.gigId, body.price);
   }
 
   // Static GET routes MUST be before @Get(':id')
@@ -69,12 +72,12 @@ export class OrdersController {
   initiateMidtransPayment(
     @Request() req: RequestWithUser,
     @Param('id', ParseIntPipe) id: number,
-    @Body() body: { bank?: string },
+    @Body() body?: { bank?: string; paymentMethod?: string; paymentType?: string },
   ) {
     return this.ordersService.initiateMidtransPayment(
       id,
       req.user.sub,
-      body.bank,
+      body,
     );
   }
 

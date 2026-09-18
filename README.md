@@ -749,14 +749,16 @@ Gunakan **form-data** pada body request di Postman dengan parameter:
 #### H2. Validator Submit Verdict (Tahap 1 — Simpan Keputusan)
 
 ```
-PATCH /admin/validator/disputes/:disputeId/submit-verdict
+PATCH /admin/validator/disputes/:id/verdict/draft
 Authorization: Bearer <token_validator>
 Content-Type: application/json
 ```
 
 ```json
 {
-  "verdict": "APPROVE_REFUND",
+  "adminId": "number",
+  "disputeId": "number",
+  "decision": "APPROVE_REFUND" | "REJECT_COMPLAINT",
   "notes": "Bukti dari client kuat. Hasil tidak sesuai deskripsi gig."
 }
 ```
@@ -766,18 +768,18 @@ Content-Type: application/json
 #### H3. Validator Confirm Verdict (Tahap 2 — Eksekusi)
 
 ```
-PATCH /admin/validator/disputes/:disputeId/confirm-verdict
+PATCH /admin/validator/disputes/:id/verdict/confirm
 Authorization: Bearer <token_validator>
 ```
 
 **Expected:** Status order → `REFUND_APPROVED_WAITING_FINANCE`. Finance Admin mendapat notifikasi.
 
-> Untuk tolak komplain (dana ke merchant): gunakan `"verdict": "REJECT_COMPLAINT"` di H2 → order berubah ke `RELEASE_APPROVED_WAITING_FINANCE`.
+> Untuk tolak komplain (dana ke merchant): gunakan `"decision": "REJECT_COMPLAINT"` di H2 → order berubah ke `RELEASE_APPROVED_WAITING_FINANCE`.
 
 #### H4a. Finance Admin Eksekusi Refund
 
 ```
-PATCH /orders/:orderId/execute-refund
+PATCH /transactions/:id/refund
 Authorization: Bearer <token_finance>
 ```
 
@@ -786,7 +788,7 @@ Authorization: Bearer <token_finance>
 #### H4b. Finance Admin Eksekusi Release Dana ke Merchant
 
 ```
-PATCH /orders/:orderId/execute-release
+PATCH /transactions/:id/release
 Authorization: Bearer <token_finance>
 ```
 
@@ -1637,7 +1639,6 @@ Semua endpoint aplikasi menggunakan prefix `/api/v1`.
 | PATCH | `/api/v1/admin/validator/disputes/:id/submit-verdict` | Ya (Validator) | Simpan keputusan sengketa (Tahap 1) |
 | PATCH | `/api/v1/admin/validator/disputes/:id/confirm-verdict` | Ya (Validator) | Konfirmasi & eksekusi keputusan sengketa (Tahap 2) |
 | PATCH | `/api/v1/admin/validator/disputes/:id/executive-decision` | Ya (Super Admin) | Override keputusan sengketa langsung |
-| PATCH | `/api/v1/admin/validator/:id/resolve` | Ya (Validator) | Resolve dispute (legacy endpoint) |
 
 ### Disputes (`/api/v1/disputes`)
 

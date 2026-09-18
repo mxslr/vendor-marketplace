@@ -17,10 +17,10 @@ import {
 } from './admin-validator.service';
 import { AuthGuard } from '../auth/auth.guard';
 import { MerchantStatus, Role } from '@prisma/client';
-import { ResolveDisputeDto } from './dto/resolve-disputes.dto';
 import { RolesGuard } from 'src/auth/roles.guard';
 import { Roles } from 'src/auth/roles.decorator';
 import { GetMerchantsFilterDto } from './dto/get-merchants.dto';
+import { SubmitDisputeDto } from './dto/submit-disputes.dto';
 
 interface RequestWithUser extends Request {
   user: { sub: number; role: string };
@@ -172,44 +172,28 @@ export class AdminValidatorController {
   }
 
   @UseGuards(AuthGuard)
-  @Patch('disputes/:id/submit-verdict')
-  async submitVerdict(
+  @Patch('disputes/:id/verdict/draft')
+  async submitDecision(
     @Request() req: RequestWithUser,
     @Param('id', ParseIntPipe) id: number,
-    @Body() body: ResolveDisputeDto,
+    @Body() body: SubmitDisputeDto,
   ) {
     await this.checkValidatorRole(req.user.role);
-    return this.adminValidatorService.submitVerdict(
+    return this.adminValidatorService.submitDecision(
       req.user.sub,
       id,
-      body.verdict,
+      body.decision,
       body.notes,
     );
   }
 
   @UseGuards(AuthGuard)
-  @Patch('disputes/:id/confirm-verdict')
+  @Patch('disputes/:id/verdict/confirm')
   async confirmVerdict(
     @Request() req: RequestWithUser,
     @Param('id', ParseIntPipe) id: number,
   ) {
     await this.checkValidatorRole(req.user.role);
     return this.adminValidatorService.confirmVerdict(req.user.sub, id);
-  }
-
-  @UseGuards(AuthGuard)
-  @Patch(':id/resolve')
-  async resolveDispute(
-    @Request() req: RequestWithUser,
-    @Param('id') id: string,
-    @Body()
-    body: ResolveDisputeDto,
-  ) {
-    await this.checkValidatorRole(req.user.role);
-    return this.adminValidatorService.resolveDispute(
-      req.user.sub,
-      parseInt(id, 10),
-      body.verdict,
-    );
   }
 }

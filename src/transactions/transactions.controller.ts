@@ -56,7 +56,6 @@ export class TransactionsController {
     return this.transactionsService.getFinancialSummary(req.user.sub, period);
   }
 
-  // IMPORTANT: Dynamic param route must be AFTER all static GET routes
   @Get(':id')
   async getTransactionDetails(
     @Request() req: RequestWithUsers,
@@ -69,7 +68,6 @@ export class TransactionsController {
     return transaction;
   }
 
-  // Endpoint: PATCH /transactions/:id/verify
   @Patch(':id/verify')
   async verifyTransaction(
     @Request() req: RequestWithUsers,
